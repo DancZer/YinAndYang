@@ -6,24 +6,19 @@ public class TreeLogic : MonoBehaviour
 {
     public string ForestTypeName = "";
 
+    public int ForestDensity = 5;
     public int ForestMinDistance = 4;
     public int ForestMaxDistance = 10;
-    public int ForestDensity = 5;
-
-
+    
     public float ForestMinMaturity = 0.5f;
-    public float ForestMaxMaturity = 0.5f;
+    public float ForestMaxMaturity = 1f;
 
-    public float ForestSpreadTime = 30;
+    public float ForestTimeToMature = 10;
 
-    public float TimeToMature = 10;
+
+    public float TargetMaturity = 1f;
 
     public float GrowPercentage { get; private set; }
-
-    /// <summary>
-    /// Defines the max maturity level. Default is 1f, which is the prefab default size.
-    /// </summary>
-    public float TargetMaturity = 1f;
 
     private float maturity = 0;
     private float deltaMaturityCounter = 0;
@@ -39,7 +34,7 @@ public class TreeLogic : MonoBehaviour
     {
         if (maturity >= TargetMaturity) return;
 
-        var maturityTime = TargetMaturity / TimeToMature;
+        var maturityTime = TargetMaturity / ForestTimeToMature;
         var deltaMaturity = maturityTime * Time.deltaTime;
 
         deltaMaturityCounter += deltaMaturity;

@@ -108,13 +108,14 @@ public class ForestLogic : MonoBehaviour
 
     private TreeLogic CreateNewTree(TreeLogic referenceTree, List<Vector3> occupiedPositions)
     {
-        var minTreeDistSqr = referenceTree.ForestMaxDistance * referenceTree.ForestMaxDistance;
+        var minTreeDistSqr = referenceTree.ForestMinDistance * referenceTree.ForestMinDistance;
+        var maxTreeDistSqr = referenceTree.ForestMaxDistance * referenceTree.ForestMaxDistance;
         var refPos = referenceTree.transform.position;
 
         var found = false;
         var newPos = Vector3.zero;
 
-        var locatorRefVector = Vector3.forward * referenceTree.ForestMinDistance;
+        var locatorRefVector = Vector3.forward * Random.Range(referenceTree.ForestMinDistance, referenceTree.ForestMaxDistance);
         var locatorQuaterion = Quaternion.Euler(0, Random.Range(-180, 180f), 0);
 
         var locatorAngleStep = 15;
@@ -128,13 +129,13 @@ public class ForestLogic : MonoBehaviour
 
             foreach (var pos in occupiedPositions)
             {
-                if ((newPos - pos).sqrMagnitude < minTreeDistSqr)
+                if ((newPos - pos).sqrMagnitude <= minTreeDistSqr)
                 {
                     found = false;
                 }
             }
 
-            if(!found)
+            if (!found)
             {
                 locatorQuaterion *= Quaternion.Euler(0, locatorAngleStep, 0);
                 locatorAngleSum += locatorAngleStep;
@@ -144,9 +145,22 @@ public class ForestLogic : MonoBehaviour
                     locatorAngleSum %= 360;
                     locatorRefVector += Vector3.forward;
                 }
+
+                Debug.Log($"CreateNewTree at {refPos} search angle {locatorAngleSum} distance {locatorRefVector.magnitude}");
             }
         }
 
-        return Instantiate(referenceTree, newPos, referenceTree.transform.rotation);
+        if ((newPos - refPos).sqrMagnitude >= maxTreeDistSqr)
+        {
+            Debug.LogWarning($"Tree is outside the ref. tree max distance: {referenceTree.ForestTypeName} at {newPos} in range {(newPos - refPos).magnitude}");
+        }
+
+        var newTree =  Instantiate(referenceTree, newPos, referenceTree.transform.rotation);
+
+        newTree.TargetMaturity = Random.Range(referenceTree.ForestMinMaturity, referenceTree.ForestMaxMaturity);
+
+        Debug.Log($"NewTree at {newPos} with target maturity {newTree.TargetMaturity}");
+
+        return newTree;
     }
 }

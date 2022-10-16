@@ -10,8 +10,10 @@ GameObject:
   m_Component:
   - component: {fileID: 9161203046865636447}
   - component: {fileID: 9161203046865636444}
+  - component: {fileID: -6055217753980535586}
+  - component: {fileID: 4713164751150523158}
   m_Layer: 0
-  m_Name: Tree
+  m_Name: SpruceTree 1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -31,7 +33,6 @@ Transform:
   m_Children:
   - {fileID: 9161203046910803350}
   - {fileID: 9161203047818215501}
-  - {fileID: 9161203048093028769}
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -47,13 +48,40 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5388067047ddf49479eb9e5ca65baf59, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  ForestTypeName: Pine
+  ForestTypeName: Spruce
   ForestDensity: 5
+  ForestMinDistance: 4
+  ForestMaxDistance: 10
   ForestMinMaturity: 0.5
-  ForestMaxMaturity: 0.5
-  ForestSpreadTime: 30
-  TimeToMature: 10
+  ForestMaxMaturity: 1
+  ForestTimeToMature: 10
   TargetMaturity: 1
+--- !u!114 &-6055217753980535586
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9161203046865636445}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0d26d8f0eea7f48449d14e196cdf9d22, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!136 &4713164751150523158
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9161203046865636445}
+  m_Material: {fileID: 0}
+  m_IsTrigger: 0
+  m_Enabled: 1
+  m_Radius: 1.5
+  m_Height: 8
+  m_Direction: 1
+  m_Center: {x: 0, y: 4, z: 0}
 --- !u!1 &9161203046910803351
 GameObject:
   m_ObjectHideFlags: 0
@@ -1894,49 +1922,3 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 0}
---- !u!1 &9161203048093028774
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 9161203048093028769}
-  - component: {fileID: 9161203048093028768}
-  m_Layer: 0
-  m_Name: Detector
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &9161203048093028769
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 9161203048093028774}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 9161203046865636447}
-  m_RootOrder: 2
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!136 &9161203048093028768
-CapsuleCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 9161203048093028774}
-  m_Material: {fileID: 0}
-  m_IsTrigger: 0
-  m_Enabled: 1
-  m_Radius: 5
-  m_Height: 5
-  m_Direction: 1
-  m_Center: {x: 0, y: 0, z: 0}
