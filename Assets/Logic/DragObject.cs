@@ -22,6 +22,8 @@ public class DragObject : MonoBehaviour
     {
         if (!IsPickedUp)
         {
+            zCoord = Camera.main.WorldToScreenPoint(gameObject.transform.position).z;
+            offset = gameObject.transform.position - GetMouseWorldPos();
             action = Action.PickUp;
         }
         else
@@ -34,8 +36,6 @@ public class DragObject : MonoBehaviour
     {
         if (action == Action.PickUp)
         {
-            zCoord = Camera.main.WorldToScreenPoint(gameObject.transform.position).z;
-            offset = gameObject.transform.position - GetMouseWorldPos();
             IsPickedUp = true;
         }
         else if(action == Action.PutDown)
