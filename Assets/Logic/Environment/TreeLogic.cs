@@ -20,18 +20,25 @@ public class TreeLogic : MonoBehaviour
 
     public float GrowPercentage { get; private set; }
 
+    public bool IsInTheGround => !dragObject.IsPickedUp;
+
     private float maturity = 0;
     private float deltaMaturityCounter = 0;
+
+    private DragObject dragObject;  
 
     // Start is called before the first frame update
     void Start()
     {
         transform.localScale = Vector3.one * maturity;
+
+        dragObject = GetComponent<DragObject>();
     }
 
     // Update is called once per frame
     void Update()
     {
+        if (dragObject.IsPickedUp) return;
         if (maturity >= TargetMaturity) return;
 
         var maturityTime = TargetMaturity / ForestTimeToMature;

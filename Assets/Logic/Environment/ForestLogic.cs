@@ -9,6 +9,9 @@ public class ForestLogic : MonoBehaviour
     public float NewTreeGrowPercentageTreshold = 0.5f;
     public float ForestUpdateTime = 5;
 
+    public GameObject[] treePrefabArray;
+    private Dictionary<string, GameObject> treePrefabDict = new Dictionary<string, GameObject>();
+
     private float lastUpdateTime = 0;
 
     private List<TreeLogic> globalTreeList = new List<TreeLogic>();
@@ -17,7 +20,26 @@ public class ForestLogic : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        foreach(var treePrefab in treePrefabArray){
+            var logic = treePrefab.GetComponent<TreeLogic>();
+            treePrefabDict.Add(logic.ForestTypeName, treePrefab);
+        }
+
         FindForests();
+
+        CreateRandomTrees();
+    }
+
+    private void CreateRandomTrees()
+    {
+        var i = 0;
+        var distance = 50;
+        foreach (var treePrefab in treePrefabArray)
+        {
+            var treeLogic = treePrefab.GetComponent<TreeLogic>();
+            var newTree = Instantiate(treePrefabDict.GetValueOrDefault(treeLogic.ForestTypeName), new Vector3(Random.Range(distance * i, distance * (i+1)), 0, Random.Range(distance * i, distance * (i + 1))), Quaternion.identity);
+            i++;
+        }
     }
 
     // Update is called once per frame
@@ -51,6 +73,13 @@ public class ForestLogic : MonoBehaviour
                 treeByName.Add(treeLogic.ForestTypeName, list);
             }
         }
+
+        foreach(var treeName in treeByName.Keys){
+            if (!treePrefabDict.ContainsKey(treeName))
+            {
+                Debug.LogError($"Tree {treeName} does not have a prefab assigned to forest!");
+            }
+        }
     }
 
     private void CheckForNewTree()
@@ -70,6 +99,7 @@ public class ForestLogic : MonoBehaviour
 
                 foreach (var refTree in trees)
                 {
+                    if (!refTree.IsInTheGround) continue;
                     if (processedTreeHash.Contains(refTree)) continue; //tree already created new trees
                     if (refTree.GrowPercentage < NewTreeGrowPercentageTreshold) continue; //the tree is too young to make new
 
@@ -155,12 +185,19 @@ public class ForestLogic : MonoBehaviour
             Debug.LogWarning($"Tree is outside the ref. tree max distance: {referenceTree.ForestTypeName} at {newPos} in range {(newPos - refPos).magnitude}");
         }
 
-        var newTree =  Instantiate(referenceTree, newPos, referenceTree.transform.rotation);
+        newPos.y = GetWorldYCord();
+        var newTree =  Instantiate(treePrefabDict.GetValueOrDefault(referenceTree.ForestTypeName), newPos, referenceTree.transform.rotation);
+        var newTreeLogic = newTree.GetComponent<TreeLogic>();
 
-        newTree.TargetMaturity = Random.Range(referenceTree.ForestMinMaturity, referenceTree.ForestMaxMaturity);
+        newTreeLogic.TargetMaturity = Random.Range(referenceTree.ForestMinMaturity, referenceTree.ForestMaxMaturity);
 
-        Debug.Log($"NewTree at {newPos} with target maturity {newTree.TargetMaturity}");
+        Debug.Log($"NewTree at {newPos} with target maturity {newTreeLogic.TargetMaturity}");
 
-        return newTree;
+        return newTreeLogic;
+    }
+
+    private float GetWorldYCord()
+    {
+        return 0;
     }
 }

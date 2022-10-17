@@ -34136,7 +34136,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5388067047ddf49479eb9e5ca65baf59, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  ForestTypeName: Oak
+  ForestTypeName: Palm
   ForestDensity: 10
   ForestMinDistance: 5
   ForestMaxDistance: 20

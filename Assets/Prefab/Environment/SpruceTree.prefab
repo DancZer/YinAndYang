@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: -6055217753980535586}
   - component: {fileID: 4713164751150523158}
   m_Layer: 0
-  m_Name: SpruceTree 1
+  m_Name: SpruceTree
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
