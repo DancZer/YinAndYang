@@ -2,28 +2,23 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class DragObject : MonoBehaviour
+public class HandGrabLogic : MonoBehaviour
 {
     public enum Action
     {
         Unknown, PickUp, PutDown
     }
 
-    private Vector3 offset;
-
-    private float zCoord;
+    public Vector3 GrabOffset = Vector3.zero;
 
     public bool IsPickedUp { get; private set; }
 
     private Action action = Action.Unknown;
 
-
-    private void OnMouseDown()
+    private void OnHandMouseDown()
     {
         if (!IsPickedUp)
         {
-            zCoord = Camera.main.WorldToScreenPoint(gameObject.transform.position).z;
-            offset = gameObject.transform.position - GetMouseWorldPos();
             action = Action.PickUp;
         }
         else
@@ -32,7 +27,7 @@ public class DragObject : MonoBehaviour
         }
     }
 
-    private void OnMouseUp()
+    private void OnHandMouseUp()
     {
         if (action == Action.PickUp)
         {
@@ -47,20 +42,11 @@ public class DragObject : MonoBehaviour
         }
     }
 
-    private void OnMouseOver()
+    private void OnHandMouseMove(Vector3 worldPos)
     {
         if (IsPickedUp)
         {
-            transform.position = GetMouseWorldPos() + offset;
+            transform.position = worldPos + GrabOffset;
         }
-    }
-
-    private Vector3 GetMouseWorldPos()
-    {
-        var mousePoint = Input.mousePosition;
-
-        mousePoint.z = zCoord;
-
-        return Camera.main.ScreenToWorldPoint(mousePoint);
     }
 }

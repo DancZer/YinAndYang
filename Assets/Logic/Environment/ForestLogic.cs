@@ -99,7 +99,7 @@ public class ForestLogic : MonoBehaviour
 
                 foreach (var refTree in trees)
                 {
-                    if (!refTree.IsInTheGround) continue;
+                    if (!refTree.IsLogicEnabled) continue;
                     if (processedTreeHash.Contains(refTree)) continue; //tree already created new trees
                     if (refTree.GrowPercentage < NewTreeGrowPercentageTreshold) continue; //the tree is too young to make new
 
