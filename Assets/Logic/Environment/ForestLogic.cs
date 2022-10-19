@@ -6,23 +6,25 @@ public class ForestLogic : MonoBehaviour
 {
     public const float DeltaMaturityTreshold = 0.1f;
     
+    public int MaxTreeCount = 100;
+    
     public float NewTreeGrowPercentageTreshold = 0.5f;
     public float ForestUpdateTime = 5;
 
     public GameObject[] treePrefabArray;
-    private Dictionary<string, GameObject> treePrefabDict = new Dictionary<string, GameObject>();
+    private Dictionary<string, GameObject> _treePrefabDict = new Dictionary<string, GameObject>();
 
-    private float lastUpdateTime = 0;
+    private float _lastUpdateTime = 0;
 
-    private List<TreeLogic> globalTreeList = new List<TreeLogic>();
-    private Dictionary<string, List<TreeLogic>> treeByName = new Dictionary<string, List<TreeLogic>>();
+    private List<TreeLogic> _globalTreeList = new List<TreeLogic>();
+    private Dictionary<string, List<TreeLogic>> _treeByName = new Dictionary<string, List<TreeLogic>>();
 
     // Start is called before the first frame update
     void Start()
     {
         foreach(var treePrefab in treePrefabArray){
             var logic = treePrefab.GetComponent<TreeLogic>();
-            treePrefabDict.Add(logic.ForestTypeName, treePrefab);
+            _treePrefabDict.Add(logic.ForestTypeName, treePrefab);
         }
 
         FindForests();
@@ -37,7 +39,7 @@ public class ForestLogic : MonoBehaviour
         foreach (var treePrefab in treePrefabArray)
         {
             var treeLogic = treePrefab.GetComponent<TreeLogic>();
-            var newTree = Instantiate(treePrefabDict.GetValueOrDefault(treeLogic.ForestTypeName), new Vector3(Random.Range(distance * i, distance * (i+1)), 0, Random.Range(distance * i, distance * (i + 1))), Quaternion.identity);
+            var newTree = Instantiate(_treePrefabDict.GetValueOrDefault(treeLogic.ForestTypeName), new Vector3(Random.Range(distance * i, distance * (i+1)), 0, Random.Range(distance * i, distance * (i + 1))), Quaternion.identity);
             i++;
         }
     }
@@ -45,24 +47,27 @@ public class ForestLogic : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        if (lastUpdateTime + ForestUpdateTime > Time.timeSinceLevelLoad) return;
+        if (_lastUpdateTime + ForestUpdateTime > Time.timeSinceLevelLoad) return;
 
-        lastUpdateTime = Time.timeSinceLevelLoad;
+        _lastUpdateTime = Time.timeSinceLevelLoad;
 
         FindForests();
+
+        if(_globalTreeList.Count >= MaxTreeCount) return;
+        
         CheckForNewTree();
     }
 
     private void FindForests()
     {
-        globalTreeList.Clear(); ;
-        treeByName.Clear();
+        _globalTreeList.Clear(); ;
+        _treeByName.Clear();
 
         foreach (var treeLogic in FindObjectsOfType<TreeLogic>())
         {
-            globalTreeList.Add(treeLogic);
+            _globalTreeList.Add(treeLogic);
 
-            if (treeByName.TryGetValue(treeLogic.ForestTypeName, out var treeLogics))
+            if (_treeByName.TryGetValue(treeLogic.ForestTypeName, out var treeLogics))
             {
                 treeLogics.Add(treeLogic);
             }
@@ -70,12 +75,12 @@ public class ForestLogic : MonoBehaviour
             {
                 var list = new List<TreeLogic>();
                 list.Add(treeLogic);
-                treeByName.Add(treeLogic.ForestTypeName, list);
+                _treeByName.Add(treeLogic.ForestTypeName, list);
             }
         }
 
-        foreach(var treeName in treeByName.Keys){
-            if (!treePrefabDict.ContainsKey(treeName))
+        foreach(var treeName in _treeByName.Keys){
+            if (!_treePrefabDict.ContainsKey(treeName))
             {
                 Debug.LogError($"Tree {treeName} does not have a prefab assigned to forest!");
             }
@@ -84,7 +89,7 @@ public class ForestLogic : MonoBehaviour
 
     private void CheckForNewTree()
     {
-        foreach (var trees in treeByName.Values)
+        foreach (var trees in _treeByName.Values)
         {
             var treeTypeRef = trees[0];
 
@@ -108,7 +113,7 @@ public class ForestLogic : MonoBehaviour
 
                     occupiedPositions.Add(refTree.transform.position);
 
-                    foreach (var globalTree in globalTreeList)
+                    foreach (var globalTree in _globalTreeList)
                     {
                         if (densityCounter >= treeTypeRef.ForestDensity) break;
 
@@ -125,7 +130,7 @@ public class ForestLogic : MonoBehaviour
                         var newTree = CreateNewTree(refTree, occupiedPositions);
 
                         newTrees.Add(newTree);
-                        globalTreeList.Add(newTree);
+                        _globalTreeList.Add(newTree);
                         processedTreeHash.Add(refTree);
                         break;
                     }
@@ -175,8 +180,6 @@ public class ForestLogic : MonoBehaviour
                     locatorAngleSum %= 360;
                     locatorRefVector += Vector3.forward;
                 }
-
-                Debug.Log($"CreateNewTree at {refPos} search angle {locatorAngleSum} distance {locatorRefVector.magnitude}");
             }
         }
 
@@ -186,7 +189,7 @@ public class ForestLogic : MonoBehaviour
         }
 
         newPos.y = GetWorldYCord();
-        var newTree =  Instantiate(treePrefabDict.GetValueOrDefault(referenceTree.ForestTypeName), newPos, referenceTree.transform.rotation);
+        var newTree =  Instantiate(_treePrefabDict.GetValueOrDefault(referenceTree.ForestTypeName), newPos, referenceTree.transform.rotation);
         var newTreeLogic = newTree.GetComponent<TreeLogic>();
 
         newTreeLogic.TargetMaturity = Random.Range(referenceTree.ForestMinMaturity, referenceTree.ForestMaxMaturity);

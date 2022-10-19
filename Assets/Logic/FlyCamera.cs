@@ -13,35 +13,36 @@ public class FlyCamera : MonoBehaviour {
     space : Moves camera on X and Z axis only.  So camera doesn't gain any height*/
      
      
-    float mainSpeed = 100.0f; //regular speed
-    float shiftAdd = 250.0f; //multiplied by how long shift is held.  Basically running
-    float maxShift = 1000.0f; //Maximum speed when holdin gshift
-    float camSens = 0.25f; //How sensitive it with mouse
-    private Vector3 lastMouse = new Vector3(255, 255, 255); //kind of in the middle of the screen, rather than at the top (play)
-    private float totalRun= 1.0f;
+    public float MainSpeed = 100.0f; //regular speed
+    public float ShiftAdd = 250.0f; //multiplied by how long shift is held.  Basically running
+    public float MaxShift = 1000.0f; //Maximum speed when holdin gshift
+    public float CamSens = 0.25f; //How sensitive it with mouse
+
+    private Vector3 _lastMouse = new Vector3(255, 255, 255); //kind of in the middle of the screen, rather than at the top (play)
+    private float _totalRun= 1.0f;
      
     void Update () {
         if (Input.GetKey(KeyCode.Mouse2)) { 
-            lastMouse = Input.mousePosition - lastMouse ;
-            lastMouse = new Vector3(-lastMouse.y * camSens, lastMouse.x * camSens, 0 );
-            lastMouse = new Vector3(transform.eulerAngles.x + lastMouse.x , transform.eulerAngles.y + lastMouse.y, 0);
-            transform.eulerAngles = lastMouse;
+            _lastMouse = Input.mousePosition - _lastMouse ;
+            _lastMouse = new Vector3(-_lastMouse.y * CamSens, _lastMouse.x * CamSens, 0 );
+            _lastMouse = new Vector3(transform.eulerAngles.x + _lastMouse.x , transform.eulerAngles.y + _lastMouse.y, 0);
+            transform.eulerAngles = _lastMouse;
         }
-        lastMouse = Input.mousePosition;
+        _lastMouse = Input.mousePosition;
         //Mouse  camera angle done.  
 
         //Keyboard commands
         Vector3 p = GetBaseInput();
         if (p.sqrMagnitude > 0){ // only move while a direction key is pressed
           if (Input.GetKey (KeyCode.LeftShift)){
-              totalRun += Time.deltaTime;
-              p  = p * totalRun * shiftAdd;
-              p.x = Mathf.Clamp(p.x, -maxShift, maxShift);
-              p.y = Mathf.Clamp(p.y, -maxShift, maxShift);
-              p.z = Mathf.Clamp(p.z, -maxShift, maxShift);
+              _totalRun += Time.deltaTime;
+              p  = p * _totalRun * ShiftAdd;
+              p.x = Mathf.Clamp(p.x, -MaxShift, MaxShift);
+              p.y = Mathf.Clamp(p.y, -MaxShift, MaxShift);
+              p.z = Mathf.Clamp(p.z, -MaxShift, MaxShift);
           } else {
-              totalRun = Mathf.Clamp(totalRun * 0.5f, 1f, 1000f);
-              p = p * mainSpeed;
+              _totalRun = Mathf.Clamp(_totalRun * 0.5f, 1f, 1000f);
+              p = p * MainSpeed;
           }
          
           p = p * Time.deltaTime;

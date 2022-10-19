@@ -135,7 +135,6 @@ GameObject:
   - component: {fileID: 135734297}
   - component: {fileID: 135734296}
   - component: {fileID: 135734295}
-  - component: {fileID: 135734299}
   m_Layer: 6
   m_Name: Hand
   m_TagString: Untagged
@@ -221,18 +220,6 @@ Transform:
   m_Father: {fileID: 1335048649}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &135734299
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 135734294}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ae741f13b4c03a34d84bd5d4e5550974, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!1 &678097310
 GameObject:
   m_ObjectHideFlags: 0
@@ -277,6 +264,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ad5eb447a97dc8b4f90963fdda6d9bbe, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  MaxTreeCount: 100
   NewTreeGrowPercentageTreshold: 0.5
   ForestUpdateTime: 2
   treePrefabArray:
@@ -474,6 +462,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ce0f4407962d81f4b83d2bcf34ca325f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  MainSpeed: 100
+  ShiftAdd: 250
+  MaxShift: 1000
+  CamSens: 0.25
 --- !u!1 &1146926936
 GameObject:
   m_ObjectHideFlags: 0
@@ -607,6 +599,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 64
   HandHeight: 1
+  MouseLongPressDeltaTime: 0.1
 --- !u!4 &1335048649
 Transform:
   m_ObjectHideFlags: 0

@@ -19,11 +19,10 @@ public class TreeLogic : MonoBehaviour
     public float TargetMaturity = 1f;
 
     public float GrowPercentage { get; private set; }
+    public bool IsLogicEnabled = true;
 
-    private float maturity = 0;
-    private float deltaMaturityCounter = 0;
-
-    public bool IsLogicEnabled  {get; set; } = true;
+    private float _maturity = 0;
+    private float _deltaMaturityCounter = 0;
 
     void Start()
     {
@@ -34,27 +33,27 @@ public class TreeLogic : MonoBehaviour
     void Update()
     {
         if(!IsLogicEnabled) return;
-        if (maturity >= TargetMaturity) return;
+        if (_maturity >= TargetMaturity) return;
 
         var maturityTime = TargetMaturity / ForestTimeToMature;
         var deltaMaturity = maturityTime * Time.deltaTime;
 
-        deltaMaturityCounter += deltaMaturity;
+        _deltaMaturityCounter += deltaMaturity;
 
-        if (deltaMaturityCounter < ForestLogic.DeltaMaturityTreshold) return;
+        if (_deltaMaturityCounter < ForestLogic.DeltaMaturityTreshold) return;
 
-        maturity += deltaMaturityCounter;
-        deltaMaturityCounter = 0;
+        _maturity += _deltaMaturityCounter;
+        _deltaMaturityCounter = 0;
 
-        if (maturity > TargetMaturity)
+        if (_maturity > TargetMaturity)
         {
-            maturity = TargetMaturity;
-            GrowPercentage = maturity / TargetMaturity;
+            _maturity = TargetMaturity;
+            GrowPercentage = _maturity / TargetMaturity;
         }
 
-        if(maturity > 0)
+        if(_maturity > 0)
         {
-            transform.localScale = Vector3.one * maturity;
+            transform.localScale = Vector3.one * _maturity;
         }
     }
 }

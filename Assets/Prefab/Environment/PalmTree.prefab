@@ -34098,7 +34098,7 @@ GameObject:
   - component: {fileID: 9161203046865636447}
   - component: {fileID: 9161203046865636444}
   - component: {fileID: 2604892509318068617}
-  - component: {fileID: 4000031550754490187}
+  - component: {fileID: 517598092446623666}
   m_Layer: 0
   m_Name: PalmTree
   m_TagString: Untagged
@@ -34143,6 +34143,7 @@ MonoBehaviour:
   ForestMaxMaturity: 1
   ForestTimeToMature: 15
   TargetMaturity: 1
+  IsLogicEnabled: 1
 --- !u!54 &2604892509318068617
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -34159,7 +34160,7 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
---- !u!114 &4000031550754490187
+--- !u!114 &517598092446623666
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -34168,12 +34169,10 @@ MonoBehaviour:
   m_GameObject: {fileID: 9161203046865636445}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c0edb820e3d78394197aa33d22339ba0, type: 3}
+  m_Script: {fileID: 11500000, guid: f37f20ec90364bb44bc2a14d52aca6a2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  handObject: {fileID: 0}
-  groundObject: {fileID: 0}
-  HandHeight: 0.3
+  GrabOffset: {x: 0, y: 0, z: 0}
 --- !u!1 &9161203046910803351
 GameObject:
   m_ObjectHideFlags: 0
