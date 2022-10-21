@@ -264,9 +264,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ad5eb447a97dc8b4f90963fdda6d9bbe, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  StartTreeCount: 20
   MaxTreeCount: 100
   NewTreeGrowPercentageTreshold: 0.5
-  ForestUpdateTime: 2
+  ForestUpdateTime: 10
   treePrefabArray:
   - {fileID: 9161203046865636445, guid: 7173b877c7ec1164e922c1092160bfb4, type: 3}
   - {fileID: 9161203046865636445, guid: c14aa8d712acd1a4e9b5f9f5e13cbc92, type: 3}

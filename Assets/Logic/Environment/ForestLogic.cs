@@ -6,8 +6,9 @@ public class ForestLogic : MonoBehaviour
 {
     public const float DeltaMaturityTreshold = 0.1f;
     
+    public int StartTreeCount = 20;
     public int MaxTreeCount = 100;
-    
+        
     public float NewTreeGrowPercentageTreshold = 0.5f;
     public float ForestUpdateTime = 5;
 
@@ -39,9 +40,20 @@ public class ForestLogic : MonoBehaviour
         foreach (var treePrefab in treePrefabArray)
         {
             var treeLogic = treePrefab.GetComponent<TreeLogic>();
-            var newTree = Instantiate(_treePrefabDict.GetValueOrDefault(treeLogic.ForestTypeName), new Vector3(Random.Range(distance * i, distance * (i+1)), 0, Random.Range(distance * i, distance * (i + 1))), Quaternion.identity);
+            var newTreeObj = Instantiate(_treePrefabDict.GetValueOrDefault(treeLogic.ForestTypeName), new Vector3(Random.Range(distance * i, distance * (i+1)), 0, Random.Range(distance * i, distance * (i + 1))), Quaternion.identity);
+            
+            var newTree = newTreeObj.GetComponent<TreeLogic>();
+            newTree.SetMaturityBySizePercentage(1f);
             i++;
         }
+
+        FindForests();
+
+        while(_globalTreeList.Count < StartTreeCount){
+            CheckForNewTree(true);
+        }
+        
+        Debug.Log($"Tree count: {_globalTreeList.Count}");
     }
 
     // Update is called once per frame
@@ -87,7 +99,7 @@ public class ForestLogic : MonoBehaviour
         }
     }
 
-    private void CheckForNewTree()
+    private void CheckForNewTree(bool init = false)
     {
         foreach (var trees in _treeByName.Values)
         {
@@ -129,6 +141,10 @@ public class ForestLogic : MonoBehaviour
                     {
                         var newTree = CreateNewTree(refTree, occupiedPositions);
 
+                        if(init){
+                            newTree.SetMaturityBySizePercentage(1f);
+                        }
+
                         newTrees.Add(newTree);
                         _globalTreeList.Add(newTree);
                         processedTreeHash.Add(refTree);
@@ -137,7 +153,7 @@ public class ForestLogic : MonoBehaviour
                 }
 
                 trees.AddRange(newTrees);
-            } while (newTrees.Count > 0);
+            } while (newTrees.Count > 0 && !init);
         }
     }
 
@@ -193,8 +209,6 @@ public class ForestLogic : MonoBehaviour
         var newTreeLogic = newTree.GetComponent<TreeLogic>();
 
         newTreeLogic.TargetMaturity = Random.Range(referenceTree.ForestMinMaturity, referenceTree.ForestMaxMaturity);
-
-        Debug.Log($"NewTree at {newPos} with target maturity {newTreeLogic.TargetMaturity}");
 
         return newTreeLogic;
     }

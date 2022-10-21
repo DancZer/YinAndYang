@@ -4,6 +4,7 @@ using UnityEngine;
 
 public class TreeLogic : MonoBehaviour
 {
+    private const float MinScaleMultiplier = 0.0001f;
     public string ForestTypeName = "";
 
     public int ForestDensity = 5;
@@ -21,12 +22,12 @@ public class TreeLogic : MonoBehaviour
     public float GrowPercentage { get; private set; }
     public bool IsLogicEnabled = true;
 
-    private float _maturity = 0;
-    private float _deltaMaturityCounter = 0;
+    private float _maturity = MinScaleMultiplier;
+    private float _deltaMaturityCounter = 0f;
 
     void Start()
     {
-        transform.localScale = Vector3.one / 1000;
+        transform.localScale = Vector3.one * _maturity;
     }
 
     // Update is called once per frame
@@ -55,5 +56,16 @@ public class TreeLogic : MonoBehaviour
         {
             transform.localScale = Vector3.one * _maturity;
         }
+    }
+
+    public void SetMaturityBySizePercentage(float value)
+    {
+        if(value < 0f) value = MinScaleMultiplier;
+        if(value > 1f) value = 1f;
+
+        _maturity = TargetMaturity * value;
+        GrowPercentage = _maturity / TargetMaturity;
+
+        transform.localScale = Vector3.one * _maturity;
     }
 }
