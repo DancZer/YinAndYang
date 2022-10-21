@@ -460,7 +460,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 963194225}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ce0f4407962d81f4b83d2bcf34ca325f, type: 3}
+  m_Script: {fileID: 11500000, guid: 77edcff308b1e3d4596239d7222ec9d3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   MainSpeed: 100
@@ -599,6 +599,7 @@ MonoBehaviour:
   HandLayerMask:
     serializedVersion: 2
     m_Bits: 64
+  DirtLumpPrefab: {fileID: 2271386096753346809, guid: f99d7b4c03c969348be9f03c37f1a8e8, type: 3}
   HandHeight: 1
   MouseLongPressDeltaTime: 0.1
 --- !u!4 &1335048649

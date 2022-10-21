@@ -20,14 +20,24 @@ public class TreeLogic : MonoBehaviour
     public float TargetMaturity = 1f;
 
     public float GrowPercentage { get; private set; }
-    public bool IsLogicEnabled = true;
+    public bool IsLogicEnabled 
+    {
+        get
+        {
+            return !_grabObject?.IsInHand??true;
+        }
+    }
 
     private float _maturity = MinScaleMultiplier;
     private float _deltaMaturityCounter = 0f;
 
+    private GrabObject _grabObject;
+
     void Start()
     {
         transform.localScale = Vector3.one * _maturity;
+
+        _grabObject = GetComponent<GrabObject>();
     }
 
     // Update is called once per frame

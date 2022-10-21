@@ -5,4 +5,6 @@ using UnityEngine;
 public class GrabObject : MonoBehaviour
 {
     public Vector3 GrabOffset = Vector3.zero;
+    
+    public bool IsInHand { get; set;}
 }
