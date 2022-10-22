@@ -51,12 +51,15 @@ public class HandLogic : MonoBehaviour {
             handWordPos.y = HandHeight;
         }
 
-        HandObject.transform.position = handWordPos;
-
         if(_grabObject != null && _grabObject.IsInHand){
-            Debug.Log($"HandleHandMove {hit.collider} {handWordPos} {_grabObject.GrabOffset}");
-            _grabObject.transform.position = handWordPos + _grabObject.GrabOffset;
+            if(_grabObject.IsGrabAtTop){
+                handWordPos.y += _grabObject.transform.localScale.y;
+            }
+            
+            _grabObject.transform.position = handWordPos - Vector3.Scale(_grabObject.GrabOffset, _grabObject.transform.localScale);
         }
+
+        HandObject.transform.position = handWordPos;
     }
 
     private void HandleMouseButtons(RaycastHit hit)
@@ -96,7 +99,9 @@ public class HandLogic : MonoBehaviour {
                 _grabObject.gameObject.SetLayerOnAll(_handLayer);
                 _grabObject.IsInHand = true;
 
-                var dirtLump = Instantiate(DirtLumpPrefab, _grabObject.transform.position, Quaternion.identity);
+                if(_grabObject.CreateLumpWhenGrab){
+                    var dirtLump = Instantiate(DirtLumpPrefab, _grabObject.transform.position, Quaternion.identity);
+                }
             }
         }
     }

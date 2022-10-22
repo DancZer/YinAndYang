@@ -34143,7 +34143,6 @@ MonoBehaviour:
   ForestMaxMaturity: 1
   ForestTimeToMature: 20
   TargetMaturity: 1
-  IsLogicEnabled: 1
 --- !u!54 &7141584944075739191
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -34173,6 +34172,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   GrabOffset: {x: 0, y: 0, z: 0}
+  CreateLumpWhenGrab: 1
 --- !u!1 &9161203046910803351
 GameObject:
   m_ObjectHideFlags: 0
