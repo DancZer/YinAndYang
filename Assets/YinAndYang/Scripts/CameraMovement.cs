@@ -3,6 +3,9 @@ using System.Collections;
  
 public class CameraMovement : MonoBehaviour {
  
+    public float CamMinHeight = 2f;
+
+    public float ZoomSpeed = 50.0f; //zoom speed
     public float MainSpeed = 100.0f; //regular speed
     public float ShiftAdd = 250.0f; //multiplied by how long shift is held.  Basically running
     public float MaxShift = 1000.0f; //Maximum speed when holdin gshift
@@ -42,7 +45,16 @@ public class CameraMovement : MonoBehaviour {
             newPosition.x = transform.position.x;
             newPosition.z = transform.position.z;
             transform.position = newPosition;
-    
+        }
+
+        if(Input.GetAxis("Mouse ScrollWheel") != 0) {
+            transform.localPosition += (transform.rotation * Vector3.forward) * Input.GetAxis("Mouse ScrollWheel") * ZoomSpeed;
+        }
+
+        if(transform.position.y < CamMinHeight){
+            var pos = transform.position;
+            pos.y = CamMinHeight;
+            transform.position = pos;
         }
     }
      
