@@ -26,7 +26,7 @@ public class PlayerMovement : NetworkBehaviour {
         {
             playerCamera = Camera.main;
             playerCamera.transform.parent = transform;
-            playerCamera.transform.localPosition = new Vector3(0, 1, 0);
+            playerCamera.transform.localPosition = new Vector3(0, 0, 0);
         }
         else
         {
