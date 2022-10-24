@@ -12,6 +12,8 @@ public class ForestLogic : MonoBehaviour
     public float NewTreeGrowPercentageTreshold = 0.5f;
     public float ForestUpdateTime = 5;
 
+    public Transform WorldObjectTransform;
+
     public GameObject[] treePrefabArray;
     private Dictionary<string, GameObject> _treePrefabDict = new Dictionary<string, GameObject>();
 
@@ -39,11 +41,9 @@ public class ForestLogic : MonoBehaviour
         var distance = 50;
         foreach (var treePrefab in treePrefabArray)
         {
-            var treeLogic = treePrefab.GetComponent<TreeLogic>();
-            var newTreeObj = Instantiate(_treePrefabDict.GetValueOrDefault(treeLogic.ForestTypeName), new Vector3(Random.Range(distance * i, distance * (i+1)), 0, Random.Range(distance * i, distance * (i + 1))), Quaternion.identity);
-            
-            var newTree = newTreeObj.GetComponent<TreeLogic>();
-            newTree.SetMaturityBySizePercentage(1f);
+            var referenceTree = treePrefab.GetComponent<TreeLogic>();
+            var newTreeLogic = CreateNewTree(referenceTree, new Vector3(Random.Range(distance * i, distance * (i+1)), 0, Random.Range(distance * i, distance * (i + 1))), Quaternion.identity);
+            newTreeLogic.SetMaturityBySizePercentage(1f);
             i++;
         }
 
@@ -139,14 +139,14 @@ public class ForestLogic : MonoBehaviour
 
                     if (densityCounter < treeTypeRef.ForestDensity)
                     {
-                        var newTree = CreateNewTree(refTree, occupiedPositions);
+                        var newTreeObj = FindSpotAndCreateNewTree(refTree, occupiedPositions);
 
                         if(init){
-                            newTree.SetMaturityBySizePercentage(1f);
+                            newTreeObj.SetMaturityBySizePercentage(1f);
                         }
 
-                        newTrees.Add(newTree);
-                        _globalTreeList.Add(newTree);
+                        newTrees.Add(newTreeObj);
+                        _globalTreeList.Add(newTreeObj);
                         processedTreeHash.Add(refTree);
                         break;
                     }
@@ -157,7 +157,7 @@ public class ForestLogic : MonoBehaviour
         }
     }
 
-    private TreeLogic CreateNewTree(TreeLogic referenceTree, List<Vector3> occupiedPositions)
+    private TreeLogic FindSpotAndCreateNewTree(TreeLogic referenceTree, List<Vector3> occupiedPositions)
     {
         var minTreeDistSqr = referenceTree.ForestMinDistance * referenceTree.ForestMinDistance;
         var maxTreeDistSqr = referenceTree.ForestMaxDistance * referenceTree.ForestMaxDistance;
@@ -205,8 +205,15 @@ public class ForestLogic : MonoBehaviour
         }
 
         newPos.y = GetWorldYCord();
-        var newTree =  Instantiate(_treePrefabDict.GetValueOrDefault(referenceTree.ForestTypeName), newPos, referenceTree.transform.rotation);
-        var newTreeLogic = newTree.GetComponent<TreeLogic>();
+        var newTreeLogic = CreateNewTree(referenceTree, newPos, referenceTree.transform.rotation);
+
+        return newTreeLogic;
+    }
+
+    private TreeLogic CreateNewTree(TreeLogic referenceTree, Vector3 pos, Quaternion rotation)
+    {
+        var newTreeObj =  Instantiate(_treePrefabDict.GetValueOrDefault(referenceTree.ForestTypeName), pos, rotation, WorldObjectTransform);
+        var newTreeLogic = newTreeObj.GetComponent<TreeLogic>();
 
         newTreeLogic.TargetMaturity = Random.Range(referenceTree.ForestMinMaturity, referenceTree.ForestMaxMaturity);
 

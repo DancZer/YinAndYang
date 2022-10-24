@@ -9,6 +9,7 @@ public class HandLogic : MonoBehaviour {
     public LayerMask HandLayerMask;
 
     public GameObject DirtLumpPrefab;
+    public Transform WorldObjectTransform;
 
     public float HandHeight = 0.3f;
 
@@ -20,8 +21,10 @@ public class HandLogic : MonoBehaviour {
     private int _grabObjectLayerBak;
     private Quaternion _grabObjectRotation;
     private Rigidbody _grabObjectRigidbody;
-    private Vector3 _grabObjectLastVelocity;
     private int _handLayer;
+
+    private Vector3 _handObjectLastVelocity;
+    private Vector3 _handObjectLastPos;
 
     
     void Start()
@@ -62,16 +65,16 @@ public class HandLogic : MonoBehaviour {
             if(_grabObject.IsGrabAtTop){
                 handWordPos.y += _grabObject.transform.localScale.y;
             }
-            var lastPos = _grabObject.transform.position;
-            _grabObject.transform.position = handWordPos - Vector3.Scale(_grabObject.GrabOffset, _grabObject.transform.localScale);
-            _grabObject.transform.rotation = _grabObjectRotation * handRot;
 
-            _grabObjectLastVelocity = (_grabObject.transform.position - lastPos) / Time.deltaTime;
+            
 
             if(!_grabObject.IsGrabAtTop){
                 handRot *= Quaternion.Euler(0,0,90);
             }
         }
+
+        _handObjectLastVelocity = (handWordPos - _handObjectLastPos) / Time.deltaTime;
+        _handObjectLastPos = handWordPos;
 
         HandObject.transform.position = handWordPos;
         HandObject.transform.rotation = handRot * Quaternion.Euler(0,180,0);
@@ -98,14 +101,14 @@ public class HandLogic : MonoBehaviour {
             if(_grabObject != null){
                 _grabObject.State = GrabState.PutDown;
                 _grabObject.gameObject.SetLayerOnAll(_grabObjectLayerBak);
-                
+                _grabObject.transform.parent = WorldObjectTransform;
                 
                 if(_grabObjectRigidbody != null){
                     _grabObjectRigidbody.isKinematic = _grabObject.IsKinematicOnRelease;
 
-                    if(_grabObjectLastVelocity.magnitude > ThrowMinVelocity){
+                    if(_handObjectLastVelocity.magnitude > ThrowMinVelocity){
                         _grabObjectRigidbody.isKinematic = false;
-                        _grabObjectRigidbody.velocity = _grabObjectLastVelocity;
+                        _grabObjectRigidbody.velocity = _handObjectLastVelocity;
                         _grabObject.State = GrabState.Thrown;
                     }
 
@@ -148,6 +151,8 @@ public class HandLogic : MonoBehaviour {
                 }
 
                 _grabObject.State = GrabState.InHand;
+                _grabObject.transform.parent = HandObject.transform;
+                _grabObject.transform.localPosition = Vector3.Scale(_grabObject.GrabOffset, _grabObject.transform.localScale);
             }
         }
     }
