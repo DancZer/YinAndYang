@@ -58,7 +58,7 @@ public class HandLogic : MonoBehaviour {
 
         var handRot = Quaternion.LookRotation(new Vector3(ray.direction.x, 0, ray.direction.z), Vector3.up);
 
-        if(_grabObject != null && _grabObject.IsInHand){
+        if(_grabObject != null && _grabObject.State == GrabState.InHand){
             if(_grabObject.IsGrabAtTop){
                 handWordPos.y += _grabObject.transform.localScale.y;
             }
@@ -96,7 +96,7 @@ public class HandLogic : MonoBehaviour {
             _mouseDownTimeStart = 0;
 
             if(_grabObject != null){
-                _grabObject.IsInHand = false;
+                _grabObject.State = GrabState.PutDown;
                 _grabObject.gameObject.SetLayerOnAll(_grabObjectLayerBak);
                 
                 
@@ -106,6 +106,7 @@ public class HandLogic : MonoBehaviour {
                     if(_grabObjectLastVelocity.magnitude > ThrowMinVelocity){
                         _grabObjectRigidbody.isKinematic = false;
                         _grabObjectRigidbody.velocity = _grabObjectLastVelocity;
+                        _grabObject.State = GrabState.Thrown;
                     }
 
                     if(_grabObjectRigidbody.isKinematic){
@@ -118,7 +119,7 @@ public class HandLogic : MonoBehaviour {
             }
         }
                    
-        if(_grabObject != null && !_grabObject.IsInHand){
+        if(_grabObject != null && _grabObject.State != GrabState.InHand){
             if(_mouseDownTimeStart + MouseLongPressDeltaTime < Time.realtimeSinceStartup){
                 Debug.Log("Mouse long press");
                 
@@ -127,9 +128,13 @@ public class HandLogic : MonoBehaviour {
 
                 _grabObjectLayerBak = _grabObject.gameObject.layer;
                 _grabObject.gameObject.SetLayerOnAll(_handLayer);
-                _grabObject.IsInHand = true;
 
-                _grabObjectRotation = _grabObject.transform.rotation;
+                if(_grabObject.IsGrabAtTop){
+                    _grabObjectRotation = _grabObject.transform.rotation;
+                }else{
+                    _grabObjectRotation = Quaternion.identity;
+                }
+                
                 _grabObjectRigidbody = _grabObject.GetComponent<Rigidbody>();
 
                 if(_grabObjectRigidbody != null){
@@ -138,9 +143,11 @@ public class HandLogic : MonoBehaviour {
 
                 Debug.Log($"_grabObjectRotation {_grabObjectRotation.eulerAngles}");
 
-                if(_grabObject.CreateLumpWhenGrab){
+                if(_grabObject.CreateLumpWhenGrab && _grabObject.State == GrabState.PutDown){
                     var dirtLump = Instantiate(DirtLumpPrefab, _grabObject.transform.position, Quaternion.identity);
                 }
+
+                _grabObject.State = GrabState.InHand;
             }
         }
     }

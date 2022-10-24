@@ -2,6 +2,11 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+public enum GrabState
+{
+    InHand, PutDown, Thrown
+}
+
 public class GrabObject : MonoBehaviour
 {
     public Vector3 GrabOffset = Vector3.zero;
@@ -10,5 +15,5 @@ public class GrabObject : MonoBehaviour
     public bool IsGrabAtTop = false;
     public bool IsKinematicOnRelease = false;
     
-    public bool IsInHand { get; set;}
+    public GrabState State { get; set;} = GrabState.PutDown;
 }

@@ -24,7 +24,7 @@ public class TreeLogic : MonoBehaviour
     {
         get
         {
-            return !_grabObject?.IsInHand??true;
+            return _grabObject != null ? _grabObject.State == GrabState.PutDown : true;
         }
     }
 
