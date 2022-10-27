@@ -1,8 +1,9 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using FishNet.Object;
 
-public class ForestLogic : MonoBehaviour
+public class ForestLogic : NetworkBehaviour
 {
     public const float DeltaMaturityTreshold = 0.1f;
     
@@ -23,9 +24,11 @@ public class ForestLogic : MonoBehaviour
     private Dictionary<string, List<TreeLogic>> _treeByName = new Dictionary<string, List<TreeLogic>>();
 
     // Start is called before the first frame update
-    void Start()
+    public override void OnStartServer()
     {
-        foreach(var treePrefab in treePrefabArray){
+        base.OnStartServer();
+
+        foreach (var treePrefab in treePrefabArray){
             var logic = treePrefab.GetComponent<TreeLogic>();
             _treePrefabDict.Add(logic.ForestTypeName, treePrefab);
         }
@@ -59,6 +62,7 @@ public class ForestLogic : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        if (!IsServer) return;
         if (_lastUpdateTime + ForestUpdateTime > Time.timeSinceLevelLoad) return;
 
         _lastUpdateTime = Time.timeSinceLevelLoad;

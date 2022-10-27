@@ -150,9 +150,9 @@ MonoBehaviour:
   _addedNetworkObject: {fileID: 3357035217588845007}
   _networkObjectCache: {fileID: 3357035217588845007}
   CamMinHeight: 2
-  ZoomSpeed: 50
-  MainSpeed: 100
-  ShiftAdd: 250
+  ZoomSpeed: 30
+  MainSpeed: 30
+  ShiftAdd: 100
   MaxShift: 1000
   CamSens: 0.25
 --- !u!114 &3357035217588845007
@@ -179,7 +179,7 @@ MonoBehaviour:
   _isGlobal: 0
   _defaultDespawnType: 0
   NetworkObserver: {fileID: 0}
-  <PrefabId>k__BackingField: -1
+  <PrefabId>k__BackingField: 1
   _scenePathHash: 0
   <SceneId>k__BackingField: 0
   <AssetPathHash>k__BackingField: 2632400884367501841

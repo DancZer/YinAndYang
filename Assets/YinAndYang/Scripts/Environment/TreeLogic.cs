@@ -1,8 +1,9 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using FishNet.Object;
 
-public class TreeLogic : MonoBehaviour
+public class TreeLogic : NetworkBehaviour
 {
     private const float MinScaleMultiplier = 0.0001f;
     public string ForestTypeName = "";
@@ -33,16 +34,19 @@ public class TreeLogic : MonoBehaviour
 
     private GrabObject _grabObject;
 
-    void Start()
+    public override void OnStartServer()
     {
+        base.OnStartServer();
+
         transform.localScale = Vector3.one * _maturity;
 
         _grabObject = GetComponent<GrabObject>();
     }
 
-    // Update is called once per frame
+        // Update is called once per frame
     void Update()
     {
+        if (!IsServer) return;
         if(!IsLogicEnabled) return;
         if (_maturity >= TargetMaturity) return;
 

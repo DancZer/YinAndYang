@@ -32,7 +32,7 @@ public class PlayerLogic : NetworkBehaviour
     public void SpawnHand(GameObject prefab, Transform transform, PlayerLogic player)
     {
         GameObject handObj = Instantiate(prefab, transform.position + transform.forward, Quaternion.identity);
-        ServerManager.Spawn(handObj);
+        ServerManager.Spawn(handObj, player.NetworkManager.ClientManager.Connection);
         SetHandObject(handObj, player);
     }
  

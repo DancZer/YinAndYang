@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 497982216308674865}
   - component: {fileID: -2696138535703840960}
   - component: {fileID: -6100292108825321801}
+  - component: {fileID: -8235540367056569215}
   m_Layer: 0
   m_Name: Hand
   m_TagString: Untagged
@@ -70,7 +71,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   <IsNested>k__BackingField: 0
   <ComponentIndex>k__BackingField: 0
-  _networkBehaviours: []
+  _networkBehaviours:
+  - {fileID: -6100292108825321801}
+  - {fileID: -8235540367056569215}
   <ParentNetworkObject>k__BackingField: {fileID: 0}
   <ChildNetworkObjects>k__BackingField: []
   _isNetworked: 1
@@ -94,9 +97,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a2836e36774ca1c4bbbee976e17b649c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _componentIndexCache: 255
+  _componentIndexCache: 0
   _addedNetworkObject: {fileID: -2696138535703840960}
-  _networkObjectCache: {fileID: 0}
+  _networkObjectCache: {fileID: -2696138535703840960}
   _synchronizeParent: 0
   _packing:
     Position: 1
@@ -124,6 +127,29 @@ MonoBehaviour:
     X: 0
     Y: 0
     Z: 0
+--- !u!114 &-8235540367056569215
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 180557533655662575}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c4a7aa59f717a6844aa13428a0b7809f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _componentIndexCache: 1
+  _addedNetworkObject: {fileID: -2696138535703840960}
+  _networkObjectCache: {fileID: -2696138535703840960}
+  GroundObject: {fileID: 0}
+  HandLayerMask:
+    serializedVersion: 2
+    m_Bits: 64
+  DirtLumpPrefab: {fileID: 2271386096753346809, guid: f99d7b4c03c969348be9f03c37f1a8e8, type: 3}
+  WorldObjectTransform: {fileID: 0}
+  HandHeight: 0.3
+  MouseLongPressDeltaTime: 0.1
 --- !u!1 &914044531976162097
 GameObject:
   m_ObjectHideFlags: 0

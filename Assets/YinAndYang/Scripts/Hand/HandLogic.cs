@@ -1,19 +1,16 @@
 using UnityEngine;
+using FishNet.Object;
  
-public class HandLogic : MonoBehaviour {
-
-    private const float ThrowMinVelocity = 0.2f;
-
-    public GameObject HandObject;
-    public GameObject GroundObject;
+public class HandLogic : NetworkBehaviour 
+{
     public LayerMask HandLayerMask;
-
     public GameObject DirtLumpPrefab;
-    public Transform WorldObjectTransform;
-
     public float HandHeight = 0.3f;
-
+    public float ThrowMinVelocity = 0.2f;
     public float MouseLongPressDeltaTime = .1f;
+    
+    private GameObject _groundObject;
+    private Transform _worldObjectTransform;
 
     private Collider _groundCollider;
     private float _mouseDownTimeStart;
@@ -26,18 +23,20 @@ public class HandLogic : MonoBehaviour {
     private Vector3 _handObjectLastVelocity;
     private Vector3 _handObjectLastPos;
 
-    
-    void Start()
+    public override void OnStartClient()
     {
-        GroundObject.transform.position = Vector3.zero;
-        GroundObject.transform.rotation = Quaternion.identity;
+        base.OnStartClient();
 
-        _groundCollider = GroundObject.GetComponent<Collider>();
+        _worldObjectTransform = GameObject.FindGameObjectWithTag("WorldObject").transform;
+        _groundObject = GameObject.FindGameObjectWithTag("GroundObject");
+        _groundCollider = _groundObject.GetComponent<Collider>();
         _handLayer = HandLayerMask.GetLastLayer();
-        Debug.Log($"HandLayerMask.value {HandLayerMask.value}");
-        Debug.Log($"_handLayer {_handLayer}");
+
+        if (!base.IsOwner)
+            GetComponent<HandLogic>().enabled = false;
     }
 
+    
     void Update() 
     {
         var ray = Camera.main.ScreenPointToRay(Input.mousePosition);
@@ -76,8 +75,8 @@ public class HandLogic : MonoBehaviour {
         _handObjectLastVelocity = (handWordPos - _handObjectLastPos) / Time.deltaTime;
         _handObjectLastPos = handWordPos;
 
-        HandObject.transform.position = handWordPos;
-        HandObject.transform.rotation = handRot * Quaternion.Euler(0,180,0);
+        transform.position = handWordPos;
+        transform.rotation = handRot * Quaternion.Euler(0,180,0);
     }
 
     private void HandleMouseButtons(RaycastHit hit)
@@ -101,7 +100,7 @@ public class HandLogic : MonoBehaviour {
             if(_grabObject != null){
                 _grabObject.State = GrabState.PutDown;
                 _grabObject.gameObject.SetLayerOnAll(_grabObjectLayerBak);
-                _grabObject.transform.parent = WorldObjectTransform;
+                _grabObject.transform.parent = _worldObjectTransform;
                 
                 if(_grabObjectRigidbody != null){
                     _grabObjectRigidbody.isKinematic = _grabObject.IsKinematicOnRelease;
@@ -147,13 +146,21 @@ public class HandLogic : MonoBehaviour {
                 Debug.Log($"_grabObjectRotation {_grabObjectRotation.eulerAngles}");
 
                 if(_grabObject.CreateLumpWhenGrab && _grabObject.State == GrabState.PutDown){
-                    var dirtLump = Instantiate(DirtLumpPrefab, _grabObject.transform.position, Quaternion.identity);
+                    SpawnDirtLump(DirtLumpPrefab, _grabObject.transform.position, Quaternion.identity);
                 }
 
                 _grabObject.State = GrabState.InHand;
-                _grabObject.transform.parent = HandObject.transform;
+                _grabObject.transform.parent = transform;
                 _grabObject.transform.localPosition = Vector3.Scale(_grabObject.GrabOffset, _grabObject.transform.localScale);
             }
         }
+    }
+
+    [ServerRpc]
+    public void SpawnDirtLump(GameObject prefab, Vector3 position, Quaternion rotation)
+    {
+        GameObject dirtLump = Instantiate(prefab, position, rotation);
+        dirtLump.transform.parent = _worldObjectTransform;
+        ServerManager.Spawn(dirtLump);
     }
 }
