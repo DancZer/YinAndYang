@@ -1,27 +1,41 @@
 using UnityEngine;
 using FishNet.Object;
  
-public class HandLogic : NetworkBehaviour 
+public class HandLogic : NetworkBehaviour
 {
+    private enum HandActionState
+    {
+        None, GrabStarted, GrabTriggered, Grabbed, DropTriggered
+    }
+
     public LayerMask HandLayerMask;
     public GameObject DirtLumpPrefab;
     public float HandHeight = 0.3f;
     public float ThrowMinVelocity = 0.2f;
     public float MouseLongPressDeltaTime = .1f;
-    
+
+    [HideInInspector] public GrabObject GrabObject = null;
+    [HideInInspector] public int GrabObjectLayerBak = -1;
+
     private GameObject _groundObject;
     private Transform _worldObjectTransform;
 
     private Collider _groundCollider;
     private float _mouseDownTimeStart;
-    private GrabObject _grabObject;
-    private int _grabObjectLayerBak;
-    private Quaternion _grabObjectRotation;
-    private Rigidbody _grabObjectRigidbody;
     private int _handLayer;
 
-    private Vector3 _handObjectLastVelocity;
+    private Vector3 LastVelocity;
     private Vector3 _handObjectLastPos;
+
+    private GrabObject _grabObjectLongPress;
+    private HandActionState _handActuinState = HandActionState.None;
+
+    public override void OnStartServer()
+    {
+        base.OnStartServer();
+
+        _worldObjectTransform = GameObject.FindGameObjectWithTag("WorldObject").transform;
+    }
 
     public override void OnStartClient()
     {
@@ -32,21 +46,29 @@ public class HandLogic : NetworkBehaviour
         _groundCollider = _groundObject.GetComponent<Collider>();
         _handLayer = HandLayerMask.GetLastLayer();
 
-        if (!base.IsOwner)
+        if (!IsOwner)
+        {
             GetComponent<HandLogic>().enabled = false;
+        }
     }
 
     
     void Update() 
     {
-        var ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-
-        RaycastHit hit;
-        if (Physics.Raycast(ray, out hit, Mathf.Infinity, ~HandLayerMask))
+        if (IsOwner)
         {
-            HandleHandMove(hit, ray);
-            HandleMouseButtons(hit);
+            var ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+
+            RaycastHit hit;
+            if (Physics.Raycast(ray, out hit, Mathf.Infinity, ~HandLayerMask))
+            {
+                HandleHandMove(hit, ray);
+                HandleMouseButtons(hit);
+            }
         }
+
+        LastVelocity = (transform.position - _handObjectLastPos) / Time.deltaTime;
+        _handObjectLastPos = transform.position;
     }
 
     private void HandleHandMove(RaycastHit hit, Ray ray){
@@ -58,102 +80,187 @@ public class HandLogic : NetworkBehaviour
             handWordPos.y = HandHeight;
         }
 
-        var handRot = Quaternion.LookRotation(new Vector3(ray.direction.x, 0, ray.direction.z), Vector3.up);
+        //var handRot = Quaternion.LookRotation(new Vector3(ray.direction.x, 0, ray.direction.z), Vector3.up);
+        var handRot = Quaternion.identity;
 
-        if(_grabObject != null && _grabObject.State == GrabState.InHand){
-            if(_grabObject.IsGrabAtTop){
-                handWordPos.y += _grabObject.transform.localScale.y;
+        if (GrabObject != null && GrabObject.State == GrabState.InHand){
+            if(GrabObject.IsGrabAtTop){
+                handWordPos.y += GrabObject.transform.localScale.y;
             }
 
-            
-
-            if(!_grabObject.IsGrabAtTop){
+            if(!GrabObject.IsGrabAtTop){
                 handRot *= Quaternion.Euler(0,0,90);
             }
         }
 
-        _handObjectLastVelocity = (handWordPos - _handObjectLastPos) / Time.deltaTime;
-        _handObjectLastPos = handWordPos;
-
-        transform.position = handWordPos;
-        transform.rotation = handRot * Quaternion.Euler(0,180,0);
+        transform.SetPositionAndRotation(handWordPos, handRot * Quaternion.Euler(0,180,0));
     }
 
     private void HandleMouseButtons(RaycastHit hit)
     {
-        if (_mouseDownTimeStart == 0 && Input.GetMouseButtonDown(0) ){
-            _mouseDownTimeStart = Time.realtimeSinceStartup;
+        Debug.Log($"HandleMouseButtons {_handActuinState} {Input.GetMouseButtonDown(0)} {Input.GetMouseButtonUp(0)} {_grabObjectLongPress} {GrabObject}");
+        if (_handActuinState == HandActionState.None)
+        {
+            if (Input.GetMouseButtonDown(0))
+            {
+                if (_groundCollider != hit.collider)
+                {
+                    _mouseDownTimeStart = Time.realtimeSinceStartup;
 
-            if(_groundCollider != hit.collider){
-                var hitGameObject = hit.collider.gameObject;
+                    var hitGameObject = hit.collider.gameObject;
 
-                _grabObject = hitGameObject.GetComponent<GrabObject>();
+                    _grabObjectLongPress = hitGameObject.GetComponent<GrabObject>();
 
-                if(_grabObject == null){
-                    _grabObject = hitGameObject.GetComponentInParent<GrabObject>();
-                }
-            }
-
-        }else if (Input.GetMouseButtonUp(0)){
-            _mouseDownTimeStart = 0;
-
-            if(_grabObject != null){
-                _grabObject.State = GrabState.PutDown;
-                _grabObject.gameObject.SetLayerOnAll(_grabObjectLayerBak);
-                _grabObject.transform.parent = _worldObjectTransform;
-                
-                if(_grabObjectRigidbody != null){
-                    _grabObjectRigidbody.isKinematic = _grabObject.IsKinematicOnRelease;
-
-                    if(_handObjectLastVelocity.magnitude > ThrowMinVelocity){
-                        _grabObjectRigidbody.isKinematic = false;
-                        _grabObjectRigidbody.velocity = _handObjectLastVelocity;
-                        _grabObject.State = GrabState.Thrown;
+                    if (_grabObjectLongPress == null)
+                    {
+                        _grabObjectLongPress = hitGameObject.GetComponentInParent<GrabObject>();
                     }
 
-                    if(_grabObjectRigidbody.isKinematic){
-                        _grabObject.transform.position = hit.point - _grabObject.DropPosOffset; 
+                    if (_grabObjectLongPress != null)
+                    {
+                        _handActuinState = HandActionState.GrabStarted;
                     }
                 }
-                
-                _grabObjectRigidbody = null;
-                _grabObject = null;
             }
         }
-                   
-        if(_grabObject != null && _grabObject.State != GrabState.InHand){
-            if(_mouseDownTimeStart + MouseLongPressDeltaTime < Time.realtimeSinceStartup){
-                Debug.Log("Mouse long press");
-                
-                Debug.Log($"_grabObject.gameObject.layer {_grabObject.gameObject.layer}");
-                Debug.Log($"_handLayer {_handLayer}");
-
-                _grabObjectLayerBak = _grabObject.gameObject.layer;
-                _grabObject.gameObject.SetLayerOnAll(_handLayer);
-
-                if(_grabObject.IsGrabAtTop){
-                    _grabObjectRotation = _grabObject.transform.rotation;
-                }else{
-                    _grabObjectRotation = Quaternion.identity;
+        else if (_handActuinState == HandActionState.GrabStarted)
+        {
+            if (Input.GetMouseButtonUp(0))
+            {
+                _handActuinState = HandActionState.None;
+            }
+            else
+            {
+                if (_mouseDownTimeStart + MouseLongPressDeltaTime < Time.realtimeSinceStartup)
+                {
+                    _handActuinState = HandActionState.GrabTriggered;
+                    GrabObjectServer(_grabObjectLongPress, this);
                 }
-                
-                _grabObjectRigidbody = _grabObject.GetComponent<Rigidbody>();
-
-                if(_grabObjectRigidbody != null){
-                    _grabObjectRigidbody.isKinematic = true;
-                }
-
-                Debug.Log($"_grabObjectRotation {_grabObjectRotation.eulerAngles}");
-
-                if(_grabObject.CreateLumpWhenGrab && _grabObject.State == GrabState.PutDown){
-                    SpawnDirtLump(DirtLumpPrefab, _grabObject.transform.position, Quaternion.identity);
-                }
-
-                _grabObject.State = GrabState.InHand;
-                _grabObject.transform.parent = transform;
-                _grabObject.transform.localPosition = Vector3.Scale(_grabObject.GrabOffset, _grabObject.transform.localScale);
             }
         }
+        else if (_handActuinState == HandActionState.GrabTriggered)
+        {
+            if (Input.GetMouseButtonUp(0))
+            {
+                _grabObjectLongPress = null;
+            }
+            else
+            {
+                if (GrabObject != null && _grabObjectLongPress == null)
+                {
+                    _handActuinState = HandActionState.Grabbed;
+                }
+            }
+        }
+        else if (_handActuinState == HandActionState.Grabbed)
+        {
+            if (Input.GetMouseButtonUp(0))
+            {
+                if (GrabObject != null)
+                {
+                    _handActuinState = HandActionState.DropTriggered;
+                    DropObjectServer(this);
+                }
+            }
+        }
+        else if (_handActuinState == HandActionState.DropTriggered)
+        {
+            if (GrabObject == null)
+            {
+                _handActuinState = HandActionState.None;
+            }
+        }
+    }
+
+    [ServerRpc]
+    public void GrabObjectServer(GrabObject grabObject, HandLogic hand)
+    {
+        Debug.Log($"GrabObjectServer {grabObject} {hand} {IsOwner}");
+        GrabObjectObserver(grabObject, hand);
+    }
+
+    [ObserversRpc]
+    public void GrabObjectObserver(GrabObject grabObject, HandLogic hand)
+    {
+        Debug.Log($"GrabObjectObserver {grabObject} {hand} {IsOwner} {grabObject.gameObject.layer}");
+
+        hand.GrabObject = grabObject;
+        hand.GrabObjectLayerBak = grabObject.gameObject.layer;
+
+        var rigidbody = grabObject.GetComponent<Rigidbody>();
+
+        if (rigidbody != null)
+        {
+            rigidbody.isKinematic = true;
+        }
+
+        grabObject.gameObject.SetLayerOnAll(_handLayer);
+
+        Quaternion grabObjectRotation;
+        if (grabObject.IsGrabAtTop)
+        {
+            grabObjectRotation = GrabObject.transform.rotation;
+        }
+        else
+        {
+            grabObjectRotation = Quaternion.Euler(0, 0, -90);
+        }       
+
+        if (IsOwner) 
+        {
+            if (grabObject.CreateLumpWhenGrab && grabObject.State == GrabState.PutDown)
+            {
+                SpawnDirtLump(DirtLumpPrefab, grabObject.transform.position, Quaternion.identity);
+            }
+        }
+
+        grabObject.State = GrabState.InHand;
+        grabObject.transform.rotation = grabObjectRotation;
+        grabObject.transform.parent = hand.transform;
+        grabObject.transform.localPosition = Vector3.Scale(grabObject.GrabOffset, grabObject.transform.localScale);
+        
+    }
+
+    [ServerRpc]
+    public void DropObjectServer(HandLogic hand)
+    {
+        Debug.Log($"DropObjectServer{hand} {IsOwner}");
+
+        DropObjectObserver(hand);
+    }
+
+    [ObserversRpc]
+    public void DropObjectObserver(HandLogic hand)
+    {
+        Debug.Log($"DropObjectObserver  {hand} {IsOwner} {hand.GrabObjectLayerBak}");
+
+        var grabObject = hand.GrabObject;
+
+        grabObject.State = GrabState.PutDown;
+        grabObject.transform.parent = _worldObjectTransform;
+        grabObject.gameObject.SetLayerOnAll(hand.GrabObjectLayerBak);
+
+        var rigidbody = grabObject.GetComponent<Rigidbody>(); ;
+
+        if (rigidbody != null)
+        {
+            rigidbody.isKinematic = grabObject.IsKinematicOnRelease;
+
+            if (hand.LastVelocity.magnitude > ThrowMinVelocity)
+            {
+                rigidbody.isKinematic = false;
+                rigidbody.velocity = hand.LastVelocity;
+                grabObject.State = GrabState.Thrown;
+            }
+
+            if (rigidbody.isKinematic)
+            {
+                grabObject.transform.position = new Vector3(grabObject.transform.position.x, 0, grabObject.transform.position.z) + grabObject.DropPosOffset;
+            }
+        }
+
+        hand.GrabObject = null;
+        hand.GrabObjectLayerBak = -1;
     }
 
     [ServerRpc]

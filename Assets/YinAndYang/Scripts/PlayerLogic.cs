@@ -19,13 +19,17 @@ public class PlayerLogic : NetworkBehaviour
     {
         base.OnStartClient();
 
-        if (!base.IsOwner)
+        if (IsOwner)
+        {
+            _color = new Color(Random.Range(0f, 1f), Random.Range(0f, 1f), Random.Range(0f, 1f));
+
+            SpawnHand(HandPrefab, transform, this);
+            ChangeColorServer(gameObject, _color);
+        }
+        else
+        {
             GetComponent<PlayerLogic>().enabled = false;
-
-        _color = new Color(Random.Range(0f, 1f), Random.Range(0f, 1f), Random.Range(0f, 1f));
-
-        SpawnHand(HandPrefab, transform, this);
-        ChangeColorServer(gameObject, _color);
+        }
     }
 
     [ServerRpc]

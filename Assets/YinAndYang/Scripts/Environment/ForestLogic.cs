@@ -62,7 +62,6 @@ public class ForestLogic : NetworkBehaviour
     // Update is called once per frame
     void Update()
     {
-        if (!IsServer) return;
         if (_lastUpdateTime + ForestUpdateTime > Time.timeSinceLevelLoad) return;
 
         _lastUpdateTime = Time.timeSinceLevelLoad;
