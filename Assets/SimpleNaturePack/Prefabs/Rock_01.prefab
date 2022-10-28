@@ -114,11 +114,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f37f20ec90364bb44bc2a14d52aca6a2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  _componentIndexCache: 0
+  _addedNetworkObject: {fileID: 3561353646591792067}
+  _networkObjectCache: {fileID: 3561353646591792067}
   GrabOffset: {x: 0, y: 1, z: 0}
-  DropPosOffset: {x: 0, y: -0.5, z: 0}
+  DropPosOffset: {x: 0, y: 0.5, z: 0}
   CreateLumpWhenGrab: 0
   IsGrabAtTop: 1
   IsKinematicOnRelease: 0
+  State: 1
 --- !u!54 &4949397973711509875
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -147,9 +151,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a2836e36774ca1c4bbbee976e17b649c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _componentIndexCache: 255
+  _componentIndexCache: 1
   _addedNetworkObject: {fileID: 3561353646591792067}
-  _networkObjectCache: {fileID: 0}
+  _networkObjectCache: {fileID: 3561353646591792067}
   _synchronizeParent: 0
   _packing:
     Position: 1
@@ -191,14 +195,16 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   <IsNested>k__BackingField: 0
   <ComponentIndex>k__BackingField: 0
-  _networkBehaviours: []
+  _networkBehaviours:
+  - {fileID: 9099260231119980626}
+  - {fileID: -8223660863320503438}
   <ParentNetworkObject>k__BackingField: {fileID: 0}
   <ChildNetworkObjects>k__BackingField: []
   _isNetworked: 1
   _isGlobal: 0
   _defaultDespawnType: 0
   NetworkObserver: {fileID: 0}
-  <PrefabId>k__BackingField: -1
+  <PrefabId>k__BackingField: 12
   _scenePathHash: 0
   <SceneId>k__BackingField: 0
   <AssetPathHash>k__BackingField: 13802656279368176084

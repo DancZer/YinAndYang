@@ -32,6 +32,7 @@ public class HandLogic : NetworkBehaviour
     private GrabObject _grabObjectLongPress;
     private int _grabObjectLayerBak = -1;
     private HandActionState _handActuinState = HandActionState.None;
+    private Transform _innerHandTransform;
 
     public override void OnStartServer()
     {
@@ -52,6 +53,7 @@ public class HandLogic : NetworkBehaviour
             _groundObject = GameObject.FindGameObjectWithTag("GroundObject");
             _groundCollider = _groundObject.GetComponent<Collider>();
             _handLayer = HandLayerMask.GetLastLayer();
+            _innerHandTransform = transform.GetChild(0);
         }
         else
         {
@@ -87,20 +89,20 @@ public class HandLogic : NetworkBehaviour
             handWordPos.y = HandHeight;
         }
 
-        //var handRot = Quaternion.LookRotation(new Vector3(ray.direction.x, 0, ray.direction.z), Vector3.up);
-        var handRot = Quaternion.identity;
+        var handLocalRot = Quaternion.Euler(0, 180, 0); ;
 
         if (GrabObject != null && GrabObject.State == GrabState.InHand){
             if(GrabObject.IsGrabAtTop){
-                handWordPos.y += GrabObject.transform.localScale.y;
+                handWordPos.y += GrabObject.DropPosOffset.y;
             }
 
-            if(!GrabObject.IsGrabAtTop){
-                handRot *= Quaternion.Euler(0,0,90);
+            if(!GrabObject.IsGrabAtTop)
+            {
+                handLocalRot = Quaternion.Euler(0,180, 90);
             }
         }
-
-        transform.SetPositionAndRotation(handWordPos, handRot * Quaternion.Euler(0,180,0));
+        _innerHandTransform.localRotation = handLocalRot;
+        transform.SetPositionAndRotation(handWordPos, Quaternion.LookRotation(new Vector3(ray.direction.x, 0, ray.direction.z), Vector3.up));
     }
 
     private void HandleMouseButtons(RaycastHit hit)
@@ -203,28 +205,17 @@ public class HandLogic : NetworkBehaviour
 
         grabObject.gameObject.SetLayerOnAll(_handLayer);
 
-        Quaternion grabObjectRotation;
-        if (GrabObject.IsGrabAtTop)
-        {
-            grabObjectRotation = grabObject.transform.rotation;
-        }
-        else
-        {
-            grabObjectRotation = Quaternion.Euler(0, 0, -90);
-        }
-
         if (IsOwner)
         {
             if (grabObject.CreateLumpWhenGrab && grabObject.State == GrabState.PutDown)
             {
-                SpawnDirtLump(DirtLumpPrefab, grabObject.transform.position, Quaternion.identity);
+                SpawnDirtLump(DirtLumpPrefab, grabObject.transform, Quaternion.identity);
             }
         }
 
         grabObject.State = GrabState.InHand;
-        grabObject.transform.rotation = grabObjectRotation;
         grabObject.transform.parent = transform;
-        grabObject.transform.localPosition = Vector3.Scale(grabObject.GrabOffset, grabObject.transform.localScale);
+        grabObject.transform.localPosition = Vector3.Scale(grabObject.GrabOffset, grabObject.transform.localScale)*-1;
     }
 
     [ServerRpc]
@@ -266,10 +257,10 @@ public class HandLogic : NetworkBehaviour
     }
 
     [ServerRpc]
-    public void SpawnDirtLump(GameObject prefab, Vector3 position, Quaternion rotation, NetworkConnection conn = null)
+    public void SpawnDirtLump(GameObject prefab, Transform transform, Quaternion rotation, NetworkConnection conn = null)
     {
-        var dirtLump = Instantiate(prefab, position, rotation);
-
+        var dirtLump = Instantiate(prefab, new Vector3(transform.position.x, 0, transform.position.z), rotation);
+        dirtLump.transform.localScale = transform.localScale;
         dirtLump.transform.parent = _worldObjectTransform;
         ServerManager.Spawn(dirtLump, conn);
     }
