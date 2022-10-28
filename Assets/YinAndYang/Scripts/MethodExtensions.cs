@@ -20,5 +20,5 @@ public static class MethodExtensions
         {
             trans.gameObject.layer = layer;
         }
-    }  
+    }
 }

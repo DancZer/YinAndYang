@@ -142,14 +142,14 @@ MonoBehaviour:
   _componentIndexCache: 1
   _addedNetworkObject: {fileID: -2696138535703840960}
   _networkObjectCache: {fileID: -2696138535703840960}
-  GroundObject: {fileID: 0}
   HandLayerMask:
     serializedVersion: 2
     m_Bits: 64
   DirtLumpPrefab: {fileID: 2271386096753346809, guid: f99d7b4c03c969348be9f03c37f1a8e8, type: 3}
-  WorldObjectTransform: {fileID: 0}
   HandHeight: 0.3
+  ThrowMinVelocity: 0.2
   MouseLongPressDeltaTime: 0.1
+  GrabObject: {fileID: 0}
 --- !u!1 &914044531976162097
 GameObject:
   m_ObjectHideFlags: 0
@@ -234,7 +234,7 @@ SkinnedMeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 370e93876c8724bc1877b021fef179da, type: 2}
+  - {fileID: 2100000, guid: 00e4cef02d4ffa04985b3b2c6d46844d, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0

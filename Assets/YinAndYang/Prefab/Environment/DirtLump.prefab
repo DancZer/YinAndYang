@@ -515,7 +515,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 0d0d5655ca330cf4d8e3c6e402878118, type: 2}
+  - {fileID: 2100000, guid: c02022edcb979184796d558d915ef259, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -555,6 +555,7 @@ GameObject:
   m_Component:
   - component: {fileID: 6699597623956491037}
   - component: {fileID: 2224218666665830813}
+  - component: {fileID: 3655413260794935963}
   m_Layer: 0
   m_Name: DirtLump
   m_TagString: Untagged
@@ -590,5 +591,35 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 29362aa1cf82e494bb27f60ef4a91d8c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  _componentIndexCache: 0
+  _addedNetworkObject: {fileID: 3655413260794935963}
+  _networkObjectCache: {fileID: 3655413260794935963}
   TimeoutInSec: 10
   FadeOutInSec: 5
+--- !u!114 &3655413260794935963
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2271386096753346809}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 26b716c41e9b56b4baafaf13a523ba2e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  <IsNested>k__BackingField: 0
+  <ComponentIndex>k__BackingField: 0
+  _networkBehaviours:
+  - {fileID: 2224218666665830813}
+  <ParentNetworkObject>k__BackingField: {fileID: 0}
+  <ChildNetworkObjects>k__BackingField: []
+  _isNetworked: 1
+  _isGlobal: 0
+  _defaultDespawnType: 0
+  NetworkObserver: {fileID: 0}
+  <PrefabId>k__BackingField: -1
+  _scenePathHash: 0
+  <SceneId>k__BackingField: 0
+  <AssetPathHash>k__BackingField: 14979457571663950747
+  _sceneNetworkObjects: []

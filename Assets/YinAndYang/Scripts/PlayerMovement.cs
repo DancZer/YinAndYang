@@ -30,12 +30,13 @@ public class PlayerMovement : NetworkBehaviour {
         }
         else
         {
-            this.enabled = false;
+            enabled = false;
         }
     }
      
     void Update () {
-        if (Input.GetKey(KeyCode.Mouse2)) { 
+        
+        if (Input.GetKey(KeyCode.Mouse2) && MiscHelper.IsOnTheScreen(Input.mousePosition)) { 
             _lastMouse = Input.mousePosition - _lastMouse ;
             _lastMouse = new Vector3(-_lastMouse.y * CamSens, _lastMouse.x * CamSens, 0 );
             _lastMouse = new Vector3(transform.eulerAngles.x + _lastMouse.x , transform.eulerAngles.y + _lastMouse.y, 0);

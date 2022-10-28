@@ -3,14 +3,14 @@ using System.Collections.Generic;
 using UnityEngine;
 using FishNet.Object;
 using FishNet.Object.Synchronizing;
+using FishNet.Connection;
 
 public class PlayerLogic : NetworkBehaviour
 {
     [SyncVar] public int health = 10;
+    
 
     public GameObject HandPrefab;
-
-    private Color _color;
 
     [HideInInspector] public GameObject HandObject;
     public GameObject BodyObject;
@@ -19,66 +19,77 @@ public class PlayerLogic : NetworkBehaviour
     {
         base.OnStartClient();
 
+        Debug.Log($"PlayerLogic.OnStartClient: {this} {NetworkManager.ClientManager.Connection.ClientId} {IsOwner}");
+
         if (IsOwner)
         {
-            _color = new Color(Random.Range(0f, 1f), Random.Range(0f, 1f), Random.Range(0f, 1f));
-
-            SpawnHand(HandPrefab, transform, this);
-            ChangeColorServer(gameObject, _color);
+            SpawnHand(RandomColor());
         }
         else
         {
-            GetComponent<PlayerLogic>().enabled = false;
+            enabled = false;
         }
     }
 
-    [ServerRpc]
-    public void SpawnHand(GameObject prefab, Transform transform, PlayerLogic player)
+    private Color RandomColor()
     {
-        GameObject handObj = Instantiate(prefab, transform.position + transform.forward, Quaternion.identity);
-        ServerManager.Spawn(handObj, player.NetworkManager.ClientManager.Connection);
-        SetHandObject(handObj, player);
+        return new Color(Random.Range(0f, 1f), Random.Range(0f, 1f), Random.Range(0f, 1f));
+    }
+
+    [ServerRpc]
+    public void SpawnHand(Color color, NetworkConnection conn = null)
+    {
+        GameObject handObj = Instantiate(HandPrefab, transform.position + transform.forward, Quaternion.identity);
+
+        ServerManager.Spawn(handObj, conn);
+        SetHandObject(handObj, color);
     }
  
     [ObserversRpc]
-    public void SetHandObject(GameObject handObj, PlayerLogic player)
+    public void SetHandObject(GameObject handObj, Color color)
     {
-        player.HandObject = handObj;
+        HandObject = handObj;
+        UpdateColor(color);
     }
 
     [ServerRpc]
-    public void ChangeColorServer(GameObject player, Color color)
+    public void UpdateColorServer(Color color, NetworkConnection conn = null)
     {
-        ChangeColor(player, color);
+        UpdateColor(color);
     }
 
     [ObserversRpc]
-    public void ChangeColor(GameObject player, Color color)
+    public void UpdateColor(Color color)
     {
-        var playerLogic = player.GetComponent<PlayerLogic>();
-
-        if (playerLogic.HandObject != null)
+        if (HandObject != null)
         {
-            playerLogic.HandObject.GetComponentInChildren<Renderer>().material.color = color;
+            HandObject.GetComponentInChildren<Renderer>().material.color = color;
         }
 
-        if (playerLogic.BodyObject != null)
+        if (BodyObject != null)
         {
-            playerLogic.BodyObject.GetComponent<Renderer>().material.color = color;
+            BodyObject.GetComponent<Renderer>().material.color = color;
         }
     }
 
     void Update()
     {
+        if (!IsOwner) return;
+        
         if (Input.GetKeyDown(KeyCode.R))
         {
-            UpdateHealth(this, -1);
+            UpdateHealth(-1);
+        }
+
+        if (Input.GetKeyDown(KeyCode.C))
+        {
+            UpdateColorServer(RandomColor());
         }
     }
 
     [ServerRpc]
-    public void UpdateHealth(PlayerLogic player, int amountToChange)
+    public void UpdateHealth(int amountToChange)
     {
-        player.health += amountToChange;
+        health += amountToChange;
     }
 }

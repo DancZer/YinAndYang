@@ -1,6 +1,8 @@
 using UnityEngine;
 using FishNet.Object;
- 
+using FishNet.Object.Synchronizing;
+using FishNet.Connection;
+
 public class HandLogic : NetworkBehaviour
 {
     private enum HandActionState
@@ -15,7 +17,7 @@ public class HandLogic : NetworkBehaviour
     public float MouseLongPressDeltaTime = .1f;
 
     [HideInInspector] public GrabObject GrabObject = null;
-    [HideInInspector] public int GrabObjectLayerBak = -1;
+    
 
     private GameObject _groundObject;
     private Transform _worldObjectTransform;
@@ -24,10 +26,11 @@ public class HandLogic : NetworkBehaviour
     private float _mouseDownTimeStart;
     private int _handLayer;
 
-    private Vector3 LastVelocity;
+    private Vector3 _lastVelocity;
     private Vector3 _handObjectLastPos;
 
     private GrabObject _grabObjectLongPress;
+    private int _grabObjectLayerBak = -1;
     private HandActionState _handActuinState = HandActionState.None;
 
     public override void OnStartServer()
@@ -41,21 +44,25 @@ public class HandLogic : NetworkBehaviour
     {
         base.OnStartClient();
 
-        _worldObjectTransform = GameObject.FindGameObjectWithTag("WorldObject").transform;
-        _groundObject = GameObject.FindGameObjectWithTag("GroundObject");
-        _groundCollider = _groundObject.GetComponent<Collider>();
-        _handLayer = HandLayerMask.GetLastLayer();
+        Debug.Log($"HandLogic.OnStartClient: {NetworkManager.ClientManager.Connection.ClientId} {IsOwner}");
 
-        if (!IsOwner)
+        if (IsOwner)
         {
-            GetComponent<HandLogic>().enabled = false;
+            _worldObjectTransform = GameObject.FindGameObjectWithTag("WorldObject").transform;
+            _groundObject = GameObject.FindGameObjectWithTag("GroundObject");
+            _groundCollider = _groundObject.GetComponent<Collider>();
+            _handLayer = HandLayerMask.GetLastLayer();
+        }
+        else
+        {
+            enabled = false;
         }
     }
 
     
     void Update() 
     {
-        if (IsOwner)
+        if (IsOwner && MiscHelper.IsOnTheScreen(Input.mousePosition))
         {
             var ray = Camera.main.ScreenPointToRay(Input.mousePosition);
 
@@ -65,10 +72,10 @@ public class HandLogic : NetworkBehaviour
                 HandleHandMove(hit, ray);
                 HandleMouseButtons(hit);
             }
-        }
 
-        LastVelocity = (transform.position - _handObjectLastPos) / Time.deltaTime;
-        _handObjectLastPos = transform.position;
+            _lastVelocity = (transform.position - _handObjectLastPos) / Time.deltaTime;
+            _handObjectLastPos = transform.position;
+        }
     }
 
     private void HandleHandMove(RaycastHit hit, Ray ray){
@@ -98,7 +105,7 @@ public class HandLogic : NetworkBehaviour
 
     private void HandleMouseButtons(RaycastHit hit)
     {
-        Debug.Log($"HandleMouseButtons {_handActuinState} {Input.GetMouseButtonDown(0)} {Input.GetMouseButtonUp(0)} {_grabObjectLongPress} {GrabObject}");
+        //Debug.Log($"HandleMouseButtons {_handActuinState} {Input.GetMouseButtonDown(0)} {Input.GetMouseButtonUp(0)} {_grabObjectLongPress} {GrabObject}");
         if (_handActuinState == HandActionState.None)
         {
             if (Input.GetMouseButtonDown(0))
@@ -134,7 +141,7 @@ public class HandLogic : NetworkBehaviour
                 if (_mouseDownTimeStart + MouseLongPressDeltaTime < Time.realtimeSinceStartup)
                 {
                     _handActuinState = HandActionState.GrabTriggered;
-                    GrabObjectServer(_grabObjectLongPress, this);
+                    GrabObjectServer(_grabObjectLongPress);
                 }
             }
         }
@@ -159,7 +166,7 @@ public class HandLogic : NetworkBehaviour
                 if (GrabObject != null)
                 {
                     _handActuinState = HandActionState.DropTriggered;
-                    DropObjectServer(this);
+                    DropObjectServer(_lastVelocity);
                 }
             }
         }
@@ -173,19 +180,19 @@ public class HandLogic : NetworkBehaviour
     }
 
     [ServerRpc]
-    public void GrabObjectServer(GrabObject grabObject, HandLogic hand)
+    public void GrabObjectServer(GrabObject grabObject, NetworkConnection conn = null)
     {
-        Debug.Log($"GrabObjectServer {grabObject} {hand} {IsOwner}");
-        GrabObjectObserver(grabObject, hand);
+        Debug.Log($"HandLogic.GrabObjectServer {IsOwner} {conn.ClientId}");
+
+        GrabObjectObserver(grabObject);
     }
 
     [ObserversRpc]
-    public void GrabObjectObserver(GrabObject grabObject, HandLogic hand)
+    public void GrabObjectObserver(GrabObject grabObject)
     {
-        Debug.Log($"GrabObjectObserver {grabObject} {hand} {IsOwner} {grabObject.gameObject.layer}");
+        GrabObject = grabObject;
 
-        hand.GrabObject = grabObject;
-        hand.GrabObjectLayerBak = grabObject.gameObject.layer;
+        _grabObjectLayerBak = grabObject.gameObject.layer;
 
         var rigidbody = grabObject.GetComponent<Rigidbody>();
 
@@ -197,16 +204,16 @@ public class HandLogic : NetworkBehaviour
         grabObject.gameObject.SetLayerOnAll(_handLayer);
 
         Quaternion grabObjectRotation;
-        if (grabObject.IsGrabAtTop)
+        if (GrabObject.IsGrabAtTop)
         {
-            grabObjectRotation = GrabObject.transform.rotation;
+            grabObjectRotation = grabObject.transform.rotation;
         }
         else
         {
             grabObjectRotation = Quaternion.Euler(0, 0, -90);
-        }       
+        }
 
-        if (IsOwner) 
+        if (IsOwner)
         {
             if (grabObject.CreateLumpWhenGrab && grabObject.State == GrabState.PutDown)
             {
@@ -216,58 +223,54 @@ public class HandLogic : NetworkBehaviour
 
         grabObject.State = GrabState.InHand;
         grabObject.transform.rotation = grabObjectRotation;
-        grabObject.transform.parent = hand.transform;
+        grabObject.transform.parent = transform;
         grabObject.transform.localPosition = Vector3.Scale(grabObject.GrabOffset, grabObject.transform.localScale);
-        
     }
 
     [ServerRpc]
-    public void DropObjectServer(HandLogic hand)
+    public void DropObjectServer(Vector3 lastVelocity, NetworkConnection conn = null)
     {
-        Debug.Log($"DropObjectServer{hand} {IsOwner}");
+        Debug.Log($"HandLogic.DropObjectServer {IsOwner} {conn.ClientId}");
 
-        DropObjectObserver(hand);
+        DropObjectObserver(lastVelocity);
     }
 
     [ObserversRpc]
-    public void DropObjectObserver(HandLogic hand)
+    public void DropObjectObserver(Vector3 lastVelocity)
     {
-        Debug.Log($"DropObjectObserver  {hand} {IsOwner} {hand.GrabObjectLayerBak}");
+        GrabObject.State = GrabState.PutDown;
+        GrabObject.transform.parent = _worldObjectTransform;
+        GrabObject.gameObject.SetLayerOnAll(_grabObjectLayerBak);
 
-        var grabObject = hand.GrabObject;
-
-        grabObject.State = GrabState.PutDown;
-        grabObject.transform.parent = _worldObjectTransform;
-        grabObject.gameObject.SetLayerOnAll(hand.GrabObjectLayerBak);
-
-        var rigidbody = grabObject.GetComponent<Rigidbody>(); ;
+        var rigidbody = GrabObject.GetComponent<Rigidbody>(); ;
 
         if (rigidbody != null)
         {
-            rigidbody.isKinematic = grabObject.IsKinematicOnRelease;
-
-            if (hand.LastVelocity.magnitude > ThrowMinVelocity)
+            rigidbody.isKinematic = GrabObject.IsKinematicOnRelease;
+            
+            if (lastVelocity.magnitude > ThrowMinVelocity)
             {
                 rigidbody.isKinematic = false;
-                rigidbody.velocity = hand.LastVelocity;
-                grabObject.State = GrabState.Thrown;
+                rigidbody.velocity = lastVelocity;
+                GrabObject.State = GrabState.Thrown;
             }
 
             if (rigidbody.isKinematic)
             {
-                grabObject.transform.position = new Vector3(grabObject.transform.position.x, 0, grabObject.transform.position.z) + grabObject.DropPosOffset;
+                GrabObject.transform.position = new Vector3(GrabObject.transform.position.x, 0, GrabObject.transform.position.z) + GrabObject.DropPosOffset;
             }
         }
-
-        hand.GrabObject = null;
-        hand.GrabObjectLayerBak = -1;
+        _grabObjectLayerBak = -1;
+    
+        GrabObject = null;
     }
 
     [ServerRpc]
-    public void SpawnDirtLump(GameObject prefab, Vector3 position, Quaternion rotation)
+    public void SpawnDirtLump(GameObject prefab, Vector3 position, Quaternion rotation, NetworkConnection conn = null)
     {
-        GameObject dirtLump = Instantiate(prefab, position, rotation);
+        var dirtLump = Instantiate(prefab, position, rotation);
+
         dirtLump.transform.parent = _worldObjectTransform;
-        ServerManager.Spawn(dirtLump);
+        ServerManager.Spawn(dirtLump, conn);
     }
 }

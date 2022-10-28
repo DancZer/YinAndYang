@@ -1,8 +1,10 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using FishNet.Object;
+using FishNet.Connection;
 
-public class FadeDisappearLogic : MonoBehaviour
+public class FadeDisappearLogic : NetworkBehaviour
 {
     public float TimeoutInSec = 10;
     public float FadeOutInSec = 5;
@@ -10,34 +12,61 @@ public class FadeDisappearLogic : MonoBehaviour
     private float _timeTillFadeOut;
     private float _transparentChangeInSec;
 
-    private MeshRenderer _meshRenderer;
     private Material _material;
 
-    // Start is called before the first frame update
-    void Start()
+    public override void OnStartClient()
     {
-        _timeTillFadeOut = TimeoutInSec;
+        base.OnStartClient();
 
-        _transparentChangeInSec = 1f/FadeOutInSec;
-        _meshRenderer = GetComponentInChildren<MeshRenderer>();
-        _material = _meshRenderer.material;
+        _material = GetComponentInChildren<MeshRenderer>().material;
+
+        if (IsOwner)
+        {
+            _timeTillFadeOut = TimeoutInSec;
+            _transparentChangeInSec = 1f / FadeOutInSec;    
+        }
+        else
+        {
+            enabled = false;
+        }
     }
 
     // Update is called once per frame
     void Update()
-    {   
+    {
+        if (!IsOwner) return;
+
         _timeTillFadeOut -= Time.deltaTime;
 
         if(_timeTillFadeOut < 0){
             Color color = _material.color;
             var alpha = (-_timeTillFadeOut)*_transparentChangeInSec;
-            Debug.Log($"FadeDisappearLogic {_timeTillFadeOut} {alpha}");
+
             color.a = Mathf.Clamp( alpha, 0, 1 );
-            _material.color = color;
-            
-            if(_timeTillFadeOut < -FadeOutInSec){
-                Destroy(gameObject);
+
+            ChangeColorServer(color);
+
+            if (_timeTillFadeOut < -FadeOutInSec){
+                DespawnDirtLump();
             }
         }
+    }
+
+    [ServerRpc]
+    public void ChangeColorServer(Color color, NetworkConnection conn = null)
+    {
+        ChangeColor(color);
+    }
+
+    [ObserversRpc]
+    public void ChangeColor(Color color)
+    {
+        _material.color = color;
+    }
+
+    [ServerRpc]
+    public void DespawnDirtLump(NetworkConnection conn = null)
+    {
+        ServerManager.Despawn(gameObject);
     }
 }
