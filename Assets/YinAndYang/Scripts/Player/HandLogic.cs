@@ -89,7 +89,7 @@ public class HandLogic : NetworkBehaviour
             handWordPos.y = HandHeight;
         }
 
-        var handLocalRot = Quaternion.Euler(0, 180, 0); ;
+        var handLocalRot = Quaternion.identity;
 
         if (GrabObject != null && GrabObject.State == GrabState.InHand){
             if(GrabObject.IsGrabAtTop){
@@ -98,10 +98,10 @@ public class HandLogic : NetworkBehaviour
 
             if(!GrabObject.IsGrabAtTop)
             {
-                handLocalRot = Quaternion.Euler(0,180, 90);
+                handLocalRot = Quaternion.Euler(0,0, 90);
             }
         }
-        _innerHandTransform.localRotation = handLocalRot;
+        //_innerHandTransform.localRotation = handLocalRot;
         transform.SetPositionAndRotation(handWordPos, Quaternion.LookRotation(new Vector3(ray.direction.x, 0, ray.direction.z), Vector3.up));
     }
 

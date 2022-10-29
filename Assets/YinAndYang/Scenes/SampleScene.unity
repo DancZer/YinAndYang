@@ -3061,6 +3061,7 @@ MonoBehaviour:
   <SceneId>k__BackingField: 13320305115045447829
   <AssetPathHash>k__BackingField: 0
   _sceneNetworkObjects:
+  - {fileID: 0}
   - {fileID: 272154507}
   - {fileID: 527708040}
   - {fileID: 766093776}

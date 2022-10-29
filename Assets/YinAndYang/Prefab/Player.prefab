@@ -242,7 +242,7 @@ MonoBehaviour:
   _addedNetworkObject: {fileID: 3357035217588845007}
   _networkObjectCache: {fileID: 3357035217588845007}
   health: 10
-  HandPrefab: {fileID: 180557533655662575, guid: 930b7a19d446f4b4c9c810e37e84e625, type: 3}
+  HandPrefab: {fileID: 4706027540143456994, guid: 20406453fb8991f4591f94c66a39aa7d, type: 3}
   HandObject: {fileID: 0}
   BodyObject: {fileID: 7852785920115897438}
 --- !u!1 &7852785920115897438
