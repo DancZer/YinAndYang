@@ -8,8 +8,11 @@ public class DayNightLogic : NetworkBehaviour
     //Scene References
     [SerializeField] private Light DirectionalLight;
     [SerializeField] private LightPreset Preset;
-    //Variables
-    [SerializeField, Range(0, 24)] [SyncVar] private float TimeOfDay;
+
+    [SerializeField] [Range(0, 24)] private float EditorTimeOfDay;
+
+
+    private TimeLogic _timeLogic;
 
     //Try to find a directional light to use if we haven't set one
     protected override void OnValidate()
@@ -38,18 +41,29 @@ public class DayNightLogic : NetworkBehaviour
             }
         }
     }
+    public override void OnStartServer()
+    {
+        base.OnStartServer();
+
+        _timeLogic = GameObject.FindGameObjectWithTag("GameLogic").GetComponent<TimeLogic>();
+    }
+
     private void Update()
     {
         if (Preset == null)
             return;
 
-        if (Application.isPlaying && IsServer)
+        if (Application.isPlaying)
         {
-            TimeOfDay += Time.deltaTime;
-            TimeOfDay %= 24;
-        }            
-
-        UpdateLighting(TimeOfDay / 24f);
+            if (IsServer)
+            {
+                UpdateLighting(_timeLogic.TimeOfTheDay / 24f);
+            }
+        }
+        else
+        {
+            UpdateLighting(EditorTimeOfDay / 24f);
+        }   
     }
 
 

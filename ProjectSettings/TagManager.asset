@@ -6,6 +6,7 @@ TagManager:
   tags:
   - WorldObject
   - GroundObject
+  - GameLogic
   layers:
   - Default
   - TransparentFX
