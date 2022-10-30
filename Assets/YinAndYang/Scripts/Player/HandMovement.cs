@@ -14,8 +14,8 @@ public class HandMovement : NetworkBehaviour
     public float ThrowMinVelocity = 0.2f;
     public float MouseLongPressDeltaTime = .1f;
     public Vector3 GrabOffset = Vector3.zero;
-    public Renderer BracletRenderer;
 
+    [HideInInspector] public PlayerInitializer PlayerInit;
     [HideInInspector] public GrabObject GrabObject = null;
 
     private GameObject _groundObject;
@@ -38,7 +38,6 @@ public class HandMovement : NetworkBehaviour
         base.OnStartServer();
 
         _worldObjectTransform = StaticObjectAccessor.GetWorldObject().transform;
-        Cursor.visible = false;
     }
 
     public override void OnStartClient()
@@ -59,11 +58,6 @@ public class HandMovement : NetworkBehaviour
         }
     }
 
-    public void SetColor(Color color)
-    {
-        BracletRenderer.material.color = color;
-    }
-    
     void Update() 
     {
         if (IsOwner && MiscHelper.IsOnTheScreen(Input.mousePosition))
@@ -212,8 +206,20 @@ public class HandMovement : NetworkBehaviour
             }
         }
 
+        Quaternion objRot;
+
+        if (grabObject.IsGrabAtTop)
+        {
+            objRot = Quaternion.Inverse(grabObject.transform.rotation) * transform.rotation;
+        }
+        else
+        {
+            objRot = Quaternion.Inverse(Quaternion.Euler(0, grabObject.transform.rotation.eulerAngles.y, 0)) * Quaternion.Euler(0, transform.rotation.eulerAngles.y, 0);
+        }
+
         grabObject.State = GrabState.InHand;
         grabObject.transform.parent = transform;
+        grabObject.transform.localRotation = objRot;
         grabObject.transform.localPosition = GrabOffset+Vector3.Scale(grabObject.GrabOffset, grabObject.transform.localScale)*-1;
     }
 
