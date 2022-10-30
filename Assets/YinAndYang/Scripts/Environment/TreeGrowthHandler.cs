@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using FishNet.Object;
 
-public class TreeLogic : NetworkBehaviour
+public class TreeGrowthHandler : NetworkBehaviour
 {
     private const float MinScaleMultiplier = 0.0001f;
     public string ForestTypeName = "";
@@ -21,7 +21,7 @@ public class TreeLogic : NetworkBehaviour
     public float TargetMaturity = 1f;
 
     public float GrowPercentage { get; private set; }
-    public bool IsLogicEnabled 
+    public bool IsRooted 
     {
         get
         {
@@ -47,7 +47,7 @@ public class TreeLogic : NetworkBehaviour
     void Update()
     {
         if (!IsServer) return;
-        if(!IsLogicEnabled) return;
+        if(!IsRooted) return;
         if (_maturity >= TargetMaturity) return;
 
         var maturityTime = TargetMaturity / ForestTimeToMature;
@@ -55,7 +55,7 @@ public class TreeLogic : NetworkBehaviour
 
         _deltaMaturityCounter += deltaMaturity;
 
-        if (_deltaMaturityCounter < ForestLogic.DeltaMaturityTreshold) return;
+        if (_deltaMaturityCounter < ForestManager.DeltaMaturityTreshold) return;
 
         _maturity += _deltaMaturityCounter;
         _deltaMaturityCounter = 0;

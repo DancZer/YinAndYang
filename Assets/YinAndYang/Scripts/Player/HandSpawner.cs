@@ -1,13 +1,9 @@
 using UnityEngine;
 using FishNet.Object;
-using FishNet.Object.Synchronizing;
 using FishNet.Connection;
 
-public class PlayerLogic : NetworkBehaviour
+public class HandSpawner : NetworkBehaviour
 {
-    [SyncVar] public int health = 10;
-    
-
     public GameObject HandPrefab;
 
     [HideInInspector] public GameObject HandObject;
@@ -59,35 +55,17 @@ public class PlayerLogic : NetworkBehaviour
     [ObserversRpc]
     public void UpdateColor(Color color)
     {
-        if (HandObject != null)
-        {
-            HandObject.GetComponent<HandLogic>().SetColor(color);
-        }
-
-        if (BodyRenderer != null)
-        {
-            BodyRenderer.material.color = color;
-        }
+        HandObject.GetComponent<HandMovement>().SetColor(color);
+        BodyRenderer.material.color = color;
     }
 
     void Update()
     {
         if (!IsOwner) return;
         
-        if (Input.GetKeyDown(KeyCode.R))
-        {
-            UpdateHealth(-1);
-        }
-
         if (Input.GetKeyDown(KeyCode.C))
         {
             UpdateColorServer(RandomColor());
         }
-    }
-
-    [ServerRpc]
-    public void UpdateHealth(int amountToChange)
-    {
-        health += amountToChange;
     }
 }

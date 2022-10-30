@@ -3,7 +3,7 @@ using FishNet.Object;
 using FishNet.Object.Synchronizing;
 
 [ExecuteAlways]
-public class DayNightLogic : NetworkBehaviour
+public class DayNightManager : NetworkBehaviour
 {   
     //Scene References
     [SerializeField] private Light DirectionalLight;
@@ -12,7 +12,7 @@ public class DayNightLogic : NetworkBehaviour
     [SerializeField] [Range(0, 24)] private float EditorTimeOfDay;
 
 
-    private TimeLogic _timeLogic;
+    private TimeManager _timeManager;
 
     //Try to find a directional light to use if we haven't set one
     protected override void OnValidate()
@@ -45,7 +45,7 @@ public class DayNightLogic : NetworkBehaviour
     {
         base.OnStartServer();
 
-        _timeLogic = GameObject.FindGameObjectWithTag("GameLogic").GetComponent<TimeLogic>();
+        _timeManager = StaticObjectAccessor.GetTimeManager();
     }
 
     private void Update()
@@ -57,7 +57,7 @@ public class DayNightLogic : NetworkBehaviour
         {
             if (IsServer)
             {
-                UpdateLighting(_timeLogic.TimeOfTheDay / 24f);
+                UpdateLighting(_timeManager.TimeOfTheDay / 24f);
             }
         }
         else

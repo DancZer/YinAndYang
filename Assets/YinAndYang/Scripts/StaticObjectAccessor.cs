@@ -2,15 +2,24 @@ using UnityEngine;
 
 public static class StaticObjectAccessor
 {
-    public static GodLogic GetGodLogic()
+    public static PlayerStatHandler GetPlayerStatHandler()
     {
         foreach(var go in GameObject.FindGameObjectsWithTag("Player")){
-            var god = go.GetComponent<GodLogic>();
+            var stat = go.GetComponent<PlayerStatHandler>();
 
-            if (god != null && god.IsOwner) return god;
+            if (stat != null && stat.IsOwner) return stat;
         }
 
         throw new GodNotFoundException();
+    }
+    public static GameObject GetPlayerTemple()
+    {
+        return GameObject.FindGameObjectWithTag("Temple");
+    }
+
+    public static TimeManager GetTimeManager()
+    {
+        return GameObject.FindGameObjectWithTag("GameLogic").GetComponent<TimeManager>();
     }
 
     public static GameObject GetWorldObject()

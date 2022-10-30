@@ -3,17 +3,20 @@ using FishNet.Object;
 using FishNet.Object.Synchronizing;
 
 
-public class TimeLogic : NetworkBehaviour
+public class TimeManager : NetworkBehaviour
 {
     [SerializeField] [Range(0, 600)] public float DayInGameInSecond = 24;
-    [SerializeField] [Range(0, 600)] public float YearInGameInSecond = 24;
+    [SerializeField] [Range(0, 600)] public float MonthInGameInSecond = 24;
     [SerializeField] [Range(0, 3)] public int DaySyncPrecision = 2;
 
     [SyncVar] public float TimeOfTheDay;
-    [SyncVar] public int YearOfTheGame;
+    [SyncVar] public GameDate DateOfTheGame;
 
     private float _timeCounter;
     private float _rounder;
+
+    private int _monthCounter;
+
     public override void OnStartServer()
     {
         base.OnStartServer();
@@ -47,11 +50,12 @@ public class TimeLogic : NetworkBehaviour
     }
     private void UpdateYearOfTheGame()
     {
-        var newYear = Mathf.FloorToInt(_timeCounter / YearInGameInSecond);
+        var newMonth = Mathf.FloorToInt(_timeCounter / MonthInGameInSecond);
 
-        if (newYear != YearOfTheGame)
+        if (newMonth != _monthCounter)
         {
-            YearOfTheGame = newYear;
+            _monthCounter = newMonth;
+            DateOfTheGame = new GameDate(newMonth);
         }
     }
 }

@@ -20,18 +20,18 @@ public class EvilGoodBlend : NetworkBehaviour
 
     public SkinnedMeshRenderer Renderer;
 
-    private GodLogic _godLogic;
+    private PlayerStatHandler _playerStat;
 
     public override void OnStartClient()
     {
         base.OnStartClient();
 
-        _godLogic = StaticObjectAccessor.GetGodLogic();
+        _playerStat = StaticObjectAccessor.GetPlayerStatHandler();
     }
 
     private void Update()
     {
-        if (_godLogic == null) return;
+        if (_playerStat == null) return;
 
         UpdateTexture();
         UpdateShape();
@@ -41,15 +41,15 @@ public class EvilGoodBlend : NetworkBehaviour
     {
         var shaderMaterial = Renderer.sharedMaterial;
 
-        if (_godLogic.IsGood)
+        if (_playerStat.IsGood)
         {
-            shaderMaterial.SetFloat("_Blend", _godLogic.Blend);
+            shaderMaterial.SetFloat("_Blend", _playerStat.Blend);
             shaderMaterial.SetTexture("_FrontTex", Neutral);
             shaderMaterial.SetTexture("_FrontTex2", Good);
         }
         else
         {
-            shaderMaterial.SetFloat("_Blend", _godLogic.Blend);
+            shaderMaterial.SetFloat("_Blend", _playerStat.Blend);
             shaderMaterial.SetTexture("_FrontTex", Neutral);
             shaderMaterial.SetTexture("_FrontTex2", Evil);
         }
@@ -59,22 +59,22 @@ public class EvilGoodBlend : NetworkBehaviour
     {
         if (BlendShape == BlendShapes.None) return;
 
-        if (_godLogic.IsGood)
+        if (_playerStat.IsGood)
         {
             if(BlendShape == BlendShapes.GoodOnly)
             {
-                Renderer.SetBlendShapeWeight(0, _godLogic.Blend100);
+                Renderer.SetBlendShapeWeight(0, _playerStat.Blend100);
             }
             else if (BlendShape == BlendShapes.GoodAndEvil)
             {
-                Renderer.SetBlendShapeWeight(1, _godLogic.Blend100);
+                Renderer.SetBlendShapeWeight(1, _playerStat.Blend100);
             }
         }
         else
         {
             if (BlendShape == BlendShapes.EvilOnly || BlendShape == BlendShapes.GoodAndEvil)
             {
-                Renderer.SetBlendShapeWeight(0, _godLogic.Blend100);
+                Renderer.SetBlendShapeWeight(0, _playerStat.Blend100);
             }
         }
     }

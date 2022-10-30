@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using FishNet.Object;
 
-public class ForestLogic : NetworkBehaviour
+public class ForestManager : NetworkBehaviour
 {
     public const float DeltaMaturityTreshold = 0.1f;
     
@@ -20,8 +20,8 @@ public class ForestLogic : NetworkBehaviour
 
     private float _lastUpdateTime = 0;
 
-    private List<TreeLogic> _globalTreeList = new List<TreeLogic>();
-    private Dictionary<string, List<TreeLogic>> _treeByName = new Dictionary<string, List<TreeLogic>>();
+    private List<TreeGrowthHandler> _globalTreeList = new List<TreeGrowthHandler>();
+    private Dictionary<string, List<TreeGrowthHandler>> _treeByName = new Dictionary<string, List<TreeGrowthHandler>>();
 
     // Start is called before the first frame update
     public override void OnStartServer()
@@ -29,8 +29,8 @@ public class ForestLogic : NetworkBehaviour
         base.OnStartServer();
 
         foreach (var treePrefab in treePrefabArray){
-            var logic = treePrefab.GetComponent<TreeLogic>();
-            _treePrefabDict.Add(logic.ForestTypeName, treePrefab);
+            var handler = treePrefab.GetComponent<TreeGrowthHandler>();
+            _treePrefabDict.Add(handler.ForestTypeName, treePrefab);
         }
 
         FindForests();
@@ -44,9 +44,9 @@ public class ForestLogic : NetworkBehaviour
         var distance = 50;
         foreach (var treePrefab in treePrefabArray)
         {
-            var referenceTree = treePrefab.GetComponent<TreeLogic>();
-            var newTreeLogic = CreateNewTree(referenceTree, new Vector3(Random.Range(distance * i, distance * (i+1)), 0, Random.Range(distance * i, distance * (i + 1))), Quaternion.identity);
-            newTreeLogic.SetMaturityBySizePercentage(1f);
+            var referenceTree = treePrefab.GetComponent<TreeGrowthHandler>();
+            var newTreeHandler = CreateNewTree(referenceTree, new Vector3(Random.Range(distance * i, distance * (i+1)), 0, Random.Range(distance * i, distance * (i + 1))), Quaternion.identity);
+            newTreeHandler.SetMaturityBySizePercentage(1f);
             i++;
         }
 
@@ -78,19 +78,19 @@ public class ForestLogic : NetworkBehaviour
         _globalTreeList.Clear(); ;
         _treeByName.Clear();
 
-        foreach (var treeLogic in FindObjectsOfType<TreeLogic>())
+        foreach (var treeHandler in FindObjectsOfType<TreeGrowthHandler>())
         {
-            _globalTreeList.Add(treeLogic);
+            _globalTreeList.Add(treeHandler);
 
-            if (_treeByName.TryGetValue(treeLogic.ForestTypeName, out var treeLogics))
+            if (_treeByName.TryGetValue(treeHandler.ForestTypeName, out var treeHandlers))
             {
-                treeLogics.Add(treeLogic);
+                treeHandlers.Add(treeHandler);
             }
             else
             {
-                var list = new List<TreeLogic>();
-                list.Add(treeLogic);
-                _treeByName.Add(treeLogic.ForestTypeName, list);
+                var list = new List<TreeGrowthHandler>();
+                list.Add(treeHandler);
+                _treeByName.Add(treeHandler.ForestTypeName, list);
             }
         }
 
@@ -110,8 +110,8 @@ public class ForestLogic : NetworkBehaviour
 
             var maxTreeDistSqr = treeTypeRef.ForestMaxDistance * treeTypeRef.ForestMaxDistance;
 
-            var processedTreeHash = new HashSet<TreeLogic>();
-            var newTrees = new List<TreeLogic>();
+            var processedTreeHash = new HashSet<TreeGrowthHandler>();
+            var newTrees = new List<TreeGrowthHandler>();
 
             do
             {
@@ -119,7 +119,7 @@ public class ForestLogic : NetworkBehaviour
 
                 foreach (var refTree in trees)
                 {
-                    if (!refTree.IsLogicEnabled) continue;
+                    if (!refTree.IsRooted) continue;
                     if (processedTreeHash.Contains(refTree)) continue; //tree already created new trees
                     if (refTree.GrowPercentage < NewTreeGrowPercentageTreshold) continue; //the tree is too young to make new
 
@@ -160,7 +160,7 @@ public class ForestLogic : NetworkBehaviour
         }
     }
 
-    private TreeLogic FindSpotAndCreateNewTree(TreeLogic referenceTree, List<Vector3> occupiedPositions)
+    private TreeGrowthHandler FindSpotAndCreateNewTree(TreeGrowthHandler referenceTree, List<Vector3> occupiedPositions)
     {
         var minTreeDistSqr = referenceTree.ForestMinDistance * referenceTree.ForestMinDistance;
         var maxTreeDistSqr = referenceTree.ForestMaxDistance * referenceTree.ForestMaxDistance;
@@ -208,19 +208,19 @@ public class ForestLogic : NetworkBehaviour
         }
 
         newPos.y = GetWorldYCord();
-        var newTreeLogic = CreateNewTree(referenceTree, newPos, referenceTree.transform.rotation);
+        var newTreeHandler = CreateNewTree(referenceTree, newPos, referenceTree.transform.rotation);
 
-        return newTreeLogic;
+        return newTreeHandler;
     }
 
-    private TreeLogic CreateNewTree(TreeLogic referenceTree, Vector3 pos, Quaternion rotation)
+    private TreeGrowthHandler CreateNewTree(TreeGrowthHandler referenceTree, Vector3 pos, Quaternion rotation)
     {
         var newTreeObj =  Instantiate(_treePrefabDict.GetValueOrDefault(referenceTree.ForestTypeName), pos, rotation, WorldObjectTransform);
-        var newTreeLogic = newTreeObj.GetComponent<TreeLogic>();
+        var newTreeHandler = newTreeObj.GetComponent<TreeGrowthHandler>();
 
-        newTreeLogic.TargetMaturity = Random.Range(referenceTree.ForestMinMaturity, referenceTree.ForestMaxMaturity);
+        newTreeHandler.TargetMaturity = Random.Range(referenceTree.ForestMinMaturity, referenceTree.ForestMaxMaturity);
 
-        return newTreeLogic;
+        return newTreeHandler;
     }
 
     private float GetWorldYCord()

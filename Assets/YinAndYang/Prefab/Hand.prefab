@@ -44,8 +44,8 @@ GameObject:
   - component: {fileID: 8206440647447101352}
   - component: {fileID: 3875042756426091859}
   - component: {fileID: 4765876222791203007}
-  - component: {fileID: 351714566864441234}
   - component: {fileID: 8541213838491843217}
+  - component: {fileID: 4626568645936038462}
   m_Layer: 6
   m_Name: Hand
   m_TagString: Untagged
@@ -127,7 +127,6 @@ MonoBehaviour:
   <ComponentIndex>k__BackingField: 0
   _networkBehaviours:
   - {fileID: 3875042756426091859}
-  - {fileID: 351714566864441234}
   - {fileID: 8541213838491843217}
   <ParentNetworkObject>k__BackingField: {fileID: 0}
   <ChildNetworkObjects>k__BackingField: []
@@ -149,31 +148,6 @@ MonoBehaviour:
   - {fileID: 0}
   - {fileID: 0}
   - {fileID: 0}
---- !u!114 &351714566864441234
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4706027540143456994}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c4a7aa59f717a6844aa13428a0b7809f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  _componentIndexCache: 1
-  _addedNetworkObject: {fileID: 4765876222791203007}
-  _networkObjectCache: {fileID: 4765876222791203007}
-  HandLayerMask:
-    serializedVersion: 2
-    m_Bits: 64
-  DirtLumpPrefab: {fileID: 2271386096753346809, guid: f99d7b4c03c969348be9f03c37f1a8e8, type: 3}
-  HandHeight: 0.3
-  ThrowMinVelocity: 0.2
-  MouseLongPressDeltaTime: 0.1
-  GrabOffset: {x: 0, y: 0, z: -0.4}
-  BracletRenderer: {fileID: 5055145207413010492}
-  GrabObject: {fileID: 0}
 --- !u!114 &8541213838491843217
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -186,7 +160,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7a6a980e309c1974a903d02216c13ddc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _componentIndexCache: 2
+  _componentIndexCache: 1
   _addedNetworkObject: {fileID: 4765876222791203007}
   _networkObjectCache: {fileID: 4765876222791203007}
   Evil: {fileID: 2800000, guid: 3978d73aa9f62624abb365d446d6b3ee, type: 3}
@@ -194,6 +168,31 @@ MonoBehaviour:
   Good: {fileID: 2800000, guid: 5920d604fd68767418452dd904d29c99, type: 3}
   BlendShape: 2
   Renderer: {fileID: 8076003043719755193}
+--- !u!114 &4626568645936038462
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4706027540143456994}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c4a7aa59f717a6844aa13428a0b7809f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _componentIndexCache: 255
+  _addedNetworkObject: {fileID: 4765876222791203007}
+  _networkObjectCache: {fileID: 0}
+  HandLayerMask:
+    serializedVersion: 2
+    m_Bits: 64
+  DirtLumpPrefab: {fileID: 0}
+  HandHeight: 0.3
+  ThrowMinVelocity: 0.2
+  MouseLongPressDeltaTime: 0.1
+  GrabOffset: {x: 0, y: 0, z: 0}
+  BracletRenderer: {fileID: 5055145207413010492}
+  GrabObject: {fileID: 0}
 --- !u!1 &8232100155607002709
 GameObject:
   m_ObjectHideFlags: 0

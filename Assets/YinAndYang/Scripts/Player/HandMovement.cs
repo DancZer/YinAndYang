@@ -2,7 +2,7 @@ using UnityEngine;
 using FishNet.Object;
 using FishNet.Connection;
 
-public class HandLogic : NetworkBehaviour
+public class HandMovement : NetworkBehaviour
 {
     private enum HandActionState
     {
@@ -10,7 +10,6 @@ public class HandLogic : NetworkBehaviour
     }
 
     public LayerMask HandLayerMask;
-    public GameObject DirtLumpPrefab;
     public float HandHeight = 0.3f;
     public float ThrowMinVelocity = 0.2f;
     public float MouseLongPressDeltaTime = .1f;
@@ -45,8 +44,6 @@ public class HandLogic : NetworkBehaviour
     public override void OnStartClient()
     {
         base.OnStartClient();
-
-        Debug.Log($"HandLogic.OnStartClient: {NetworkManager.ClientManager.Connection.ClientId} {IsOwner}");
 
         if (IsOwner)
         {
@@ -112,7 +109,6 @@ public class HandLogic : NetworkBehaviour
 
     private void HandleMouseButtons(RaycastHit hit)
     {
-        //Debug.Log($"HandleMouseButtons {_handActuinState} {Input.GetMouseButtonDown(0)} {Input.GetMouseButtonUp(0)} {_grabObjectLongPress} {GrabObject}");
         if (_handActuinState == HandActionState.None)
         {
             if (Input.GetMouseButtonDown(0))
@@ -189,8 +185,6 @@ public class HandLogic : NetworkBehaviour
     [ServerRpc]
     public void GrabObjectServer(GrabObject grabObject, NetworkConnection conn = null)
     {
-        Debug.Log($"HandLogic.GrabObjectServer {IsOwner} {conn.ClientId}");
-
         GrabObjectObserver(grabObject);
     }
 
@@ -212,9 +206,9 @@ public class HandLogic : NetworkBehaviour
 
         if (IsOwner)
         {
-            if (grabObject.CreateLumpWhenGrab && grabObject.State == GrabState.PutDown)
+            if (grabObject.SpawnObjectOnPickUp && grabObject.State == GrabState.PutDown)
             {
-                SpawnDirtLump(DirtLumpPrefab, grabObject.transform, Quaternion.identity);
+                SpawnObjectOnPickUp(grabObject.SpwanOnPickUpPrefab, grabObject.transform, Quaternion.identity);
             }
         }
 
@@ -226,8 +220,6 @@ public class HandLogic : NetworkBehaviour
     [ServerRpc]
     public void DropObjectServer(Vector3 lastVelocity, NetworkConnection conn = null)
     {
-        Debug.Log($"HandLogic.DropObjectServer {IsOwner} {conn.ClientId}");
-
         DropObjectObserver(lastVelocity);
     }
 
@@ -262,13 +254,13 @@ public class HandLogic : NetworkBehaviour
     }
 
     [ServerRpc]
-    public void SpawnDirtLump(GameObject prefab, Transform transform, Quaternion rotation, NetworkConnection conn = null)
+    public void SpawnObjectOnPickUp(GameObject prefab, Transform transform, Quaternion rotation, NetworkConnection conn = null)
     {
-        var dirtLump = Instantiate(prefab);
-        dirtLump.transform.localScale = transform.localScale;
-        dirtLump.transform.parent = _worldObjectTransform;
-        dirtLump.transform.position = new Vector3(transform.position.x, 0, transform.position.z);
-        dirtLump.transform.rotation = rotation;
-        ServerManager.Spawn(dirtLump, conn);
+        var newObj = Instantiate(prefab);
+        newObj.transform.localScale = transform.localScale;
+        newObj.transform.parent = _worldObjectTransform;
+        newObj.transform.position = new Vector3(transform.position.x, 0, transform.position.z);
+        newObj.transform.rotation = rotation;
+        ServerManager.Spawn(newObj, conn);
     }
 }

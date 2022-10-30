@@ -2,7 +2,7 @@ using UnityEngine;
 using FishNet.Object;
 using FishNet.Object.Synchronizing;
 
-public class GodLogic : NetworkBehaviour
+public class PlayerStatHandler : NetworkBehaviour
 {
     /// <summary>
     /// 1 is good, -1 evil

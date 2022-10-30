@@ -1,10 +1,8 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using FishNet.Object;
 using FishNet.Connection;
 
-public class FadeDisappearLogic : NetworkBehaviour
+public class FadeDisappearHandler : NetworkBehaviour
 {
     public float TimeoutInSec = 10;
     public float FadeOutInSec = 5;

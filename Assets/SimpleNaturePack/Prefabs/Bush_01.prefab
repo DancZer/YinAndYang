@@ -117,9 +117,10 @@ MonoBehaviour:
   _networkObjectCache: {fileID: 0}
   GrabOffset: {x: 0, y: 0, z: 0}
   DropPosOffset: {x: 0, y: 0, z: 0}
-  CreateLumpWhenGrab: 0
+  SpawnObjectOnPickUp: 0
   IsGrabAtTop: 1
   IsKinematicOnRelease: 0
+  SpwanOnPickUpPrefab: {fileID: 0}
   State: 1
 --- !u!114 &3182177004874906432
 MonoBehaviour:
