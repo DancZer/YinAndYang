@@ -108,11 +108,12 @@ GameObject:
   - component: {fileID: 7852785920066599250}
   - component: {fileID: -2303874612066458477}
   - component: {fileID: 3357035217588845007}
+  - component: {fileID: -7605465987533631977}
   - component: {fileID: 8378711440474256741}
   - component: {fileID: 2469539649969732924}
   m_Layer: 6
   m_Name: Player
-  m_TagString: Untagged
+  m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -184,6 +185,22 @@ MonoBehaviour:
   <SceneId>k__BackingField: 0
   <AssetPathHash>k__BackingField: 2632400884367501841
   _sceneNetworkObjects: []
+--- !u!114 &-7605465987533631977
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7852785920066599251}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 59935d787facafe458390a9247b08cbd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _componentIndexCache: 255
+  _addedNetworkObject: {fileID: 3357035217588845007}
+  _networkObjectCache: {fileID: 0}
+  GoodEvil: 0
 --- !u!114 &8378711440474256741
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -244,7 +261,7 @@ MonoBehaviour:
   health: 10
   HandPrefab: {fileID: 4706027540143456994, guid: 20406453fb8991f4591f94c66a39aa7d, type: 3}
   HandObject: {fileID: 0}
-  BodyObject: {fileID: 7852785920115897438}
+  BodyRenderer: {fileID: 0}
 --- !u!1 &7852785920115897438
 GameObject:
   m_ObjectHideFlags: 0

@@ -3050,6 +3050,7 @@ MonoBehaviour:
   - {fileID: 1626392354}
   - {fileID: 1626392356}
   - {fileID: 1626392357}
+  - {fileID: 0}
   <ParentNetworkObject>k__BackingField: {fileID: 0}
   <ChildNetworkObjects>k__BackingField: []
   _isNetworked: 1
@@ -3061,7 +3062,6 @@ MonoBehaviour:
   <SceneId>k__BackingField: 13320305115045447829
   <AssetPathHash>k__BackingField: 0
   _sceneNetworkObjects:
-  - {fileID: 0}
   - {fileID: 272154507}
   - {fileID: 527708040}
   - {fileID: 766093776}
@@ -3095,7 +3095,7 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1626392352}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 96.34213, y: -36.606976, z: 94.652855}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0

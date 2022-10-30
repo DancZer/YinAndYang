@@ -1,6 +1,5 @@
 using UnityEngine;
 using FishNet.Object;
-using FishNet.Object.Synchronizing;
 using FishNet.Connection;
 
 public class HandLogic : NetworkBehaviour
@@ -39,7 +38,7 @@ public class HandLogic : NetworkBehaviour
     {
         base.OnStartServer();
 
-        _worldObjectTransform = GameObject.FindGameObjectWithTag("WorldObject").transform;
+        _worldObjectTransform = StaticObjectAccessor.GetWorldObject().transform;
     }
 
     public override void OnStartClient()

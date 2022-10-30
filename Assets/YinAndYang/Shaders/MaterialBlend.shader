@@ -9,9 +9,8 @@ Shader "Custom/MaterialBlend"
 
     SubShader
     {
-        Tags{ "Queue" = "Transparent" "RenderType" = "Transparent" }
+        Tags{ "Queue" = "Geometry" "RenderType" = "Opaque" }
         LOD 200
-        ZWrite Off
 
         CGPROGRAM
 
@@ -32,8 +31,8 @@ Shader "Custom/MaterialBlend"
             fixed4 frontTex = tex2D(_FrontTex, IN.uv_FrontTex);
             fixed4 frontTex2 = tex2D(_FrontTex2, IN.uv_FrontTex2);
 
-            fixed4 mainOutput = frontTex.rgba * (1.0 - (frontTex2.a * _Blend));
-            fixed4 combineOutput = frontTex2.rgba * (frontTex2.a * _Blend);
+            fixed4 mainOutput = frontTex.rgba * (1.0 - _Blend);
+            fixed4 combineOutput = frontTex2.rgba * _Blend;
 
             o.Albedo = mainOutput.rgb + combineOutput.rgb;
             o.Alpha = mainOutput.a + combineOutput.a;
