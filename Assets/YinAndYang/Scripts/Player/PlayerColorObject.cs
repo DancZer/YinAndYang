@@ -7,12 +7,11 @@ public class PlayerColorObject : NetworkBehaviour
 
     public void ChangeColor(Color color)
     {
-        if(Renderers != null)
+        if (Renderers == null) return;
+
+        foreach(var ren in Renderers)
         {
-            foreach(var ren in Renderers)
-            {
-                ren.material.color = color;
-            }
+            ren.material.color = color;
         }
     }
 }

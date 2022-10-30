@@ -21,6 +21,11 @@ public static class StaticObjectAccessor
     {
         return GameObject.FindGameObjectWithTag("GameLogic").GetComponent<TimeManager>();
     }
+    public static TerrainManager GetTerrainManager()
+    {
+        return GameObject.FindGameObjectWithTag("GroundObject").GetComponent<TerrainManager>();
+    }
+
 
     public static GameObject GetWorldObject()
     {

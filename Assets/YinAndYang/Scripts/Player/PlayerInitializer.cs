@@ -20,7 +20,7 @@ public class PlayerInitializer : NetworkBehaviour
             HeadStartDir = Quaternion.Euler(35, transform.rotation.eulerAngles.y, 0);
             HeadStartPos = transform.position + transform.up * 7 + Quaternion.Euler(0, transform.rotation.y,0) * (-transform.forward*7);
 
-            SpawnPlayerControl(gameObject, RandomColor());
+            SpawnPlayerControl(RandomColor());
         }
         else
         {
@@ -34,7 +34,7 @@ public class PlayerInitializer : NetworkBehaviour
     }
 
     [ServerRpc]
-    public void SpawnPlayerControl(GameObject templeObject, Color color, NetworkConnection conn = null)
+    public void SpawnPlayerControl(Color color, NetworkConnection conn = null)
     {
         GameObject headObj = Instantiate(HeadPrefab, HeadStartPos, HeadStartDir);
         GameObject handObj = Instantiate(HandPrefab, HeadStartPos, HeadStartDir);
@@ -53,7 +53,7 @@ public class PlayerInitializer : NetworkBehaviour
         handObj.GetComponent<HandMovement>().PlayerInit = this;
     }
 
-        [ServerRpc]
+    [ServerRpc]
     public void UpdateColorServer(Color color, NetworkConnection conn = null)
     {
         UpdateColor(color);
@@ -64,9 +64,11 @@ public class PlayerInitializer : NetworkBehaviour
     {
         PlayerColorObject[] components = GameObject.FindObjectsOfType<PlayerColorObject>();
 
-        foreach(var c in components)
+        foreach(var comp in components)
         {
-            c.ChangeColor(color);
+            if (!comp.IsOwner) continue;
+
+            comp.ChangeColor(color);
         }
     }
 
@@ -74,7 +76,7 @@ public class PlayerInitializer : NetworkBehaviour
     {
         if (!IsOwner) return;
         
-        if (Input.GetKeyDown(KeyCode.C))
+        if (Input.GetKeyDown(KeyCode.C) && Application.isFocused)
         {
             UpdateColorServer(RandomColor());
         }

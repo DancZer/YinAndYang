@@ -60,20 +60,22 @@ public class HandMovement : NetworkBehaviour
 
     void Update() 
     {
-        if (IsOwner && MiscHelper.IsOnTheScreen(Input.mousePosition))
+        if (!Application.isFocused ||
+            !IsOwner || 
+            !MiscHelper.IsOnTheScreen(Input.mousePosition)
+            ) return;
+
+        var ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+
+        RaycastHit hit;
+        if (Physics.Raycast(ray, out hit, Mathf.Infinity, ~HandLayerMask))
         {
-            var ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-
-            RaycastHit hit;
-            if (Physics.Raycast(ray, out hit, Mathf.Infinity, ~HandLayerMask))
-            {
-                HandleHandMove(hit, ray);
-                HandleMouseButtons(hit);
-            }
-
-            _lastVelocity = (transform.position - _handObjectLastPos) / Time.deltaTime;
-            _handObjectLastPos = transform.position;
+            HandleHandMove(hit, ray);
+            HandleMouseButtons(hit);
         }
+
+        _lastVelocity = (transform.position - _handObjectLastPos) / Time.deltaTime;
+        _handObjectLastPos = transform.position;
     }
 
     private void HandleHandMove(RaycastHit hit, Ray ray){

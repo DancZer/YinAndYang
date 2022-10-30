@@ -1,4 +1,3 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using FishNet.Object;
@@ -23,10 +22,12 @@ public class ForestManager : NetworkBehaviour
     private List<TreeGrowthHandler> _globalTreeList = new List<TreeGrowthHandler>();
     private Dictionary<string, List<TreeGrowthHandler>> _treeByName = new Dictionary<string, List<TreeGrowthHandler>>();
 
-    // Start is called before the first frame update
+    private TerrainManager _terrainManager;
     public override void OnStartServer()
     {
         base.OnStartServer();
+
+        _terrainManager = StaticObjectAccessor.GetTerrainManager();
 
         foreach (var treePrefab in treePrefabArray){
             var handler = treePrefab.GetComponent<TreeGrowthHandler>();
@@ -34,7 +35,6 @@ public class ForestManager : NetworkBehaviour
         }
 
         FindForests();
-
         CreateRandomTrees();
     }
 
@@ -45,8 +45,8 @@ public class ForestManager : NetworkBehaviour
         foreach (var treePrefab in treePrefabArray)
         {
             var referenceTree = treePrefab.GetComponent<TreeGrowthHandler>();
-            var newTreeHandler = CreateNewTree(referenceTree, new Vector3(Random.Range(distance * i, distance * (i+1)), 0, Random.Range(distance * i, distance * (i + 1))), Quaternion.identity);
-            newTreeHandler.SetMaturityBySizePercentage(1f);
+            var newTreeObj = CreateNewTree(referenceTree, new Vector3(Random.Range(distance * i, distance * (i+1)), 0, Random.Range(distance * i, distance * (i + 1))), Quaternion.identity, true);
+
             i++;
         }
 
@@ -142,11 +142,8 @@ public class ForestManager : NetworkBehaviour
 
                     if (densityCounter < treeTypeRef.ForestDensity)
                     {
-                        var newTreeObj = FindSpotAndCreateNewTree(refTree, occupiedPositions);
-
-                        if(init){
-                            newTreeObj.SetMaturityBySizePercentage(1f);
-                        }
+                        var newTreePos = FindSpotForNewTree(refTree, occupiedPositions);
+                        var newTreeObj = CreateNewTree(refTree, newTreePos, refTree.transform.rotation, init);
 
                         newTrees.Add(newTreeObj);
                         _globalTreeList.Add(newTreeObj);
@@ -160,7 +157,7 @@ public class ForestManager : NetworkBehaviour
         }
     }
 
-    private TreeGrowthHandler FindSpotAndCreateNewTree(TreeGrowthHandler referenceTree, List<Vector3> occupiedPositions)
+    private Vector3 FindSpotForNewTree(TreeGrowthHandler referenceTree, List<Vector3> occupiedPositions)
     {
         var minTreeDistSqr = referenceTree.ForestMinDistance * referenceTree.ForestMinDistance;
         var maxTreeDistSqr = referenceTree.ForestMaxDistance * referenceTree.ForestMaxDistance;
@@ -207,24 +204,24 @@ public class ForestManager : NetworkBehaviour
             Debug.LogWarning($"Tree is outside the ref. tree max distance: {referenceTree.ForestTypeName} at {newPos} in range {(newPos - refPos).magnitude}");
         }
 
-        newPos.y = GetWorldYCord();
-        var newTreeHandler = CreateNewTree(referenceTree, newPos, referenceTree.transform.rotation);
-
-        return newTreeHandler;
+        return _terrainManager.GetGroundPosAtCord(newPos);
     }
 
-    private TreeGrowthHandler CreateNewTree(TreeGrowthHandler referenceTree, Vector3 pos, Quaternion rotation)
+    private TreeGrowthHandler CreateNewTree(TreeGrowthHandler referenceTree, Vector3 pos, Quaternion rotation, bool init = false)
     {
         var newTreeObj =  Instantiate(_treePrefabDict.GetValueOrDefault(referenceTree.ForestTypeName), pos, rotation, WorldObjectTransform);
         var newTreeHandler = newTreeObj.GetComponent<TreeGrowthHandler>();
 
         newTreeHandler.TargetMaturity = Random.Range(referenceTree.ForestMinMaturity, referenceTree.ForestMaxMaturity);
 
+        if (init)
+        {
+            newTreeHandler.SetMaturityBySizePercentage(1f);
+        }
+
+        ServerManager.Spawn(newTreeObj);
+
         return newTreeHandler;
     }
 
-    private float GetWorldYCord()
-    {
-        return 0;
-    }
 }

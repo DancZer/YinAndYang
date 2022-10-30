@@ -37,7 +37,9 @@ public class HeadMovement : NetworkBehaviour {
         }
     }
      
-    void Update () {
+    void Update () 
+    {
+        if (!Application.isFocused) return;
         
         if (Input.GetKey(KeyCode.Mouse2) && MiscHelper.IsOnTheScreen(Input.mousePosition)) { 
             _lastMouse = Input.mousePosition - _lastMouse ;
