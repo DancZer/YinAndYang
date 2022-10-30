@@ -123,6 +123,11 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
+--- !u!4 &14483929 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 4251423964258023523, guid: ca77ebf6c5f625746b700760b6fd1155, type: 3}
+  m_PrefabInstance: {fileID: 317543377}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &317543377
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -541,6 +546,11 @@ MonoBehaviour:
   _updateHostVisibility: 1
   _defaultConditions:
   - {fileID: 11400000, guid: 2033f54fd2794464bae08fa5a55c8996, type: 2}
+--- !u!4 &1373690450 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 4251423964258023523, guid: ca77ebf6c5f625746b700760b6fd1155, type: 3}
+  m_PrefabInstance: {fileID: 1195168470}
+  m_PrefabAsset: {fileID: 0}
 --- !u!114 &1386599898
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -860,6 +870,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: ca77ebf6c5f625746b700760b6fd1155, type: 3}
+--- !u!4 &1832660155 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 4251423964258023523, guid: ca77ebf6c5f625746b700760b6fd1155, type: 3}
+  m_PrefabInstance: {fileID: 1680862551}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1958915144
 GameObject:
   m_ObjectHideFlags: 0
@@ -1807,9 +1822,9 @@ MonoBehaviour:
   _playerPrefab: {fileID: 9098634935873268180, guid: f1473a2e76893054b874a5e9efa9b2ac, type: 3}
   _addToDefaultScene: 1
   Spawns:
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
+  - {fileID: 1373690450}
+  - {fileID: 1832660155}
+  - {fileID: 14483929}
 --- !u!1 &7443408887097547896
 GameObject:
   m_ObjectHideFlags: 0

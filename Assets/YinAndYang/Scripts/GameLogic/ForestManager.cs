@@ -226,7 +226,7 @@ public class ForestManager : NetworkBehaviour
         {
             newTreeHandler.SetMaturityBySizePercentage(1f);
         }
-        newTreeObj.name = $"Gen_Tree_{treePreset.ForestTypeName}_{_forestIdxCounter:0000}";
+        newTreeObj.name = $"Gen_Tree_{_forestIdxCounter:0000}_{treePreset.ForestTypeName}";
         _forestIdxCounter++;
         ServerManager.Spawn(newTreeObj);
 

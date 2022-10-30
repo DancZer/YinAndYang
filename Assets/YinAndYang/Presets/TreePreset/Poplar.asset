@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 821192148ed3aae44bf3bcd85ec7d328, type: 3}
   m_Name: Poplar
   m_EditorClassIdentifier: 
-  ForestTypeName: Tree
+  ForestTypeName: Poplar
   ForestDensity: 5
   ForestMinDistance: 4
   ForestMaxDistance: 10
