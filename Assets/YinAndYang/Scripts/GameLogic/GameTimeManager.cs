@@ -28,7 +28,10 @@ public class GameTimeManager : NetworkBehaviour
     {
         base.OnStartClient();
 
-        enabled = false;
+        if (!IsServer)
+        {
+            enabled = false;
+        }
     }
 
     private void Update()

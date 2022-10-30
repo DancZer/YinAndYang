@@ -41,7 +41,10 @@ public class PlayerStatHandler : NetworkBehaviour
     {
         base.OnStartClient();
 
-        enabled = false;
+        if (!IsServer)
+        {
+            enabled = false;
+        }
     }
 
     void Update()

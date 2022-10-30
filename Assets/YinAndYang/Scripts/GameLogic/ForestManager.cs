@@ -43,7 +43,10 @@ public class ForestManager : NetworkBehaviour
     {
         base.OnStartClient();
 
-        enabled = false;
+        if (!IsServer)
+        {
+            enabled = false;
+        }
     }
 
     private void CreateRandomTrees()
