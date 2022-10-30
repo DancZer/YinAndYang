@@ -6,18 +6,8 @@ using FishNet.Object;
 public class TreeGrowthHandler : NetworkBehaviour
 {
     private const float MinScaleMultiplier = 0.0001f;
-    public string ForestTypeName = "";
 
-    public int ForestDensity = 5;
-    public int ForestMinDistance = 4;
-    public int ForestMaxDistance = 10;
-    
-    public float ForestMinMaturity = 0.5f;
-    public float ForestMaxMaturity = 1f;
-
-    public float ForestTimeToMature = 10;
-
-
+    public TreePreset TreePreset;
     public float TargetMaturity = 1f;
 
     public float GrowPercentage { get; private set; }
@@ -47,10 +37,10 @@ public class TreeGrowthHandler : NetworkBehaviour
     void Update()
     {
         if (!IsServer) return;
-        if(!IsRooted) return;
+        if (!IsRooted) return;
         if (_maturity >= TargetMaturity) return;
 
-        var maturityTime = TargetMaturity / ForestTimeToMature;
+        var maturityTime = TargetMaturity / TreePreset.ForestTimeToMature;
         var deltaMaturity = maturityTime * Time.deltaTime;
 
         _deltaMaturityCounter += deltaMaturity;

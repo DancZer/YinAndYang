@@ -37,10 +37,16 @@ public class PlayerStatHandler : NetworkBehaviour
         _playerSeed = Random.Range(0, duration);
     }
 
+    public override void OnStartClient()
+    {
+        base.OnStartClient();
+
+        enabled = false;
+    }
+
     void Update()
     {
         if (!IsServer) return;
-
         
         GoodEvil = Mathf.PingPong(Time.time + _playerSeed, duration) / (duration / 2f) - 1;
     }

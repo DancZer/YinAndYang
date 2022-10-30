@@ -8,6 +8,7 @@ TagManager:
   - GroundObject
   - GameLogic
   - Temple
+  - Spawn
   layers:
   - Default
   - TransparentFX

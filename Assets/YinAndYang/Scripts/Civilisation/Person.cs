@@ -29,7 +29,7 @@ public class Person : NetworkBehaviour
     public float NextTargetTime;
 
     private Rigidbody _rigidbody;
-    private TimeManager _timeManager;
+    private GameTimeManager _timeManager;
 
     public override void OnStartServer()
     {

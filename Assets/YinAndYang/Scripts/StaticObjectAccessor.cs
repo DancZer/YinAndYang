@@ -17,21 +17,14 @@ public static class StaticObjectAccessor
         return GameObject.FindGameObjectWithTag("Temple");
     }
 
-    public static TimeManager GetTimeManager()
+    public static GameTimeManager GetTimeManager()
     {
-        return GameObject.FindGameObjectWithTag("GameLogic").GetComponent<TimeManager>();
+        return GameObject.FindGameObjectWithTag("GameLogic").GetComponent<GameTimeManager>();
     }
     public static TerrainManager GetTerrainManager()
     {
         return GameObject.FindGameObjectWithTag("GroundObject").GetComponent<TerrainManager>();
     }
-
-
-    public static GameObject GetWorldObject()
-    {
-        return GameObject.FindGameObjectWithTag("WorldObject");
-    }
-
     public static GameObject GetGroundObject()
     {
         return GameObject.FindGameObjectWithTag("GroundObject");

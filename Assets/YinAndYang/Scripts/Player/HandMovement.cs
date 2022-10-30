@@ -18,9 +18,6 @@ public class HandMovement : NetworkBehaviour
     [HideInInspector] public PlayerInitializer PlayerInit;
     [HideInInspector] public GrabObject GrabObject = null;
 
-    private GameObject _groundObject;
-    private Transform _worldObjectTransform;
-
     private Collider _groundCollider;
     private float _mouseDownTimeStart;
     private int _handLayer;
@@ -36,8 +33,6 @@ public class HandMovement : NetworkBehaviour
     public override void OnStartServer()
     {
         base.OnStartServer();
-
-        _worldObjectTransform = StaticObjectAccessor.GetWorldObject().transform;
     }
 
     public override void OnStartClient()
@@ -46,9 +41,7 @@ public class HandMovement : NetworkBehaviour
 
         if (IsOwner)
         {
-            _worldObjectTransform = GameObject.FindGameObjectWithTag("WorldObject").transform;
-            _groundObject = GameObject.FindGameObjectWithTag("GroundObject");
-            _groundCollider = _groundObject.GetComponent<Collider>();
+            _groundCollider = StaticObjectAccessor.GetGroundObject().GetComponent<Collider>();
             _handLayer = HandLayerMask.GetLastLayer();
             _innerContainerTransform = transform.GetChild(0);
         }
@@ -235,7 +228,7 @@ public class HandMovement : NetworkBehaviour
     public void DropObjectObserver(Vector3 lastVelocity)
     {
         GrabObject.State = GrabState.PutDown;
-        GrabObject.transform.parent = _worldObjectTransform;
+        GrabObject.transform.parent = null;
         GrabObject.gameObject.SetLayerOnAll(_grabObjectLayerBak);
 
         var rigidbody = GrabObject.GetComponent<Rigidbody>(); ;
@@ -266,7 +259,6 @@ public class HandMovement : NetworkBehaviour
     {
         var newObj = Instantiate(prefab);
         newObj.transform.localScale = transform.localScale;
-        newObj.transform.parent = _worldObjectTransform;
         newObj.transform.position = new Vector3(transform.position.x, 0, transform.position.z);
         newObj.transform.rotation = rotation;
         ServerManager.Spawn(newObj, conn);

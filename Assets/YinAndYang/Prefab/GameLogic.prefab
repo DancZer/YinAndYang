@@ -1,0 +1,128 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &5171916559474338441
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5171916559474338442}
+  - component: {fileID: 5171916559474338440}
+  - component: {fileID: 5171916559474338443}
+  - component: {fileID: 5171916559474338445}
+  - component: {fileID: 5171916559474338444}
+  m_Layer: 0
+  m_Name: GameLogic
+  m_TagString: GameLogic
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &5171916559474338442
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5171916559474338441}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 80, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_RootOrder: 0
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &5171916559474338440
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5171916559474338441}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 26b716c41e9b56b4baafaf13a523ba2e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  <IsNested>k__BackingField: 0
+  <ComponentIndex>k__BackingField: 0
+  _networkBehaviours:
+  - {fileID: 5171916559474338443}
+  - {fileID: 5171916559474338445}
+  - {fileID: 5171916559474338444}
+  <ParentNetworkObject>k__BackingField: {fileID: 0}
+  <ChildNetworkObjects>k__BackingField: []
+  _isNetworked: 1
+  _isGlobal: 0
+  _defaultDespawnType: 0
+  NetworkObserver: {fileID: 0}
+  <PrefabId>k__BackingField: -1
+  _scenePathHash: 2643268220
+  <SceneId>k__BackingField: 0
+  <AssetPathHash>k__BackingField: 5519851803580270047
+  _sceneNetworkObjects:
+  - {fileID: 5171916559474338440}
+--- !u!114 &5171916559474338443
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5171916559474338441}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bd3b3f8bca662bf4a9b5f2becc390b6f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _componentIndexCache: 0
+  _addedNetworkObject: {fileID: 5171916559474338440}
+  _networkObjectCache: {fileID: 5171916559474338440}
+  DirectionalLight: {fileID: 0}
+  Preset: {fileID: 11400000, guid: 95009acfd970ab3409f28decabd73475, type: 2}
+--- !u!114 &5171916559474338445
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5171916559474338441}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 69b9136c234881648b13eccdcc4c3c6b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _componentIndexCache: 1
+  _addedNetworkObject: {fileID: 5171916559474338440}
+  _networkObjectCache: {fileID: 5171916559474338440}
+  DayInGameInSecond: 60
+  MonthInGameInSecond: 24
+  DaySyncPrecision: 2
+  TimeOfTheDay: 0
+--- !u!114 &5171916559474338444
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5171916559474338441}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ad5eb447a97dc8b4f90963fdda6d9bbe, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _componentIndexCache: 2
+  _addedNetworkObject: {fileID: 5171916559474338440}
+  _networkObjectCache: {fileID: 5171916559474338440}
+  StartTreeCount: 20
+  MaxTreeCount: 100
+  NewTreeGrowPercentageTreshold: 0.5
+  ForestUpdateTime: 10
+  treePrefabArray:
+  - {fileID: 2222111361404534124, guid: 88f2fd29f58b9734683512546acec310, type: 3}
+  - {fileID: 4661435515762455780, guid: e289bf5debb17f6459818c207d781953, type: 3}
+  - {fileID: 6941765000743290380, guid: c60edd51c065ceb46b345849a03bc106, type: 3}
+  - {fileID: 2807449429036958551, guid: f0c16f0ea935ea64297ca1d4d55d9746, type: 3}
+  - {fileID: 9069115365609291303, guid: 60f79905accf3b24fa0114b941f1aac0, type: 3}

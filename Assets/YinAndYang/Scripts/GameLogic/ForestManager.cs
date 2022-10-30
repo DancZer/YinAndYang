@@ -20,18 +20,19 @@ public class ForestManager : NetworkBehaviour
     private List<TreeGrowthHandler> _globalTreeList = new List<TreeGrowthHandler>();
     private Dictionary<string, List<TreeGrowthHandler>> _treeByName = new Dictionary<string, List<TreeGrowthHandler>>();
 
-    private Transform _worldObjectTransform;
     private TerrainManager _terrainManager;
+
+    private int _forestIdxCounter;
+
     public override void OnStartServer()
     {
         base.OnStartServer();
 
-        _worldObjectTransform = StaticObjectAccessor.GetWorldObject().transform;
         _terrainManager = StaticObjectAccessor.GetTerrainManager();
 
         foreach (var treePrefab in treePrefabArray){
             var handler = treePrefab.GetComponent<TreeGrowthHandler>();
-            _treePrefabDict.Add(handler.ForestTypeName, treePrefab);
+            _treePrefabDict.Add(handler.TreePreset.ForestTypeName, treePrefab);
         }
 
         FindForests();
@@ -52,7 +53,7 @@ public class ForestManager : NetworkBehaviour
         foreach (var treePrefab in treePrefabArray)
         {
             var referenceTree = treePrefab.GetComponent<TreeGrowthHandler>();
-            var newTreeObj = CreateNewTree(referenceTree, new Vector3(Random.Range(distance * i, distance * (i+1)), 0, Random.Range(distance * i, distance * (i + 1))), Quaternion.identity, true);
+            var newTreeObj = CreateNewTree(referenceTree.TreePreset, new Vector3(Random.Range(distance * i, distance * (i+1)), 0, Random.Range(distance * i, distance * (i + 1))), Quaternion.identity, true);
 
             i++;
         }
@@ -89,7 +90,7 @@ public class ForestManager : NetworkBehaviour
         {
             _globalTreeList.Add(treeHandler);
 
-            if (_treeByName.TryGetValue(treeHandler.ForestTypeName, out var treeHandlers))
+            if (_treeByName.TryGetValue(treeHandler.TreePreset.ForestTypeName, out var treeHandlers))
             {
                 treeHandlers.Add(treeHandler);
             }
@@ -97,7 +98,7 @@ public class ForestManager : NetworkBehaviour
             {
                 var list = new List<TreeGrowthHandler>();
                 list.Add(treeHandler);
-                _treeByName.Add(treeHandler.ForestTypeName, list);
+                _treeByName.Add(treeHandler.TreePreset.ForestTypeName, list);
             }
         }
 
@@ -113,9 +114,9 @@ public class ForestManager : NetworkBehaviour
     {
         foreach (var trees in _treeByName.Values)
         {
-            var treeTypeRef = trees[0];
+            var treePreset = trees[0].TreePreset;
 
-            var maxTreeDistSqr = treeTypeRef.ForestMaxDistance * treeTypeRef.ForestMaxDistance;
+            var maxTreeDistSqr = treePreset.ForestMaxDistance * treePreset.ForestMaxDistance;
 
             var processedTreeHash = new HashSet<TreeGrowthHandler>();
             var newTrees = new List<TreeGrowthHandler>();
@@ -137,7 +138,7 @@ public class ForestManager : NetworkBehaviour
 
                     foreach (var globalTree in _globalTreeList)
                     {
-                        if (densityCounter >= treeTypeRef.ForestDensity) break;
+                        if (densityCounter >= treePreset.ForestDensity) break;
 
                         if ((refTree.transform.position - globalTree.transform.position).sqrMagnitude < maxTreeDistSqr)
                         {
@@ -147,10 +148,10 @@ public class ForestManager : NetworkBehaviour
                         }
                     }
 
-                    if (densityCounter < treeTypeRef.ForestDensity)
+                    if (densityCounter < treePreset.ForestDensity)
                     {
-                        var newTreePos = FindSpotForNewTree(refTree, occupiedPositions);
-                        var newTreeObj = CreateNewTree(refTree, newTreePos, refTree.transform.rotation, init);
+                        var newTreePos = FindSpotForNewTree(treePreset, occupiedPositions);
+                        var newTreeObj = CreateNewTree(treePreset, newTreePos, refTree.transform.rotation, init);
 
                         newTrees.Add(newTreeObj);
                         _globalTreeList.Add(newTreeObj);
@@ -164,16 +165,16 @@ public class ForestManager : NetworkBehaviour
         }
     }
 
-    private Vector3 FindSpotForNewTree(TreeGrowthHandler referenceTree, List<Vector3> occupiedPositions)
+    private Vector3 FindSpotForNewTree(TreePreset treePreset, List<Vector3> occupiedPositions)
     {
-        var minTreeDistSqr = referenceTree.ForestMinDistance * referenceTree.ForestMinDistance;
-        var maxTreeDistSqr = referenceTree.ForestMaxDistance * referenceTree.ForestMaxDistance;
-        var refPos = referenceTree.transform.position;
+        var minTreeDistSqr = treePreset.ForestMinDistance * treePreset.ForestMinDistance;
+        var maxTreeDistSqr = treePreset.ForestMaxDistance * treePreset.ForestMaxDistance;
+        var refPos = occupiedPositions[0];
 
         var found = false;
         var newPos = Vector3.zero;
 
-        var locatorRefVector = Vector3.forward * Random.Range(referenceTree.ForestMinDistance, referenceTree.ForestMaxDistance);
+        var locatorRefVector = Vector3.forward * Random.Range(treePreset.ForestMinDistance, treePreset.ForestMaxDistance);
         var locatorQuaterion = Quaternion.Euler(0, Random.Range(-180, 180f), 0);
 
         var locatorAngleStep = 15;
@@ -208,24 +209,25 @@ public class ForestManager : NetworkBehaviour
 
         if ((newPos - refPos).sqrMagnitude >= maxTreeDistSqr)
         {
-            Debug.LogWarning($"Tree is outside the ref. tree max distance: {referenceTree.ForestTypeName} at {newPos} in range {(newPos - refPos).magnitude}");
+            Debug.LogWarning($"Tree is outside the ref. tree max distance: {treePreset.ForestTypeName} at {newPos} in range {(newPos - refPos).magnitude}");
         }
 
         return _terrainManager.GetGroundPosAtCord(newPos);
     }
 
-    private TreeGrowthHandler CreateNewTree(TreeGrowthHandler referenceTree, Vector3 pos, Quaternion rotation, bool init = false)
+    private TreeGrowthHandler CreateNewTree(TreePreset treePreset, Vector3 pos, Quaternion rotation, bool init = false)
     {
-        var newTreeObj =  Instantiate(_treePrefabDict.GetValueOrDefault(referenceTree.ForestTypeName), pos, rotation, _worldObjectTransform);
+        var newTreeObj =  Instantiate(_treePrefabDict.GetValueOrDefault(treePreset.ForestTypeName), pos, rotation);
         var newTreeHandler = newTreeObj.GetComponent<TreeGrowthHandler>();
 
-        newTreeHandler.TargetMaturity = Random.Range(referenceTree.ForestMinMaturity, referenceTree.ForestMaxMaturity);
+        newTreeHandler.TargetMaturity = Random.Range(treePreset.ForestMinMaturity, treePreset.ForestMaxMaturity);
 
         if (init)
         {
             newTreeHandler.SetMaturityBySizePercentage(1f);
         }
-
+        newTreeObj.name = $"Gen_Tree_{treePreset.ForestTypeName}_{_forestIdxCounter:0000}";
+        _forestIdxCounter++;
         ServerManager.Spawn(newTreeObj);
 
         return newTreeHandler;

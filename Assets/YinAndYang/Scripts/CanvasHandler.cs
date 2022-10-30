@@ -7,7 +7,7 @@ public class CanvasHandler : MonoBehaviour
     void Update()
     { 
         var mousePos = Input.mousePosition;
-        if(mousePos.x < 200 && mousePos.y > Screen.height - 130 || !MiscHelper.IsOnTheScreen(mousePos))
+        if(mousePos.x < 800 && mousePos.y > Screen.height - 140 || !MiscHelper.IsOnTheScreen(mousePos))
         {
             Cursor.visible = true;
         }

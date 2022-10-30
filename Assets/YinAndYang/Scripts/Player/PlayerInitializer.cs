@@ -41,13 +41,17 @@ public class PlayerInitializer : NetworkBehaviour
         ServerManager.Spawn(headObj, conn);
         ServerManager.Spawn(handObj, conn);
 
-        SetTempleObject(headObj, handObj);
-        UpdateColor(color);
+        SetTempleObject(headObj, handObj, conn.ClientId);
+        UpdateColor(conn.ClientId, color);
     }
 
     [ObserversRpc]
-    public void SetTempleObject(GameObject headObj, GameObject handObj)
+    public void SetTempleObject(GameObject headObj, GameObject handObj, int clientId)
     {
+        gameObject.name = $"Temple_{clientId:00}";
+        headObj.name = $"Head_{clientId:00}";
+        handObj.name = $"Hand_{clientId:00}";
+
         if (!IsOwner) return;
 
         headObj.GetComponent<HeadMovement>().PlayerInit = this;
@@ -64,20 +68,19 @@ public class PlayerInitializer : NetworkBehaviour
     }
 
     [ServerRpc]
-    public void UpdateColorServer(Color color)
+    public void UpdateColorServer(Color color, NetworkConnection conn = null)
     {
-        UpdateColor(color);
+        UpdateColor(conn.ClientId, color);
     }
 
     [ObserversRpc]
-    public void UpdateColor(Color color)
+    public void UpdateColor(int clientId, Color color)
     {
         PlayerColorObject[] components = FindObjectsOfType<PlayerColorObject>();
 
         foreach(var comp in components)
         {
-            Debug.Log($"UpdateColor {this} {IsOwner} {comp.IsOwner}");
-            if (!comp.IsOwner) continue;
+            if (comp.OwnerId != clientId) continue;
 
             comp.ChangeColor(color);
         }
