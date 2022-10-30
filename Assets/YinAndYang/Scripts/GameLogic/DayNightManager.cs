@@ -66,7 +66,7 @@ public class DayNightManager : NetworkBehaviour
         }   
     }
 
-
+    [ObserversRpc]
     private void UpdateLighting(float timePercent)
     {
         RenderSettings.ambientLight = Preset.AmbientColor.Evaluate(timePercent);

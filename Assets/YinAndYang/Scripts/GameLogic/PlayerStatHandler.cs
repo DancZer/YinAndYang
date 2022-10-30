@@ -26,12 +26,22 @@ public class PlayerStatHandler : NetworkBehaviour
         }
     }
 
+    private const float duration = 8f;
+
+    private float _playerSeed;
+
+    public override void OnStartServer()
+    {
+        base.OnStartServer();
+
+        _playerSeed = Random.Range(0, duration);
+    }
+
     void Update()
     {
-        if (IsOwner)
-        {
-            var duration = 8f;
-            GoodEvil = Mathf.PingPong(Time.time, duration) / (duration / 2f) - 1;
-        }
+        if (!IsServer) return;
+
+        
+        GoodEvil = Mathf.PingPong(Time.time + _playerSeed, duration) / (duration / 2f) - 1;
     }
 }

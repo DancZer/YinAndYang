@@ -12,8 +12,6 @@ public class ForestManager : NetworkBehaviour
     public float NewTreeGrowPercentageTreshold = 0.5f;
     public float ForestUpdateTime = 5;
 
-    public Transform WorldObjectTransform;
-
     public GameObject[] treePrefabArray;
     private Dictionary<string, GameObject> _treePrefabDict = new Dictionary<string, GameObject>();
 
@@ -22,11 +20,13 @@ public class ForestManager : NetworkBehaviour
     private List<TreeGrowthHandler> _globalTreeList = new List<TreeGrowthHandler>();
     private Dictionary<string, List<TreeGrowthHandler>> _treeByName = new Dictionary<string, List<TreeGrowthHandler>>();
 
+    private Transform _worldObjectTransform;
     private TerrainManager _terrainManager;
     public override void OnStartServer()
     {
         base.OnStartServer();
 
+        _worldObjectTransform = StaticObjectAccessor.GetWorldObject().transform;
         _terrainManager = StaticObjectAccessor.GetTerrainManager();
 
         foreach (var treePrefab in treePrefabArray){
@@ -36,6 +36,13 @@ public class ForestManager : NetworkBehaviour
 
         FindForests();
         CreateRandomTrees();
+    }
+
+    public override void OnStartClient()
+    {
+        base.OnStartClient();
+
+        enabled = false;
     }
 
     private void CreateRandomTrees()
@@ -59,9 +66,9 @@ public class ForestManager : NetworkBehaviour
         Debug.Log($"Tree count: {_globalTreeList.Count}");
     }
 
-    // Update is called once per frame
     void Update()
     {
+        if (!IsServer) return;
         if (_lastUpdateTime + ForestUpdateTime > Time.timeSinceLevelLoad) return;
 
         _lastUpdateTime = Time.timeSinceLevelLoad;
@@ -209,7 +216,7 @@ public class ForestManager : NetworkBehaviour
 
     private TreeGrowthHandler CreateNewTree(TreeGrowthHandler referenceTree, Vector3 pos, Quaternion rotation, bool init = false)
     {
-        var newTreeObj =  Instantiate(_treePrefabDict.GetValueOrDefault(referenceTree.ForestTypeName), pos, rotation, WorldObjectTransform);
+        var newTreeObj =  Instantiate(_treePrefabDict.GetValueOrDefault(referenceTree.ForestTypeName), pos, rotation, _worldObjectTransform);
         var newTreeHandler = newTreeObj.GetComponent<TreeGrowthHandler>();
 
         newTreeHandler.TargetMaturity = Random.Range(referenceTree.ForestMinMaturity, referenceTree.ForestMaxMaturity);
@@ -223,5 +230,4 @@ public class ForestManager : NetworkBehaviour
 
         return newTreeHandler;
     }
-
 }

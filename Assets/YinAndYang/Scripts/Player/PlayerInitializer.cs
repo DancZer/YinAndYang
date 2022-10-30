@@ -1,6 +1,5 @@
 using UnityEngine;
 using FishNet.Object;
-using FishNet.Object.Synchronizing;
 using FishNet.Connection;
 
 public class PlayerInitializer : NetworkBehaviour
@@ -8,8 +7,8 @@ public class PlayerInitializer : NetworkBehaviour
     public GameObject HeadPrefab;
     public GameObject HandPrefab;
 
-    [HideInInspector] [SyncVar] public Quaternion HeadStartDir;
-    [HideInInspector] [SyncVar] public Vector3 HeadStartPos;
+    [HideInInspector] public Quaternion HeadStartDir;
+    [HideInInspector] public Vector3 HeadStartPos;
 
     public override void OnStartClient()
     {
@@ -20,7 +19,7 @@ public class PlayerInitializer : NetworkBehaviour
             HeadStartDir = Quaternion.Euler(35, transform.rotation.eulerAngles.y, 0);
             HeadStartPos = transform.position + transform.up * 7 + Quaternion.Euler(0, transform.rotation.y,0) * (-transform.forward*7);
 
-            SpawnPlayerControl(RandomColor());
+            SpawnPlayerControl(HeadStartPos, HeadStartDir, RandomColor());
         }
         else
         {
@@ -34,10 +33,10 @@ public class PlayerInitializer : NetworkBehaviour
     }
 
     [ServerRpc]
-    public void SpawnPlayerControl(Color color, NetworkConnection conn = null)
+    public void SpawnPlayerControl(Vector3 pos, Quaternion dir, Color color, NetworkConnection conn = null)
     {
-        GameObject headObj = Instantiate(HeadPrefab, HeadStartPos, HeadStartDir);
-        GameObject handObj = Instantiate(HandPrefab, HeadStartPos, HeadStartDir);
+        GameObject headObj = Instantiate(HeadPrefab, pos, dir);
+        GameObject handObj = Instantiate(HandPrefab, pos, dir);
 
         ServerManager.Spawn(headObj, conn);
         ServerManager.Spawn(handObj, conn);
@@ -49,12 +48,23 @@ public class PlayerInitializer : NetworkBehaviour
     [ObserversRpc]
     public void SetTempleObject(GameObject headObj, GameObject handObj)
     {
+        if (!IsOwner) return;
+
         headObj.GetComponent<HeadMovement>().PlayerInit = this;
         handObj.GetComponent<HandMovement>().PlayerInit = this;
     }
+    void Update()
+    {
+        if (!IsOwner) return;
+
+        if (Input.GetKeyDown(KeyCode.C) && Application.isFocused)
+        {
+            UpdateColorServer(RandomColor());
+        }
+    }
 
     [ServerRpc]
-    public void UpdateColorServer(Color color, NetworkConnection conn = null)
+    public void UpdateColorServer(Color color)
     {
         UpdateColor(color);
     }
@@ -62,23 +72,15 @@ public class PlayerInitializer : NetworkBehaviour
     [ObserversRpc]
     public void UpdateColor(Color color)
     {
-        PlayerColorObject[] components = GameObject.FindObjectsOfType<PlayerColorObject>();
+        PlayerColorObject[] components = FindObjectsOfType<PlayerColorObject>();
 
         foreach(var comp in components)
         {
+            Debug.Log($"UpdateColor {this} {IsOwner} {comp.IsOwner}");
             if (!comp.IsOwner) continue;
 
             comp.ChangeColor(color);
         }
     }
 
-    void Update()
-    {
-        if (!IsOwner) return;
-        
-        if (Input.GetKeyDown(KeyCode.C) && Application.isFocused)
-        {
-            UpdateColorServer(RandomColor());
-        }
-    }
 }

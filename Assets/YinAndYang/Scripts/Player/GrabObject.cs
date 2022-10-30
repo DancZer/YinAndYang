@@ -1,8 +1,5 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using FishNet.Object;
-using FishNet.Object.Synchronizing;
 
 public enum GrabState
 {
@@ -19,5 +16,5 @@ public class GrabObject : NetworkBehaviour
 
     public GameObject SpwanOnPickUpPrefab;
     
-    [SyncVar] [HideInInspector] public GrabState State = GrabState.PutDown;
+    [HideInInspector] public GrabState State = GrabState.PutDown;
 }

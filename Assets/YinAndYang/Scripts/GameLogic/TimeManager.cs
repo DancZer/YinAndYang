@@ -27,13 +27,12 @@ public class TimeManager : NetworkBehaviour
 
     private void Update()
     {
-        if (IsServer)
-        {
-            _timeCounter += Time.deltaTime;
+        if (!IsServer) return;
+        
+        _timeCounter += Time.deltaTime;
 
-            UpdateTimeOfTheDay();
-            UpdateYearOfTheGame();
-        }
+        UpdateTimeOfTheDay();
+        UpdateYearOfTheGame();
     }
 
     private void UpdateTimeOfTheDay()
