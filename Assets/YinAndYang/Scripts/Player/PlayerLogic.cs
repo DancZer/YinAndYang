@@ -13,13 +13,13 @@ public class PlayerLogic : NetworkBehaviour
     public GameObject HandPrefab;
 
     [HideInInspector] public GameObject HandObject;
-    public GameObject BodyObject;
+    public Renderer BodyRenderer;
 
     public override void OnStartClient()
     {
         base.OnStartClient();
 
-        Debug.Log($"PlayerLogic.OnStartClient: {this} {NetworkManager.ClientManager.Connection.ClientId} {IsOwner}");
+        BodyRenderer = transform.GetChild(0).GetComponent<Renderer>();
 
         if (IsOwner)
         {
@@ -63,12 +63,12 @@ public class PlayerLogic : NetworkBehaviour
     {
         if (HandObject != null)
         {
-            HandObject.GetComponentInChildren<Renderer>().material.color = color;
+            HandObject.GetComponent<HandLogic>().SetColor(color);
         }
 
-        if (BodyObject != null)
+        if (BodyRenderer != null)
         {
-            BodyObject.GetComponent<Renderer>().material.color = color;
+            BodyRenderer.material.color = color;
         }
     }
 

@@ -1,5 +1,38 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!1 &1048730718948919688
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2115108327308512781}
+  m_Layer: 6
+  m_Name: Container
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2115108327308512781
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1048730718948919688}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0.003, y: 0, z: -0.966}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 4437436804469508672}
+  - {fileID: 4790798668490281979}
+  m_Father: {fileID: 8206440647447101352}
+  m_RootOrder: 0
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &4706027540143456994
 GameObject:
   m_ObjectHideFlags: 0
@@ -12,7 +45,7 @@ GameObject:
   - component: {fileID: 3875042756426091859}
   - component: {fileID: 4765876222791203007}
   - component: {fileID: 351714566864441234}
-  - component: {fileID: 5563210290687131461}
+  - component: {fileID: 8541213838491843217}
   m_Layer: 6
   m_Name: Hand
   m_TagString: Untagged
@@ -32,8 +65,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 4790798668490281979}
-  - {fileID: 4437436804469508672}
+  - {fileID: 2115108327308512781}
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -96,7 +128,7 @@ MonoBehaviour:
   _networkBehaviours:
   - {fileID: 3875042756426091859}
   - {fileID: 351714566864441234}
-  - {fileID: 5563210290687131461}
+  - {fileID: 8541213838491843217}
   <ParentNetworkObject>k__BackingField: {fileID: 0}
   <ChildNetworkObjects>k__BackingField: []
   _isNetworked: 1
@@ -139,8 +171,10 @@ MonoBehaviour:
   HandHeight: 0.3
   ThrowMinVelocity: 0.2
   MouseLongPressDeltaTime: 0.1
+  GrabOffset: {x: 0, y: 0, z: -0.4}
+  BracletRenderer: {fileID: 5055145207413010492}
   GrabObject: {fileID: 0}
---- !u!114 &5563210290687131461
+--- !u!114 &8541213838491843217
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -155,10 +189,11 @@ MonoBehaviour:
   _componentIndexCache: 2
   _addedNetworkObject: {fileID: 4765876222791203007}
   _networkObjectCache: {fileID: 4765876222791203007}
-  GoodMaterial: {fileID: 2100000, guid: b6d2d05c6426a4e4288e773395e217b9, type: 2}
-  NeutralMaterial: {fileID: 2100000, guid: a3139a465022ee14a8128ca2f384db29, type: 2}
-  EvilMaterial: {fileID: 2100000, guid: 3075f62bc34957a488a5db15084b2b9b, type: 2}
-  HandRenderer: {fileID: 8076003043719755193}
+  EvilMaterial: {fileID: 2800000, guid: 3978d73aa9f62624abb365d446d6b3ee, type: 3}
+  NeutralMaterial: {fileID: 2800000, guid: c1dd2acf93329bd43b2ae046c3558bfa, type: 3}
+  GoodMaterial: {fileID: 2800000, guid: 5920d604fd68767418452dd904d29c99, type: 3}
+  BlendShape: 2
+  Renderer: {fileID: 8076003043719755193}
   GoodEvil: 0
 --- !u!1 &8232100155607002709
 GameObject:
@@ -171,7 +206,6 @@ GameObject:
   - component: {fileID: 4790798668490281979}
   - component: {fileID: 1811263136516011342}
   - component: {fileID: 5055145207413010492}
-  - component: {fileID: 7621148097029810211}
   m_Layer: 6
   m_Name: Braclet
   m_TagString: Untagged
@@ -191,8 +225,8 @@ Transform:
   m_LocalScale: {x: 0.3, y: 0.08, z: 0.3}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 8206440647447101352}
-  m_RootOrder: 0
+  m_Father: {fileID: 2115108327308512781}
+  m_RootOrder: 1
   m_LocalEulerAnglesHint: {x: -89.673, y: 0, z: 0}
 --- !u!33 &1811263136516011342
 MeshFilter:
@@ -244,30 +278,16 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!136 &7621148097029810211
-CapsuleCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8232100155607002709}
-  m_Material: {fileID: 0}
-  m_IsTrigger: 0
-  m_Enabled: 1
-  m_Radius: 0.5000001
-  m_Height: 2
-  m_Direction: 1
-  m_Center: {x: 0.000000059604645, y: 0, z: -0.00000008940697}
 --- !u!1001 &4187864135248850347
 PrefabInstance:
   m_ObjectHideFlags: 0
   serializedVersion: 2
   m_Modification:
-    m_TransformParent: {fileID: 8206440647447101352}
+    m_TransformParent: {fileID: 2115108327308512781}
     m_Modifications:
     - target: {fileID: -8679921383154817045, guid: 49593b2c447b08840b87a697ccb1c58e, type: 3}
       propertyPath: m_RootOrder
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 49593b2c447b08840b87a697ccb1c58e, type: 3}
       propertyPath: m_LocalScale.x
@@ -341,25 +361,9 @@ PrefabInstance:
       propertyPath: m_AABB.m_Extent.z
       value: 0.33014444
       objectReference: {fileID: 0}
-    - target: {fileID: -3887185075125053422, guid: 49593b2c447b08840b87a697ccb1c58e, type: 3}
-      propertyPath: m_Materials.Array.data[0]
-      value: 
-      objectReference: {fileID: 2100000, guid: a3139a465022ee14a8128ca2f384db29, type: 2}
-    - target: {fileID: -3887185075125053422, guid: 49593b2c447b08840b87a697ccb1c58e, type: 3}
-      propertyPath: m_BlendShapeWeights.Array.size
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: -3887185075125053422, guid: 49593b2c447b08840b87a697ccb1c58e, type: 3}
-      propertyPath: m_BlendShapeWeights.Array.data[0]
-      value: 0
-      objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: 49593b2c447b08840b87a697ccb1c58e, type: 3}
       propertyPath: m_Name
       value: Hand
-      objectReference: {fileID: 0}
-    - target: {fileID: 919132149155446097, guid: 49593b2c447b08840b87a697ccb1c58e, type: 3}
-      propertyPath: m_Layer
-      value: 6
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 49593b2c447b08840b87a697ccb1c58e, type: 3}

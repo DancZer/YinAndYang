@@ -15,9 +15,10 @@ public class HandLogic : NetworkBehaviour
     public float HandHeight = 0.3f;
     public float ThrowMinVelocity = 0.2f;
     public float MouseLongPressDeltaTime = .1f;
+    public Vector3 GrabOffset = Vector3.zero;
+    public Renderer BracletRenderer;
 
     [HideInInspector] public GrabObject GrabObject = null;
-    
 
     private GameObject _groundObject;
     private Transform _worldObjectTransform;
@@ -32,7 +33,7 @@ public class HandLogic : NetworkBehaviour
     private GrabObject _grabObjectLongPress;
     private int _grabObjectLayerBak = -1;
     private HandActionState _handActuinState = HandActionState.None;
-    private Transform _innerHandTransform;
+    private Transform _innerContainerTransform;
 
     public override void OnStartServer()
     {
@@ -53,7 +54,7 @@ public class HandLogic : NetworkBehaviour
             _groundObject = GameObject.FindGameObjectWithTag("GroundObject");
             _groundCollider = _groundObject.GetComponent<Collider>();
             _handLayer = HandLayerMask.GetLastLayer();
-            _innerHandTransform = transform.GetChild(0);
+            _innerContainerTransform = transform.GetChild(0);
         }
         else
         {
@@ -61,6 +62,10 @@ public class HandLogic : NetworkBehaviour
         }
     }
 
+    public void SetColor(Color color)
+    {
+        BracletRenderer.material.color = color;
+    }
     
     void Update() 
     {
@@ -98,10 +103,10 @@ public class HandLogic : NetworkBehaviour
 
             if(!GrabObject.IsGrabAtTop)
             {
-                handLocalRot = Quaternion.Euler(0,0, 90);
+                handLocalRot = Quaternion.Euler(0, 0, -90);
             }
         }
-        //_innerHandTransform.localRotation = handLocalRot;
+        _innerContainerTransform.localRotation = handLocalRot;
         transform.SetPositionAndRotation(handWordPos, Quaternion.LookRotation(new Vector3(ray.direction.x, 0, ray.direction.z), Vector3.up));
     }
 
@@ -215,7 +220,7 @@ public class HandLogic : NetworkBehaviour
 
         grabObject.State = GrabState.InHand;
         grabObject.transform.parent = transform;
-        grabObject.transform.localPosition = Vector3.Scale(grabObject.GrabOffset, grabObject.transform.localScale)*-1;
+        grabObject.transform.localPosition = GrabOffset+Vector3.Scale(grabObject.GrabOffset, grabObject.transform.localScale)*-1;
     }
 
     [ServerRpc]
@@ -259,9 +264,11 @@ public class HandLogic : NetworkBehaviour
     [ServerRpc]
     public void SpawnDirtLump(GameObject prefab, Transform transform, Quaternion rotation, NetworkConnection conn = null)
     {
-        var dirtLump = Instantiate(prefab, new Vector3(transform.position.x, 0, transform.position.z), rotation);
+        var dirtLump = Instantiate(prefab);
         dirtLump.transform.localScale = transform.localScale;
         dirtLump.transform.parent = _worldObjectTransform;
+        dirtLump.transform.position = new Vector3(transform.position.x, 0, transform.position.z);
+        dirtLump.transform.rotation = rotation;
         ServerManager.Spawn(dirtLump, conn);
     }
 }
