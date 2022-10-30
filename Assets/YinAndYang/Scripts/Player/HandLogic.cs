@@ -39,6 +39,7 @@ public class HandLogic : NetworkBehaviour
         base.OnStartServer();
 
         _worldObjectTransform = StaticObjectAccessor.GetWorldObject().transform;
+        Cursor.visible = false;
     }
 
     public override void OnStartClient()

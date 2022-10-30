@@ -189,9 +189,9 @@ MonoBehaviour:
   _componentIndexCache: 2
   _addedNetworkObject: {fileID: 4765876222791203007}
   _networkObjectCache: {fileID: 4765876222791203007}
-  EvilMaterial: {fileID: 2800000, guid: 3978d73aa9f62624abb365d446d6b3ee, type: 3}
-  NeutralMaterial: {fileID: 2800000, guid: c1dd2acf93329bd43b2ae046c3558bfa, type: 3}
-  GoodMaterial: {fileID: 2800000, guid: 5920d604fd68767418452dd904d29c99, type: 3}
+  Evil: {fileID: 2800000, guid: 3978d73aa9f62624abb365d446d6b3ee, type: 3}
+  Neutral: {fileID: 2800000, guid: c1dd2acf93329bd43b2ae046c3558bfa, type: 3}
+  Good: {fileID: 2800000, guid: 5920d604fd68767418452dd904d29c99, type: 3}
   BlendShape: 2
   Renderer: {fileID: 8076003043719755193}
 --- !u!1 &8232100155607002709

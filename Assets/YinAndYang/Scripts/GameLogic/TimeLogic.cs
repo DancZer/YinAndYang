@@ -19,6 +19,7 @@ public class TimeLogic : NetworkBehaviour
         base.OnStartServer();
 
         _rounder = Mathf.Pow(10, DaySyncPrecision);
+        _timeCounter = DayInGameInSecond / 2;
     }
 
     private void Update()

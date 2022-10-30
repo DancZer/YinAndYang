@@ -12,9 +12,9 @@ public class EvilGoodBlend : NetworkBehaviour
         None, GoodOnly, EvilOnly, GoodAndEvil
     }
 
-    public Texture EvilMaterial;
-    public Texture NeutralMaterial;
-    public Texture GoodMaterial;
+    public Texture Evil;
+    public Texture Neutral;
+    public Texture Good;
 
     public BlendShapes BlendShape;
 
@@ -44,14 +44,14 @@ public class EvilGoodBlend : NetworkBehaviour
         if (_godLogic.IsGood)
         {
             shaderMaterial.SetFloat("_Blend", _godLogic.Blend);
-            shaderMaterial.SetTexture("_FrontTex", NeutralMaterial);
-            shaderMaterial.SetTexture("_FrontTex2", GoodMaterial);
+            shaderMaterial.SetTexture("_FrontTex", Neutral);
+            shaderMaterial.SetTexture("_FrontTex2", Good);
         }
         else
         {
             shaderMaterial.SetFloat("_Blend", _godLogic.Blend);
-            shaderMaterial.SetTexture("_FrontTex", NeutralMaterial);
-            shaderMaterial.SetTexture("_FrontTex2", EvilMaterial);
+            shaderMaterial.SetTexture("_FrontTex", Neutral);
+            shaderMaterial.SetTexture("_FrontTex2", Evil);
         }
     }
 
