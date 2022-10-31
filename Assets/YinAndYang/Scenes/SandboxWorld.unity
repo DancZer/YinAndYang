@@ -328,8 +328,8 @@ Camera:
     y: 0
     width: 1
     height: 1
-  near clip plane: 0.3
-  far clip plane: 1000
+  near clip plane: 0.2
+  far clip plane: 10000
   field of view: 60
   orthographic: 0
   orthographic size: 5
@@ -422,9 +422,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f05fea36d5f7bec4e9188087d37ebd3a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  TileSize: 10
-  Level: 10
-  PlayerNearAreaSize: 100
+  TileSize: 500
+  Level: 8
+  ViewDistanceForLevels:
+  - {fileID: 11400000, guid: 28bff81b86cbc8144b5546f4592618b1, type: 2}
+  - {fileID: 11400000, guid: 1bfb95ff1f28d244885f1f2b8a54d832, type: 2}
+  - {fileID: 11400000, guid: ab8afa4030b92c245b05ab8f85285115, type: 2}
+  ChunkSize: 0
 --- !u!114 &1146926943
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -437,6 +441,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 53080c09b1566c54ab24e6e13482f2a6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  TopologyHeightVariant: 0.05
+  TopologyHeightVariant2: 100
+  TopologyHeightVariant3: 0.03
+  TopologyHeightVariant4: 50
+  TopologyHeightVariant5: 0.03
+  TopologyHeightVariant6: 0.5
+  Seed: 12345
+  Slices: 50
 --- !u!1001 &1195168470
 PrefabInstance:
   m_ObjectHideFlags: 0

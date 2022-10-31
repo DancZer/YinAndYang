@@ -38,16 +38,13 @@ public class MyTerrainTile
 
     public MyTerrainTile(int level, Rect area, MyTerrainTile parent = null)
     {
-        Debug.Log($"MyTerrainTile {level} {area}");
         Parent = parent;
         Area = area;
         Level = level;
     }
-    public void Update(Rect area)
+    public void Update(ViewDistnaceHandler viewDistnaceHandler)
     {
-        var isInTile = Area.Overlaps(area);
-
-        if (isInTile)
+        if (viewDistnaceHandler.ShouldExpandTile(this))
         {
             if (!CanExpand) return;
 
@@ -56,10 +53,10 @@ public class MyTerrainTile
                 Expand();
             }
 
-            Child00.Update(area);
-            Child01.Update(area);
-            Child11.Update(area);
-            Child10.Update(area);
+            Child00.Update(viewDistnaceHandler);
+            Child01.Update(viewDistnaceHandler);
+            Child11.Update(viewDistnaceHandler);
+            Child10.Update(viewDistnaceHandler);
         }
         else
         {

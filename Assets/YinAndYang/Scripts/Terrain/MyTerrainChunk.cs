@@ -13,8 +13,8 @@ public class MyTerrainChunk
         Tile0Size = area.width / (level+1);
     }
 
-    public void Update(Rect area)
+    public void Update(ViewDistnaceHandler viewDistnaceHandler)
     {
-        Root.Update(area);
+        Root.Update(viewDistnaceHandler);
     }
 }

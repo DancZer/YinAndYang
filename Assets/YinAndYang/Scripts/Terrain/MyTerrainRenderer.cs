@@ -44,11 +44,8 @@ public class MyTerrainRenderer : MonoBehaviour
         {
             tile.GameObject = Instantiate(TilePrefab, transform);
         }
-        tile.GameObject.transform.localPosition = GetTilePos(tile.Area.position);
-        Debug.Log($"RenderTile {tile.Area.position} {tile.Area.size}");
-
         var meshFilter = tile.GameObject.GetComponent<MeshFilter>();
-        meshFilter.mesh = _meshProvider.CreateMesh(tile.Area.size);
+        meshFilter.mesh = _meshProvider.CreateSmoothProceduralMesh(tile);
         var meshCollider = tile.GameObject.GetComponent<MeshCollider>();
         meshCollider.sharedMesh = meshFilter.mesh;
         var meshRenderer = tile.GameObject.GetComponent<MeshRenderer>();
@@ -56,10 +53,4 @@ public class MyTerrainRenderer : MonoBehaviour
 
         tile.IsRendered = true;
     }
-
-    private Vector3 GetTilePos(Vector2 pos2d)
-    {
-        return new Vector3(pos2d.x, 0, pos2d.y);
-    }
-
 }
