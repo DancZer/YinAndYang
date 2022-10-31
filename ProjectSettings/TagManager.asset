@@ -5,10 +5,10 @@ TagManager:
   serializedVersion: 2
   tags:
   - WorldObject
-  - GroundObject
   - GameLogic
   - Temple
   - Spawn
+  - TerrainObject
   layers:
   - Default
   - TransparentFX

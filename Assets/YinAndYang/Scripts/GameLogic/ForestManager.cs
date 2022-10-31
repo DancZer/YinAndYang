@@ -20,7 +20,7 @@ public class ForestManager : NetworkBehaviour
     private List<TreeGrowthHandler> _globalTreeList = new List<TreeGrowthHandler>();
     private Dictionary<string, List<TreeGrowthHandler>> _treeByName = new Dictionary<string, List<TreeGrowthHandler>>();
 
-    private TerrainManager _terrainManager;
+    private MyTerrainManager _terrainManager;
 
     private int _forestIdxCounter;
 
@@ -28,7 +28,9 @@ public class ForestManager : NetworkBehaviour
     {
         base.OnStartServer();
 
-        _terrainManager = StaticObjectAccessor.GetTerrainManager();
+        if (!enabled) return;
+
+        _terrainManager = StaticObjectAccessor.GetMyTerrainManager();
 
         foreach (var treePrefab in treePrefabArray){
             var handler = treePrefab.GetComponent<TreeGrowthHandler>();

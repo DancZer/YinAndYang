@@ -18,7 +18,7 @@ public class HandMovement : NetworkBehaviour
     [HideInInspector] public PlayerInitializer PlayerInit;
     [HideInInspector] public GrabObject GrabObject = null;
 
-    private Collider _groundCollider;
+    private Collider _terrainCollider;
     private float _mouseDownTimeStart;
     private int _handLayer;
 
@@ -41,7 +41,7 @@ public class HandMovement : NetworkBehaviour
 
         if (IsOwner)
         {
-            _groundCollider = StaticObjectAccessor.GetGroundObject().GetComponent<Collider>();
+            _terrainCollider = StaticObjectAccessor.GetTerrainObject().GetComponent<Collider>();
             _handLayer = HandLayerMask.GetLastLayer();
             _innerContainerTransform = transform.GetChild(0);
         }
@@ -76,7 +76,7 @@ public class HandMovement : NetworkBehaviour
 
         var handWordPos = hit.point;
 
-        if(_groundCollider == hit.collider){
+        if(_terrainCollider == hit.collider){
             handWordPos.y = HandHeight;
         }
 
@@ -102,7 +102,7 @@ public class HandMovement : NetworkBehaviour
         {
             if (Input.GetMouseButtonDown(0))
             {
-                if (_groundCollider != hit.collider)
+                if (_terrainCollider != hit.collider)
                 {
                     _mouseDownTimeStart = Time.realtimeSinceStartup;
 

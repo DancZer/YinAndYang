@@ -21,13 +21,13 @@ public static class StaticObjectAccessor
     {
         return GameObject.FindGameObjectWithTag("GameLogic").GetComponent<GameTimeManager>();
     }
-    public static TerrainManager GetTerrainManager()
+    public static MyTerrainManager GetMyTerrainManager()
     {
-        return GameObject.FindGameObjectWithTag("GroundObject").GetComponent<TerrainManager>();
+        return GetTerrainObject().GetComponent<MyTerrainManager>();
     }
-    public static GameObject GetGroundObject()
+    public static GameObject GetTerrainObject()
     {
-        return GameObject.FindGameObjectWithTag("GroundObject");
+        return GameObject.FindGameObjectWithTag("TerrainObject");
     }
 
     public class GodNotFoundException : UnityException
