@@ -9,8 +9,14 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b7595763d37970b41b6c7383d90ce088, type: 3}
-  m_Name: MediumViewDistance
-  m_EditorClassIdentifier: Assembly-CSharp::ViewDistancePreset
-  ViewDistance: 2000
-  RequiredLevel: 1
+  m_Script: {fileID: 11500000, guid: 0362cca8597894d42abe1cf0fee5a0e1, type: 3}
+  m_Name: Hills
+  m_EditorClassIdentifier: 
+  CoefX: 0.1
+  CoefY: 0.1
+  CoefXY: 0.5
+  CoefWeight: 100
+  Min: 50
+  Max: 100
+  SumMin: 0
+  SumMax: 110

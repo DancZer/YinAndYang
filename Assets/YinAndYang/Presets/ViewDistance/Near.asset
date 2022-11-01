@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b7595763d37970b41b6c7383d90ce088, type: 3}
-  m_Name: NearViewDistance
+  m_Name: Near
   m_EditorClassIdentifier: Assembly-CSharp::ViewDistancePreset
   ViewDistance: 1000
   RequiredLevel: 0

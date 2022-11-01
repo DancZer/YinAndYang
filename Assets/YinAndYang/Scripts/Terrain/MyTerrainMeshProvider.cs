@@ -3,23 +3,16 @@ using UnityEngine;
 
 public class MyTerrainMeshProvider : MonoBehaviour
 {
-	public float TopologyHeightVariant = .08f;
-	public float TopologyHeightVariant2 = 50f;
-
-	public float TopologyHeightVariant3 = .03f;
-	public float TopologyHeightVariant4 = 50f;
-
-	public float TopologyHeightVariant5 = .03f;
-	public float TopologyHeightVariant6 = .5f;
-
 	public int Seed = 12345;
+
+	public NoisePreset[] NoisePresets;
 	public float Slices = 2;
 
-	private FastNoise _topographyNoise = new FastNoise();
+	private FastNoise _noise = new FastNoise();
 
 	public void Start()
     {
-		_topographyNoise.SetSeed(Seed);
+		_noise.SetSeed(Seed);
 	}
 
     public Mesh CreateMesh(MyTerrainTile tile)
@@ -159,13 +152,21 @@ public class MyTerrainMeshProvider : MonoBehaviour
 	{
 		return GetGroundLevelPos(v.x, v.y);
 	}
+
 	public Vector3 GetGroundLevelPos(float x, float y)
     {
-		float simplex1 = _topographyNoise.GetSimplex(x * TopologyHeightVariant, y * TopologyHeightVariant) * TopologyHeightVariant2;
-		float simplex2 = _topographyNoise.GetSimplex(x * TopologyHeightVariant3, y * TopologyHeightVariant3) * TopologyHeightVariant4 * (_topographyNoise.GetSimplex(x * TopologyHeightVariant5, y * TopologyHeightVariant5) + TopologyHeightVariant6);
-
-		float heightMap = simplex1 + simplex2;
-		
-		return new Vector3(x, heightMap, y);
+		return new Vector3(x, GetNoiseVal(x, y), y);
     }
+
+	private float GetNoiseVal(float x, float y)
+	{
+		var result = 0f;
+
+		foreach (var preset in NoisePresets)
+		{
+			result = preset.GetNoiseValue(_noise, x, y, result);
+		}
+
+		return result;
+	}
 }
