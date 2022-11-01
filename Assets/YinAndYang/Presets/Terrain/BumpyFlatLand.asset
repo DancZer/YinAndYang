@@ -12,11 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0362cca8597894d42abe1cf0fee5a0e1, type: 3}
   m_Name: BumpyFlatLand
   m_EditorClassIdentifier: 
-  CoefX: 1
-  CoefY: 1
-  CoefXY: 0.5
-  CoefWeight: 10
-  Min: 0
-  Max: 10
+  NoiseType: 4
+  Frequency: 0.1
+  Weight: 0.5
+  Min: -5
+  Max: 0.1
   SumMin: -10
   SumMax: 10

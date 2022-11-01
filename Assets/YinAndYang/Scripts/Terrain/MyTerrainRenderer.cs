@@ -4,16 +4,9 @@ using UnityEngine.ProBuilder;
 public class MyTerrainRenderer : MonoBehaviour
 {
     public GameObject TilePrefab;
-    private MyTerrainMeshProvider _meshProvider;
-
-    private void Start()
+    public void Render(MyTerrainTile tile)
     {
-        _meshProvider = GetComponent<MyTerrainMeshProvider>();
-    }
-
-    public void Render(MyTerrainChunk chunk)
-    {
-        RenderTileRecursive(chunk.Root);
+        RenderTileRecursive(tile);
     }
 
     private void RenderTileRecursive(MyTerrainTile tile)
@@ -43,13 +36,18 @@ public class MyTerrainRenderer : MonoBehaviour
         if(tile.GameObject == null)
         {
             tile.GameObject = Instantiate(TilePrefab, transform);
+            tile.GameObject.name = tile.TileName;
         }
         var meshFilter = tile.GameObject.GetComponent<MeshFilter>();
-        meshFilter.mesh = _meshProvider.CreateSmoothProceduralMesh(tile);
+        meshFilter.mesh = tile.Mesh;
         var meshCollider = tile.GameObject.GetComponent<MeshCollider>();
         meshCollider.sharedMesh = meshFilter.mesh;
+        
+        //For debug tiles
+        /*
         var meshRenderer = tile.GameObject.GetComponent<MeshRenderer>();
         meshRenderer.material.color = new Color(Random.Range(0f, 1f), Random.Range(0f, 1f), Random.Range(0f, 1f));
+        */
 
         tile.IsRendered = true;
     }

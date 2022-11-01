@@ -12,11 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0362cca8597894d42abe1cf0fee5a0e1, type: 3}
   m_Name: Hills
   m_EditorClassIdentifier: 
-  CoefX: 0.1
-  CoefY: 0.1
-  CoefXY: 0.5
-  CoefWeight: 100
-  Min: 50
+  NoiseType: 2
+  Frequency: 0.005
+  Weight: 30
+  Min: 0
   Max: 100
   SumMin: 0
   SumMax: 110

@@ -10,15 +10,14 @@ public class HandMovement : NetworkBehaviour
     }
 
     public LayerMask HandLayerMask;
+    public string GroundTag = "Ground";
     public float HandHeight = 0.3f;
     public float ThrowMinVelocity = 0.2f;
     public float MouseLongPressDeltaTime = .1f;
     public Vector3 GrabOffset = Vector3.zero;
 
-    [HideInInspector] public PlayerInitializer PlayerInit;
     [HideInInspector] public GrabObject GrabObject = null;
 
-    private Collider _terrainCollider;
     private float _mouseDownTimeStart;
     private int _handLayer;
 
@@ -29,6 +28,7 @@ public class HandMovement : NetworkBehaviour
     private int _grabObjectLayerBak = -1;
     private HandActionState _handActuinState = HandActionState.None;
     private Transform _innerContainerTransform;
+    private MyTerrainManager _myTerrainManager;
 
     public override void OnStartServer()
     {
@@ -41,9 +41,10 @@ public class HandMovement : NetworkBehaviour
 
         if (IsOwner)
         {
-            _terrainCollider = StaticObjectAccessor.GetTerrainObject().GetComponent<Collider>();
+            _myTerrainManager = StaticObjectAccessor.GetMyTerrainManager();
             _handLayer = HandLayerMask.GetLastLayer();
             _innerContainerTransform = transform.GetChild(0);
+            
         }
         else
         {
@@ -76,7 +77,8 @@ public class HandMovement : NetworkBehaviour
 
         var handWordPos = hit.point;
 
-        if(_terrainCollider == hit.collider){
+        if(hit.collider.gameObject.tag == GroundTag)
+        {
             handWordPos.y = HandHeight;
         }
 
@@ -102,7 +104,7 @@ public class HandMovement : NetworkBehaviour
         {
             if (Input.GetMouseButtonDown(0))
             {
-                if (_terrainCollider != hit.collider)
+                if (hit.collider.gameObject.tag != GroundTag)
                 {
                     _mouseDownTimeStart = Time.realtimeSinceStartup;
 
@@ -246,7 +248,7 @@ public class HandMovement : NetworkBehaviour
 
             if (rigidbody.isKinematic)
             {
-                GrabObject.transform.position = new Vector3(GrabObject.transform.position.x, 0, GrabObject.transform.position.z) + GrabObject.DropPosOffset;
+                GrabObject.transform.position = _myTerrainManager.GetGroundPosAtCord(new Vector3(GrabObject.transform.position.x, 0, GrabObject.transform.position.z)) + GrabObject.DropPosOffset;
             }
         }
         _grabObjectLayerBak = -1;

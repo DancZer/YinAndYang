@@ -1,6 +1,4 @@
 using UnityEngine;
-using System.Collections;
-using FishNet.Connection;
 using FishNet.Object;
  
 public class HeadMovement : NetworkBehaviour {
@@ -16,22 +14,14 @@ public class HeadMovement : NetworkBehaviour {
     private Vector3 _lastMouse = new Vector3(255, 255, 255); //kind of in the middle of the screen, rather than at the top (play)
     private float _totalRun= 1.0f;
 
-    private Camera playerCamera;
-
+    [HideInInspector] public GameObject HandObject;
     [HideInInspector] public PlayerInitializer PlayerInit;
 
     public override void OnStartClient()
     {
         base.OnStartClient();
 
-        if(IsOwner)
-        {
-            playerCamera = Camera.main;
-            playerCamera.transform.parent = transform;
-            playerCamera.transform.localPosition = new Vector3(0, 0, 0);
-            playerCamera.transform.localRotation = Quaternion.identity;
-        }
-        else
+        if(!IsOwner)
         {
             enabled = false;
         }
@@ -42,10 +32,10 @@ public class HeadMovement : NetworkBehaviour {
         if (!Application.isFocused) return;
         
         if (Input.GetKey(KeyCode.Mouse2) && MiscHelper.IsOnTheScreen(Input.mousePosition)) { 
-            _lastMouse = Input.mousePosition - _lastMouse ;
-            _lastMouse = new Vector3(-_lastMouse.y * CamSens, _lastMouse.x * CamSens, 0 );
-            _lastMouse = new Vector3(transform.eulerAngles.x + _lastMouse.x , transform.eulerAngles.y + _lastMouse.y, 0);
-            transform.eulerAngles = _lastMouse;
+            var mouseMove = Input.mousePosition - _lastMouse ;
+            mouseMove = new Vector3(-mouseMove.y * CamSens, mouseMove.x * CamSens, 0 );
+            mouseMove = new Vector3(transform.eulerAngles.x + mouseMove.x , transform.eulerAngles.y + mouseMove.y, 0);
+            transform.eulerAngles = mouseMove;
         }
         _lastMouse = Input.mousePosition;
 

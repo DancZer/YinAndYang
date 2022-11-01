@@ -6,10 +6,10 @@ using UnityEngine;
 [CreateAssetMenu(fileName = "Noise Preset", menuName = "Scriptables/Noise", order = 3)]
 public class NoisePreset : ScriptableObject
 {
-    public float CoefX;
-    public float CoefY;
-    public float CoefXY;
-    public float CoefWeight;
+    public FastNoise.NoiseType NoiseType;
+    public float Frequency = 0.020f;
+
+    public float Weight;
 
     public float Min;
     public float Max;
@@ -19,7 +19,10 @@ public class NoisePreset : ScriptableObject
 
     public float GetNoiseValue(FastNoise noise, float x, float y, float sum)
     {
-        var val = noise.GetSimplex(x * CoefX * CoefXY, y * CoefY * CoefXY) * CoefWeight;
+        noise.SetNoiseType(NoiseType);
+        noise.SetFrequency(Frequency);
+
+        var val = noise.GetNoise(x, y) * Weight;
 
         if (val < Min)
         {

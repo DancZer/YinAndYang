@@ -8,7 +8,7 @@ public class MyTerrainTile
     public static Vector2Int Node10Idx = new(1, 0);
 
     public readonly MyTerrainTile Parent;
-    public readonly string Name;
+    public readonly string TileName;
     public readonly Rect Area;
     public readonly int Level;
 
@@ -16,6 +16,8 @@ public class MyTerrainTile
     public MyTerrainTile Child01;
     public MyTerrainTile Child11;
     public MyTerrainTile Child10;
+
+    public Mesh Mesh;
 
     public bool IsRendered = false;
     public GameObject GameObject;
@@ -38,6 +40,7 @@ public class MyTerrainTile
 
     public MyTerrainTile(int level, Rect area, MyTerrainTile parent = null)
     {
+        TileName = $"Tile_{area.x:+000000;-000000}_{area.y:+000000;-000000}_{level:00}";
         Parent = parent;
         Area = area;
         Level = level;

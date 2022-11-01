@@ -54,8 +54,9 @@ public class PlayerInitializer : NetworkBehaviour
 
         if (!IsOwner) return;
 
-        headObj.GetComponent<HeadMovement>().PlayerInit = this;
-        handObj.GetComponent<HandMovement>().PlayerInit = this;
+        var headMovement = headObj.GetComponent<HeadMovement>();
+        headMovement.PlayerInit = this;
+        headMovement.HandObject = handObj;
     }
     void Update()
     {
