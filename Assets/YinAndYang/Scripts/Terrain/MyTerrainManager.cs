@@ -1,56 +1,97 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using FishNet;
 
 public class MyTerrainManager : MonoBehaviour
 {
-    public float TileSize = 10;
-    public int Level = 2;
-    public ViewDistancePreset[] ViewDistanceForLevels;
+    public GameObject TilePrefab;
+    public float ChunkSize = 1000;
+    public float NodeSubdividetMagnitude = 30;
+    public float MinNodeSize = 10;
+    public float HeightScale = 100;
+
     public LayerMask GroundMask;
 
-    [ReadOnly] public float ChunkSize;
-
-    private MyTerrainTile _root;
-    private MyTerrainRenderer _renderer;
-
-    private ViewDistnaceHandler _viewDistnaceHandler;
-    private MyTerrainMeshProvider _meshProvider;
-
-    private readonly Dictionary<string, Mesh> _tileMeshCache = new Dictionary<string, Mesh>();
+    MyTerrainGenerator _terrainGenerator;
+    QuadTreeNode<MyTerrainData> _root;
 
     void Start()
     {
-        ChunkSize = TileSize * Mathf.Pow(2, Level);
+        _terrainGenerator = GetComponent<MyTerrainGenerator>();
 
-        _root = new MyTerrainTile(Level, new Rect(ChunkSize / -2, ChunkSize / -2, ChunkSize, ChunkSize));
+        GenerateQuadTreeTerrainData();
+    }
 
-        _viewDistnaceHandler = new ViewDistnaceHandler(ViewDistanceForLevels);
-        _meshProvider = GetComponent<MyTerrainMeshProvider>();
-        _renderer = GetComponent<MyTerrainRenderer>();
+    private void GenerateQuadTreeTerrainData()
+    {
+        var halfChunkSize = ChunkSize / 2f;
+        _root = new QuadTreeNode<MyTerrainData>(0, new Rect(-halfChunkSize, -halfChunkSize, ChunkSize, ChunkSize));
+
+        GenerateNodeData(_root);
+        DisplayTerrainData(_root);
+    }
+
+    private void GenerateNodeData(QuadTreeNode<MyTerrainData> node)
+    {
+        var data = _terrainGenerator.GenerateTerrainData(node.Area);
+
+        Debug.Log($"GenerateNodeData {data.Area} {data.Magnitude * HeightScale}");
+
+        if (data.Magnitude * HeightScale > NodeSubdividetMagnitude && data.Area.width > MinNodeSize)
+        {
+            Debug.Log($"GenerateNodeData Expand {node.Name}");
+            node.Expand();
+
+            foreach (var childNode in node.Children)
+            {
+                GenerateNodeData(childNode);
+            }
+        }
+        else
+        {
+            Debug.Log($"GenerateNodeData Store {node.Name} {data.Area} {data.Magnitude * HeightScale}");
+            node.Data = data;
+        }
+    }
+
+    private void DisplayTerrainData(QuadTreeNode<MyTerrainData> node) 
+    {
+        if (node.IsExpanded)
+        {
+            foreach (var childNode in node.Children)
+            {
+                DisplayTerrainData(childNode);
+            }
+        }
+        else
+        {
+            var terrainData = node.Data;
+
+            var gameObject = Instantiate(TilePrefab, transform);
+            gameObject.name = node.Name;
+            gameObject.transform.position = new Vector3(terrainData.Area.position.x, 0, terrainData.Area.position.y);
+            var meshFilter = gameObject.GetComponent<MeshFilter>();
+            var collider = gameObject.GetComponent<MeshCollider>();
+
+            collider.sharedMesh = meshFilter.mesh = terrainData.GetMesh(HeightScale);
+
+            var renderer = gameObject.GetComponent<MeshRenderer>();
+            renderer.material.SetTexture("_MainTex", TextureFromColourMap(terrainData.ColorMap, terrainData.Resolution, terrainData.Resolution));
+        }
+    }
+    public static Texture2D TextureFromColourMap(Color[] colourMap, int width, int height)
+    {
+        var texture = new Texture2D(width, height);
+
+        texture.filterMode = FilterMode.Point;
+        texture.wrapMode = TextureWrapMode.Clamp;
+        texture.SetPixels(colourMap); //TODO change it to Color32
+        texture.Apply();
+        return texture;
     }
 
     void Update()
     {
         if (!InstanceFinder.IsClient || Camera.main == null) return;
-
-        var pos2d = new Vector2(Camera.main.transform.position.x, Camera.main.transform.position.z);
-
-        _viewDistnaceHandler.ChangeCenter(pos2d);
-
-        _root.Update(_viewDistnaceHandler);
-
-        LoadTileMeshRecursive(_root);
-
-        _renderer.Render(_root);
-    }
-
-    private void OnDrawGizmos()
-    {
-        if (_viewDistnaceHandler == null) return;
-
-        _viewDistnaceHandler.OnDrawGizmos();
     }
 
     public Vector3 GetGroundPosAtCord(Vector3 pos)
@@ -69,34 +110,6 @@ public class MyTerrainManager : MonoBehaviour
         }
 
         return pos;
-    }
-
-    private void LoadTileMeshRecursive(MyTerrainTile tile)
-    {
-        if (tile.IsExpanded)
-        {
-            LoadTileMeshRecursive(tile.Child00);
-            LoadTileMeshRecursive(tile.Child01);
-            LoadTileMeshRecursive(tile.Child11);
-            LoadTileMeshRecursive(tile.Child10);
-        }
-        else
-        {
-            LoadTileMesh(tile);
-        }
-    }
-
-    private void LoadTileMesh(MyTerrainTile tile)
-    {
-        if (tile.Mesh != null) return;
-
-        if (!_tileMeshCache.TryGetValue(tile.TileName, out Mesh mesh))
-        {
-            mesh = _meshProvider.CreateProceduralMesh(tile);
-            _tileMeshCache.Add(tile.TileName, mesh);
-        }
-
-        tile.Mesh = mesh;
     }
 
 }

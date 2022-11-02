@@ -5704,8 +5704,7 @@ GameObject:
   m_Component:
   - component: {fileID: 539339106}
   - component: {fileID: 539339105}
-  - component: {fileID: 539339104}
-  - component: {fileID: 539339103}
+  - component: {fileID: 539339107}
   m_Layer: 0
   m_Name: TerrainObject
   m_TagString: TerrainObject
@@ -5713,36 +5712,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &539339103
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 539339102}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 71b07293958099a4f91b5f75e7e875c9, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  TilePrefab: {fileID: 4815622980973752870, guid: 2f592c790c3ffa241b346eabe9c6d339, type: 3}
---- !u!114 &539339104
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 539339102}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 53080c09b1566c54ab24e6e13482f2a6, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  Seed: 12345
-  NoisePresets:
-  - {fileID: 11400000, guid: 3c79ee7745d1c944d80b164b78aa6c90, type: 2}
-  - {fileID: 11400000, guid: d229c52ce5b7f644a99184e5c7e9c5ab, type: 2}
-  Slices: 2
 --- !u!114 &539339105
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5755,16 +5724,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f05fea36d5f7bec4e9188087d37ebd3a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  TileSize: 200
-  Level: 6
-  ViewDistanceForLevels:
-  - {fileID: 11400000, guid: 28bff81b86cbc8144b5546f4592618b1, type: 2}
-  - {fileID: 11400000, guid: 1bfb95ff1f28d244885f1f2b8a54d832, type: 2}
-  - {fileID: 11400000, guid: ab8afa4030b92c245b05ab8f85285115, type: 2}
+  TilePrefab: {fileID: 4815622980973752870, guid: 2f592c790c3ffa241b346eabe9c6d339, type: 3}
+  ChunkSize: 1000
+  NodeSubdividetMagnitude: 30
+  MinNodeSize: 10
+  HeightScale: 100
   GroundMask:
     serializedVersion: 2
     m_Bits: 8
-  ChunkSize: 0
 --- !u!4 &539339106
 Transform:
   m_ObjectHideFlags: 0
@@ -5780,6 +5747,43 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 7
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &539339107
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 539339102}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 05cc16748dfc177459f375035b01bf7e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Regions:
+  - Name: Water
+    Height: 0.1
+    Colour: {r: 0.1462264, g: 0.3680746, b: 1, a: 1}
+  - Name: Sand
+    Height: 0.3
+    Colour: {r: 0.8962264, g: 0.7674743, b: 0, a: 0}
+  - Name: Grass
+    Height: 0.7
+    Colour: {r: 0.025052898, g: 0.6226415, b: 0, a: 0}
+  - Name: Rock
+    Height: 0.9
+    Colour: {r: 0.24528301, g: 0.24528301, b: 0.24528301, a: 1}
+  - Name: Snow
+    Height: 1
+    Colour: {r: 1, g: 1, b: 1, a: 0}
+  TileResolution: 33
+  Seed: 1234
+  Octaves: 3
+  Gain: 2
+  Lacunarity: 2
+  NoiseClampMin: -0.5
+  NoiseClampMax: 0.5
+  GlobalMinVal: 0
+  GlobalMaxVal: 0
 --- !u!1001 &550927776
 PrefabInstance:
   m_ObjectHideFlags: 0
