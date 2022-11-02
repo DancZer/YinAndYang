@@ -5725,10 +5725,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TilePrefab: {fileID: 4815622980973752870, guid: 2f592c790c3ffa241b346eabe9c6d339, type: 3}
-  ChunkSize: 1000
+  ChunkSize: 500
   NodeSubdividetMagnitude: 30
   MinNodeSize: 10
-  HeightScale: 100
+  HeightScale: 60
   GroundMask:
     serializedVersion: 2
     m_Bits: 8
@@ -5778,7 +5778,7 @@ MonoBehaviour:
   TileResolution: 33
   Seed: 1234
   Octaves: 3
-  Gain: 2
+  Gain: 1
   Lacunarity: 2
   NoiseClampMin: -0.5
   NoiseClampMax: 0.5
