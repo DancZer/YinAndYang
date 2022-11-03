@@ -4,20 +4,17 @@ using UnityEngine;
 public class MyTerrainData
 {
 	public readonly Rect Area;
-    public readonly float[,] HeightMap;
     public readonly float Magnitude;
-    public readonly Color[] ColorMap;
-
 	public readonly int Resolution;
-	public readonly int Height;
 
-	public MyTerrainData(Rect area, float[,] heightMap, int resolution, float magnitude, Color[] colorMap)
+	float[,] _heightMap;
+
+	public MyTerrainData(Rect area, float[,] heightMap, int resolution, float magnitude)
     {
 		Area = area;
-		HeightMap = heightMap;
-		Magnitude = magnitude;
-		ColorMap = colorMap;
 		Resolution = resolution;
+		_heightMap = heightMap;
+		Magnitude = magnitude;
 	}
 
     public Mesh GetMesh(float heightScale)
@@ -36,10 +33,10 @@ public class MyTerrainData
 		{
 			for (int y = 0; y < Resolution; y++)
 			{
-				verts.Add(new Vector3(x * vertStep, HeightMap[x, y] * heightScale, y * vertStep));
-				verts.Add(new Vector3(x * vertStep, HeightMap[x, y+1] * heightScale, (y + 1) * vertStep));
-				verts.Add(new Vector3((x + 1) * vertStep, HeightMap[x+1, y+1] * heightScale, (y + 1) * vertStep));
-				verts.Add(new Vector3((x + 1) * vertStep, HeightMap[x+1, y] * heightScale, y * vertStep));
+				verts.Add(new Vector3(x * vertStep, _heightMap[x, y] * heightScale, y * vertStep));
+				verts.Add(new Vector3(x * vertStep, _heightMap[x, y+1] * heightScale, (y + 1) * vertStep));
+				verts.Add(new Vector3((x + 1) * vertStep, _heightMap[x+1, y+1] * heightScale, (y + 1) * vertStep));
+				verts.Add(new Vector3((x + 1) * vertStep, _heightMap[x+1, y] * heightScale, y * vertStep));
 
 				uvs.Add(new Vector2(x * uvStep, y * uvStep));
 				uvs.Add(new Vector2(x * uvStep, (y+1) * uvStep));
@@ -74,5 +71,46 @@ public class MyTerrainData
 		mesh.Optimize();
 
 		return mesh;
+	}
+
+	public Color[] GetColorMap(TerrainType[] regions)
+	{
+		Color[] colorMap = new Color[Resolution * Resolution];
+
+		for (int y = 0; y < Resolution; y++)
+		{
+			for (int x = 0; x < Resolution; x++)
+			{
+				var currentHeight = _heightMap[x, y];
+
+				foreach (var region in regions)
+				{
+					if (currentHeight < region.Height)
+					{
+						colorMap[y * Resolution + x] = region.Colour;
+						break;
+					}
+				}
+			}
+		}
+
+		return colorMap;
+	}
+
+	public Color[] GetGrayscaleMap()
+	{
+		Color[] colorMap = new Color[Resolution * Resolution];
+
+		for (int y = 0; y < Resolution; y++)
+		{
+			for (int x = 0; x < Resolution; x++)
+			{
+				var currentHeight = _heightMap[x, y];
+
+				colorMap[y * Resolution + x] = Color.Lerp(Color.black, Color.white, currentHeight);
+			}
+		}
+
+		return colorMap;
 	}
 }

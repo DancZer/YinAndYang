@@ -1,8 +1,8 @@
+using UnityEditor;
 using UnityEngine;
 
 public class MyTerrainGenerator : MonoBehaviour
 {
-	public TerrainType[] Regions;
 	public int TileResolution = 33;
 	public int Seed = 1234;
 	public int Octaves = 3;
@@ -23,8 +23,6 @@ public class MyTerrainGenerator : MonoBehaviour
 
     public MyTerrainData GenerateTerrainData(Rect area)
     {
-		var offset = area.position;
-
 		var noise = new FastNoise(Seed);
 
 		noise.SetFractalOctaves(Octaves);
@@ -36,17 +34,16 @@ public class MyTerrainGenerator : MonoBehaviour
 		float minVal = float.MaxValue;
 		float maxVal = float.MinValue;
 
-		int NoiseMapResolution = TileResolution +1;
-		int ColorResolution = TileResolution;
+		int NoiseMapSize = TileResolution +1;
 
-		float[,] noiseMap = new float[NoiseMapResolution, NoiseMapResolution];
-		Color[] colorMap = new Color[ColorResolution * ColorResolution];
+		float[,] noiseMap = new float[NoiseMapSize, NoiseMapSize];
 
-		var noiseMapStep = area.width / NoiseMapResolution;
+		var noiseMapStep = area.width / TileResolution;
+		var offset = area.position;
 
-		for (int y = 0; y < NoiseMapResolution; y++)
+		for (int y = 0; y < NoiseMapSize; y++)
 		{
-			for (int x = 0; x < NoiseMapResolution; x++)
+			for (int x = 0; x < NoiseMapSize; x++)
 			{
 				var currentHeight = noise.GetPerlin(offset.x + x * noiseMapStep, offset.y + y * noiseMapStep);
                 
@@ -61,17 +58,6 @@ public class MyTerrainGenerator : MonoBehaviour
 				}
 
 				noiseMap[x, y] = currentHeight;
-
-				if (x >= ColorResolution || y >= ColorResolution) continue;
-
-				foreach (var region in Regions)
-				{
-					if (currentHeight < region.Height)
-					{
-						colorMap[y * ColorResolution + x] = region.Colour;
-						break;
-					}
-				}
 			}
 		}
 
@@ -85,8 +71,32 @@ public class MyTerrainGenerator : MonoBehaviour
 			GlobalMaxVal = maxVal;
 		}
 
-		return new MyTerrainData(area, noiseMap, TileResolution, maxVal -minVal, colorMap);
+		return new MyTerrainData(area, noiseMap, TileResolution, GetMagnitude(noiseMap));
     }
+
+	private float GetMagnitude(float[,] noiseMap)
+	{
+		int NoiseMapSize = TileResolution + 1;
+
+		var maxMagnitude = float.MinValue;
+		for (int y = 0; y < NoiseMapSize; y++)
+		{
+			var lineStart = new Vector3(0, noiseMap[0, y], y);
+			var lineEnd = new Vector3(NoiseMapSize-1, noiseMap[NoiseMapSize - 1, y], y);
+
+			for (int x = 0; x < NoiseMapSize; x++)
+			{
+				var magnitude = HandleUtility.DistancePointLine(new Vector3(x, noiseMap[x, y], y), lineStart, lineEnd);
+
+                if (magnitude > maxMagnitude)
+                {
+					maxMagnitude = magnitude;
+                }
+			}
+		}
+
+		return maxMagnitude;
+	}
 }
 
 [System.Serializable]

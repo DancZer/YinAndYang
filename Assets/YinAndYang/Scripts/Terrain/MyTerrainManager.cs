@@ -8,8 +8,14 @@ public class MyTerrainManager : MonoBehaviour
     public float NodeSubdividetMagnitude = 30;
     public float MinNodeSize = 10;
     public float HeightScale = 100;
+    public TerrainType[] Regions;
 
     public LayerMask GroundMask;
+
+    public MyTerrainDisplay.DrawMode EditorDrawMode;
+    public bool EditorAutoUpdate;
+    public MyTerrainDisplay EditorDisplay;
+
 
     MyTerrainGenerator _terrainGenerator;
     QuadTreeNode<MyTerrainData> _root;
@@ -64,30 +70,14 @@ public class MyTerrainManager : MonoBehaviour
         }
         else
         {
-            var terrainData = node.Data;
-
             var gameObject = Instantiate(TilePrefab, transform);
             gameObject.name = node.Name;
-            gameObject.transform.position = new Vector3(terrainData.Area.position.x, 0, terrainData.Area.position.y);
-            var meshFilter = gameObject.GetComponent<MeshFilter>();
-            var collider = gameObject.GetComponent<MeshCollider>();
 
-            collider.sharedMesh = meshFilter.mesh = terrainData.GetMesh(HeightScale);
-
-            var renderer = gameObject.GetComponent<MeshRenderer>();
-            renderer.material.SetTexture("_MainTex", TextureFromColourMap(terrainData.ColorMap, terrainData.Resolution, terrainData.Resolution));
+            var terrainDisplay = gameObject.GetComponent<MyTerrainDisplay>();
+            terrainDisplay.DisplayTerrain(node.Data, Regions, HeightScale, MyTerrainDisplay.DrawMode.Mesh);
         }
     }
-    public static Texture2D TextureFromColourMap(Color[] colourMap, int width, int height)
-    {
-        var texture = new Texture2D(width, height);
 
-        texture.filterMode = FilterMode.Point;
-        texture.wrapMode = TextureWrapMode.Clamp;
-        texture.SetPixels(colourMap); //TODO change it to Color32
-        texture.Apply();
-        return texture;
-    }
 
     void Update()
     {
@@ -112,4 +102,25 @@ public class MyTerrainManager : MonoBehaviour
         return pos;
     }
 
+    public void DrawTerrainInEditor()
+    {
+        var objPos = EditorDisplay.transform.position;
+        var objScale = EditorDisplay.transform.localScale;
+
+        var area = new Rect(objPos.x, objPos.z, objScale.x, objScale.z);
+        var data = GetComponent<MyTerrainGenerator>().GenerateTerrainData(area);
+
+        if (EditorDrawMode == MyTerrainDisplay.DrawMode.NoiseMap)
+        {
+            EditorDisplay.DisplayTerrain(data, Regions, HeightScale, MyTerrainDisplay.DrawMode.NoiseMap);
+        }
+        else if (EditorDrawMode == MyTerrainDisplay.DrawMode.ColourMap)
+        {
+            EditorDisplay.DisplayTerrain(data, Regions, HeightScale, MyTerrainDisplay.DrawMode.ColourMap);
+        }
+        else if (EditorDrawMode == MyTerrainDisplay.DrawMode.Mesh)
+        {
+            EditorDisplay.DisplayTerrain(data, Regions, HeightScale, MyTerrainDisplay.DrawMode.Mesh);
+        }
+    }
 }
