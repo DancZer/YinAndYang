@@ -3,6 +3,7 @@ using UnityEngine;
 
 public class MyTerrainGenerator : MonoBehaviour
 {
+	public FastNoise.NoiseType NoiseType;
 	public int TileResolution = 33;
 	public int Seed = 1234;
 	public int Octaves = 3;
@@ -21,15 +22,16 @@ public class MyTerrainGenerator : MonoBehaviour
 		GlobalMaxVal = float.MinValue;
 	}
 
-    public MyTerrainData GenerateTerrainData(Rect area)
+    public MyTerrainData GenerateTerrainData(Bounds area)
     {
+		Debug.Log($"GenerateTerrainData {area}");
 		var noise = new FastNoise(Seed);
 
 		noise.SetFractalOctaves(Octaves);
 		noise.SetFractalGain(Gain);
 		noise.SetFractalLacunarity(Lacunarity);
 
-		noise.SetNoiseType(FastNoise.NoiseType.Perlin);
+		noise.SetNoiseType(NoiseType);
 
 		float minVal = float.MaxValue;
 		float maxVal = float.MinValue;
@@ -38,14 +40,14 @@ public class MyTerrainGenerator : MonoBehaviour
 
 		float[,] noiseMap = new float[NoiseMapSize, NoiseMapSize];
 
-		var noiseMapStep = area.width / TileResolution;
-		var offset = area.position;
+		var noiseMapStep = area.size.x / TileResolution;
+		var offset = area.OffsetXZ();
 
-		for (int y = 0; y < NoiseMapSize; y++)
+		for (int z = 0; z < NoiseMapSize; z++)
 		{
 			for (int x = 0; x < NoiseMapSize; x++)
 			{
-				var currentHeight = noise.GetPerlin(offset.x + x * noiseMapStep, offset.y + y * noiseMapStep);
+				var currentHeight = noise.GetNoise(offset.x + x * noiseMapStep, offset.z + z * noiseMapStep);
                 
 				if (currentHeight < minVal)
 				{
@@ -57,7 +59,7 @@ public class MyTerrainGenerator : MonoBehaviour
 					maxVal = currentHeight;
 				}
 
-				noiseMap[x, y] = currentHeight;
+				noiseMap[x, z] = currentHeight;
 			}
 		}
 
@@ -79,14 +81,14 @@ public class MyTerrainGenerator : MonoBehaviour
 		int NoiseMapSize = TileResolution + 1;
 
 		var maxMagnitude = float.MinValue;
-		for (int y = 0; y < NoiseMapSize; y++)
+		for (int z = 0; z < NoiseMapSize; z++)
 		{
-			var lineStart = new Vector3(0, noiseMap[0, y], y);
-			var lineEnd = new Vector3(NoiseMapSize-1, noiseMap[NoiseMapSize - 1, y], y);
+			var lineStart = new Vector3(0, noiseMap[0, z], z);
+			var lineEnd = new Vector3(NoiseMapSize-1, noiseMap[NoiseMapSize - 1, z], z);
 
 			for (int x = 0; x < NoiseMapSize; x++)
 			{
-				var magnitude = HandleUtility.DistancePointLine(new Vector3(x, noiseMap[x, y], y), lineStart, lineEnd);
+				var magnitude = HandleUtility.DistancePointLine(new Vector3(x, noiseMap[x, z], z), lineStart, lineEnd);
 
                 if (magnitude > maxMagnitude)
                 {

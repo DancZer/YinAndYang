@@ -21,4 +21,12 @@ public static class MethodExtensions
             trans.gameObject.layer = layer;
         }
     }
+
+    public static Vector3 OffsetXZ(this Bounds bounds)
+    {
+        var offset = bounds.center - bounds.size / 2f;
+
+        offset.y = 0;
+        return offset;
+    }
 }

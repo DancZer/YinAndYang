@@ -3,13 +3,13 @@ using UnityEngine;
 
 public class QuadTreeNode<T>
 {
-    public static Vector2Int Node00Idx = new(0, 0);
-    public static Vector2Int Node01Idx = new(0, 1);
-    public static Vector2Int Node11Idx = new(1, 1);
-    public static Vector2Int Node10Idx = new(1, 0);
+    public static Vector3Int Node00Idx = new(0, 0, 0);
+    public static Vector3Int Node01Idx = new(0, 0, 1);
+    public static Vector3Int Node11Idx = new(1, 0, 1);
+    public static Vector3Int Node10Idx = new(1, 0, 0);
 
     public readonly QuadTreeNode<T> Parent;
-    public readonly Rect Area;
+    public readonly Bounds Area;
     public readonly int Level;
     public readonly string Name;
 
@@ -44,12 +44,12 @@ public class QuadTreeNode<T>
         }
     }
 
-    public QuadTreeNode(int level, Rect area, QuadTreeNode<T> parent = null)
+    public QuadTreeNode(int level, Bounds area, QuadTreeNode<T> parent = null)
     {
         Parent = parent;
         Area = area;
         Level = level;
-        Name = $"Node_{level:00000}_{area.x:+00000;-00000}_{area.y:+00000;-00000}";
+        Name = $"Node_{level:00000}_{area.center.x:+00000;-00000}_{area.center.y:+00000;-00000}";
     }
 
     public void Expand()
@@ -58,7 +58,7 @@ public class QuadTreeNode<T>
 
         var childLevel = Level + 1;
         var childAreaDim = Area.size / 2f;
-        var parentAreaPos = Area.position;
+        var parentAreaPos = Area.center;
 
         Child00 = CreateChild(childLevel, parentAreaPos, childAreaDim, Node00Idx);
         Child01 = CreateChild(childLevel, parentAreaPos, childAreaDim, Node01Idx);
@@ -66,11 +66,11 @@ public class QuadTreeNode<T>
         Child10 = CreateChild(childLevel, parentAreaPos, childAreaDim, Node10Idx);
     }
 
-    private QuadTreeNode<T> CreateChild(int size, Vector2 parentAreaPos, Vector2 areaSize, Vector2 idx)
+    private QuadTreeNode<T> CreateChild(int size, Vector3 parentAreaPos, Vector3 areaSize, Vector3 idx)
     {
-        var areaPos = new Vector2(parentAreaPos.x + areaSize.x * idx.x, parentAreaPos.y + areaSize.y * idx.y);
+        var areaPos = new Vector3(parentAreaPos.x + (areaSize.x * idx.x)/2f, 0, parentAreaPos.z + (areaSize.z * idx.z)/2f);
 
-        return new QuadTreeNode<T>(size, new Rect(areaPos, areaSize), this);
+        return new QuadTreeNode<T>(size, new Bounds(areaPos, areaSize), this);
     }
 
     public void Collapse()

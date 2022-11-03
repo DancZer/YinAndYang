@@ -5,18 +5,17 @@ public class MyTerrainDisplay : MonoBehaviour
 {
     public enum DrawMode { NoiseMap, ColourMap, Mesh };
 
-
     public void DisplayTerrain(MyTerrainData terrainData, TerrainType[] regions, float heightScale, DrawMode drawMode)
     {
-        gameObject.transform.position = new Vector3(terrainData.Area.position.x, 0, terrainData.Area.position.y);
-        var meshFilter = gameObject.GetComponent<MeshFilter>();
-        var collider = gameObject.GetComponent<MeshCollider>();
+        transform.position = terrainData.Area.center;
+        var meshFilter = GetComponent<MeshFilter>();
+        var collider = GetComponent<MeshCollider>();
 
         Mesh mesh;
 
         if(drawMode == DrawMode.Mesh)
         {
-            mesh = terrainData.GetMesh(heightScale);
+            mesh = terrainData.GetMeshOpt(heightScale);
         }
         else
         {
@@ -38,7 +37,14 @@ public class MyTerrainDisplay : MonoBehaviour
 
         Texture2D mainTex = TextureFromColor(texColor, terrainData.Resolution, terrainData.Resolution);
         var renderer = gameObject.GetComponent<MeshRenderer>();
-        renderer.material.SetTexture("_MainTex", mainTex);
+        if (Application.isEditor)
+        {
+            renderer.sharedMaterial.SetTexture("_MainTex", mainTex);
+        }
+        else
+        {
+            renderer.material.SetTexture("_MainTex", mainTex);
+        }
     }
     public static Texture2D TextureFromColor(Color[] colourMap, int width, int height)
     {
@@ -51,18 +57,25 @@ public class MyTerrainDisplay : MonoBehaviour
         return texture;
     }
 
-    private Mesh GetPlaneMesh(Rect area)
+    private Mesh GetPlaneMesh(Bounds area)
     {
         var mesh = new Mesh();
 
         var verts = new List<Vector3>();
         var uvs = new List<Vector2>();
 
+        var offset = area.OffsetXZ();
+
         var numFaces = 1;
-        verts.Add(new Vector3(area.x, 0, area.y));
-        verts.Add(new Vector3(area.x, 0, area.y + area.height));
-        verts.Add(new Vector3(area.x + area.width, 0, area.y + area.height));
-        verts.Add(new Vector3(area.x + area.width, 0, area.y));
+        verts.Add(new Vector3(offset.x,                 0, offset.z));
+        verts.Add(new Vector3(offset.x,                 0, offset.z + area.size.z));
+        verts.Add(new Vector3(offset.x + area.size.x,   0, offset.z + area.size.z));
+        verts.Add(new Vector3(offset.x + area.size.x,   0, offset.z));
+
+        uvs.Add(new Vector2(0, 0));
+        uvs.Add(new Vector2(0, 1));
+        uvs.Add(new Vector2(1, 1));
+        uvs.Add(new Vector2(1, 0));
 
         var tris = new List<int>();
         int tl = verts.Count - 4 * numFaces;
@@ -78,6 +91,8 @@ public class MyTerrainDisplay : MonoBehaviour
                 p0, p2, p3 }
             );
         }
+
+        Debug.Log($"MyTerrainDisplay {numFaces} {verts.Count}");
 
         mesh.SetVertices(verts);
         mesh.SetTriangles(tris, 0);

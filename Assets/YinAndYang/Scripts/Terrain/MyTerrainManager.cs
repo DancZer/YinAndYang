@@ -15,6 +15,7 @@ public class MyTerrainManager : MonoBehaviour
     public MyTerrainDisplay.DrawMode EditorDrawMode;
     public bool EditorAutoUpdate;
     public MyTerrainDisplay EditorDisplay;
+    public float EditorDisplaySize;
 
 
     MyTerrainGenerator _terrainGenerator;
@@ -29,8 +30,7 @@ public class MyTerrainManager : MonoBehaviour
 
     private void GenerateQuadTreeTerrainData()
     {
-        var halfChunkSize = ChunkSize / 2f;
-        _root = new QuadTreeNode<MyTerrainData>(0, new Rect(-halfChunkSize, -halfChunkSize, ChunkSize, ChunkSize));
+        _root = new QuadTreeNode<MyTerrainData>(0, new Bounds(new Vector3(0,0,0), new Vector3(ChunkSize, 0, ChunkSize)));
 
         GenerateNodeData(_root);
         DisplayTerrainData(_root);
@@ -42,7 +42,7 @@ public class MyTerrainManager : MonoBehaviour
 
         Debug.Log($"GenerateNodeData {data.Area} {data.Magnitude * HeightScale}");
 
-        if (data.Magnitude * HeightScale > NodeSubdividetMagnitude && data.Area.width > MinNodeSize)
+        if (data.Magnitude * HeightScale > NodeSubdividetMagnitude && data.Area.size.x > MinNodeSize)
         {
             Debug.Log($"GenerateNodeData Expand {node.Name}");
             node.Expand();
@@ -104,10 +104,7 @@ public class MyTerrainManager : MonoBehaviour
 
     public void DrawTerrainInEditor()
     {
-        var objPos = EditorDisplay.transform.position;
-        var objScale = EditorDisplay.transform.localScale;
-
-        var area = new Rect(objPos.x, objPos.z, objScale.x, objScale.z);
+        var area = new Bounds(EditorDisplay.transform.position, new Vector3(EditorDisplaySize, 0, EditorDisplaySize));
         var data = GetComponent<MyTerrainGenerator>().GenerateTerrainData(area);
 
         if (EditorDrawMode == MyTerrainDisplay.DrawMode.NoiseMap)
