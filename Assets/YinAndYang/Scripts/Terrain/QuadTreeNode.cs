@@ -3,13 +3,13 @@ using UnityEngine;
 
 public class QuadTreeNode<T>
 {
-    public static Vector3Int Node00Idx = new(0, 0, 0);
-    public static Vector3Int Node01Idx = new(0, 0, 1);
-    public static Vector3Int Node11Idx = new(1, 0, 1);
-    public static Vector3Int Node10Idx = new(1, 0, 0);
+    private static Vector2Int Node00Idx = new(0, 0);
+    private static Vector2Int Node01Idx = new(0, 1);
+    private static Vector2Int Node11Idx = new(1, 1);
+    private static Vector2Int Node10Idx = new(1, 0);
 
     public readonly QuadTreeNode<T> Parent;
-    public readonly Bounds Area;
+    public readonly Rect Area;
     public readonly int Level;
     public readonly string Name;
 
@@ -44,7 +44,7 @@ public class QuadTreeNode<T>
         }
     }
 
-    public QuadTreeNode(int level, Bounds area, QuadTreeNode<T> parent = null)
+    public QuadTreeNode(int level, Rect area, QuadTreeNode<T> parent = null)
     {
         Parent = parent;
         Area = area;
@@ -52,11 +52,23 @@ public class QuadTreeNode<T>
         Name = $"Node_{level:00000}_{area.center.x:+00000;-00000}_{area.center.y:+00000;-00000}";
     }
 
-    public void Expand()
+    public void SubdivideAll()
     {
-        if (IsExpanded) return;
+        if (IsExpanded || !CanExpand) return;
 
-        var childLevel = Level + 1;
+        Subdivide();
+
+        foreach (var child in Children)
+        {
+            child.SubdivideAll();
+        }
+    }
+
+    public void Subdivide()
+    {
+        if (IsExpanded || !CanExpand) return;
+
+        var childLevel = Level - 1;
         var childAreaDim = Area.size / 2f;
         var parentAreaPos = Area.center;
 
@@ -66,14 +78,14 @@ public class QuadTreeNode<T>
         Child10 = CreateChild(childLevel, parentAreaPos, childAreaDim, Node10Idx);
     }
 
-    private QuadTreeNode<T> CreateChild(int size, Vector3 parentAreaPos, Vector3 areaSize, Vector3 idx)
+    private QuadTreeNode<T> CreateChild(int size, Vector2 parentAreaPos, Vector2 areaSize, Vector2Int idx)
     {
-        var areaPos = new Vector3(parentAreaPos.x + (areaSize.x * idx.x)/2f, 0, parentAreaPos.z + (areaSize.z * idx.z)/2f);
+        var areaPos = parentAreaPos + areaSize * idx;
 
-        return new QuadTreeNode<T>(size, new Bounds(areaPos, areaSize), this);
+        return new QuadTreeNode<T>(size, new Rect(areaPos, areaSize), this);
     }
 
-    public void Collapse()
+    public void MergeNodes()
     {
         if (!IsExpanded) return;
 
@@ -89,7 +101,7 @@ public class QuadTreeNode<T>
     {
         if (node.IsExpanded)
         {
-            node.Collapse();
+            node.MergeNodes();
         }
     }
 }
