@@ -16,15 +16,25 @@ public class MyTerrainGenerator : MonoBehaviour
 	public AnimationCurve HeightCurve;
 	public MyTerrainRegionPreset[] Regions;
 
-	public FastNoise.NoiseType NoiseType;
+	public FastNoiseLite.NoiseType NoiseType;
+	public FastNoiseLite.FractalType FractalType;
 	public int Seed = 1234;
 	public float Frequency = 0.5f;
 	public int Octaves = 3;
 	public float Gain = 2;
 	public float Lacunarity = 2;
 
+	[ReadOnly] public float MinVal;
+	[ReadOnly] public float MaxVal;
+
+	[ReadOnly] public float MinHeight;
+	[ReadOnly] public float MaxHeight;
+
 	public void DrawTerrainInEditor()
 	{
+		MinVal = MinHeight = float.MaxValue;
+		MaxVal = MaxHeight = float.MinValue;
+
 		MyTerrainData mapData = GenerateTerrainData(new Rect(new Vector2(transform.position.x-EditorTerrainSize/2f, transform.position.y-EditorTerrainSize/2f), new Vector2(EditorTerrainSize, EditorTerrainSize)));
 		MyTerrainMeshData meshData = GenerateMeshData(mapData, EditorLOD);
 
@@ -106,12 +116,13 @@ public class MyTerrainGenerator : MonoBehaviour
 
 	private float[,] CreateNoiseMap(Rect area)
     {
-		var noise = new FastNoise(Seed);
+		var noise = new FastNoiseLite(Seed);
 		
 		noise.SetFractalOctaves(Octaves);
 		noise.SetFractalGain(Gain);
 		noise.SetFractalLacunarity(Lacunarity);
 		noise.SetFrequency(Frequency);
+		noise.SetFractalType(FractalType);
 		noise.SetNoiseType(NoiseType);
 
 		int NoiseMapSize = TerrainResolution + 1;
@@ -125,12 +136,18 @@ public class MyTerrainGenerator : MonoBehaviour
 		{
 			for (int x = 0; x < NoiseMapSize; x++)
 			{
-				noiseMap[x, y] = noise.GetNoise(offset.x + x * noiseMapStep, offset.y + y * noiseMapStep)+0.5f;
+				var val = noise.GetNoise(offset.x + x * noiseMapStep, offset.y + y * noiseMapStep);
+				noiseMap[x, y] = val;
+
+				LogMinMax(ref MinVal, ref MaxVal, val);
 			}
 		}
 
 		return noiseMap;
 	}
+
+
+
 	private Color[] CreateHeightMap(float[,] noiseMap)
 	{
 		Color[] heightMap = new Color[TerrainResolution * TerrainResolution];
@@ -158,8 +175,7 @@ public class MyTerrainGenerator : MonoBehaviour
 		{
 			for (int x = 0; x < TerrainResolution; x++)
 			{
-				var noise = noiseMap[x, y];
-				var height = heightCurve.Evaluate(noise);
+				var height = heightCurve.Evaluate(noiseMap[x, y]) * HeightMultiplier;
 
 				foreach (var region in Regions)
 				{
@@ -193,6 +209,8 @@ public class MyTerrainGenerator : MonoBehaviour
 			{
 				var height = heightCurve.Evaluate(terrainData.NoiseMap[x, y]) * HeightMultiplier;
 
+				LogMinMax(ref MinHeight, ref MaxHeight, height);
+
 				mesh.AddVertice(new Vector3(offset.x + x * vertStep, height, offset.y + y * vertStep));
 				mesh.AddUV(new Vector2(x * uvStep, y * uvStep));
 
@@ -206,6 +224,19 @@ public class MyTerrainGenerator : MonoBehaviour
 		}
 
 		return mesh;
+	}
+
+	private void LogMinMax(ref float minVal, ref float maxVal, float val)
+    {
+		if (val < minVal)
+		{
+			minVal = val;
+		}
+
+		if (val > maxVal)
+		{
+			maxVal = val;
+		}
 	}
 }
 

@@ -12,5 +12,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0362cca8597894d42abe1cf0fee5a0e1, type: 3}
   m_Name: Snow
   m_EditorClassIdentifier: 
-  Height: 2
+  Height: 100
   Colour: {r: 1, g: 1, b: 1, a: 0}

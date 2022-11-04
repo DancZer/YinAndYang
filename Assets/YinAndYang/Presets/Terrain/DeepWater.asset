@@ -12,5 +12,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0362cca8597894d42abe1cf0fee5a0e1, type: 3}
   m_Name: DeepWater
   m_EditorClassIdentifier: 
-  Height: -0.8
+  Height: -3
   Colour: {r: 0.036356907, g: 0, b: 0.5849056, a: 0}

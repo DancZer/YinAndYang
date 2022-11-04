@@ -12,5 +12,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0362cca8597894d42abe1cf0fee5a0e1, type: 3}
   m_Name: LightGrass
   m_EditorClassIdentifier: 
-  Height: 0.5
+  Height: 40
   Colour: {r: 0.018768957, g: 0.7735849, b: 0, a: 0}
