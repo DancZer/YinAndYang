@@ -5,7 +5,7 @@ public class MyTerrainDisplay : MonoBehaviour
 {
     public enum DrawMode { NoiseMap, ColourMap, Mesh };
 
-    public void DisplayTerrain(MyTerrainData terrainData, TerrainType[] regions, float heightScale, DrawMode drawMode)
+    public void DisplayTerrain(MyTerrainData terrainData, TerrainType[] regions, float heightScale, DrawMode drawMode, int lod)
     {
         transform.position = terrainData.Area.center;
         var meshFilter = GetComponent<MeshFilter>();
@@ -15,7 +15,7 @@ public class MyTerrainDisplay : MonoBehaviour
 
         if(drawMode == DrawMode.Mesh)
         {
-            mesh = terrainData.GetMeshOpt(heightScale);
+            mesh = terrainData.GetMesh(heightScale, lod);
         }
         else
         {

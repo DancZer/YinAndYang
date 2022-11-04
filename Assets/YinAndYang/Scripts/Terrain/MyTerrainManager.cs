@@ -16,7 +16,7 @@ public class MyTerrainManager : MonoBehaviour
     public bool EditorAutoUpdate;
     public MyTerrainDisplay EditorDisplay;
     public float EditorDisplaySize;
-
+    [Range(1, 12)]public int LOD = 1;
 
     MyTerrainGenerator _terrainGenerator;
     QuadTreeNode<MyTerrainData> _root;
@@ -74,7 +74,7 @@ public class MyTerrainManager : MonoBehaviour
             gameObject.name = node.Name;
 
             var terrainDisplay = gameObject.GetComponent<MyTerrainDisplay>();
-            terrainDisplay.DisplayTerrain(node.Data, Regions, HeightScale, MyTerrainDisplay.DrawMode.Mesh);
+            terrainDisplay.DisplayTerrain(node.Data, Regions, HeightScale, MyTerrainDisplay.DrawMode.Mesh, LOD);
         }
     }
 
@@ -109,15 +109,15 @@ public class MyTerrainManager : MonoBehaviour
 
         if (EditorDrawMode == MyTerrainDisplay.DrawMode.NoiseMap)
         {
-            EditorDisplay.DisplayTerrain(data, Regions, HeightScale, MyTerrainDisplay.DrawMode.NoiseMap);
+            EditorDisplay.DisplayTerrain(data, Regions, HeightScale, MyTerrainDisplay.DrawMode.NoiseMap, LOD);
         }
         else if (EditorDrawMode == MyTerrainDisplay.DrawMode.ColourMap)
         {
-            EditorDisplay.DisplayTerrain(data, Regions, HeightScale, MyTerrainDisplay.DrawMode.ColourMap);
+            EditorDisplay.DisplayTerrain(data, Regions, HeightScale, MyTerrainDisplay.DrawMode.ColourMap, LOD);
         }
         else if (EditorDrawMode == MyTerrainDisplay.DrawMode.Mesh)
         {
-            EditorDisplay.DisplayTerrain(data, Regions, HeightScale, MyTerrainDisplay.DrawMode.Mesh);
+            EditorDisplay.DisplayTerrain(data, Regions, HeightScale, MyTerrainDisplay.DrawMode.Mesh, LOD);
         }
     }
 }
