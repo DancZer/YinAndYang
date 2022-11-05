@@ -12,5 +12,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b7595763d37970b41b6c7383d90ce088, type: 3}
   m_Name: Medium
   m_EditorClassIdentifier: Assembly-CSharp::ViewDistancePreset
-  ViewDistance: 2000
-  RequiredLevel: 1
+  ViewDistance: 1000
+  LOD: 1

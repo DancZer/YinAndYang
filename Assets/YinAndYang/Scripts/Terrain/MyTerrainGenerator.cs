@@ -10,7 +10,8 @@ public class MyTerrainGenerator : MonoBehaviour
 	public bool EditorAutoUpdate;
 	[Range(1,6)] public int EditorLOD = 1;
 
-	public int TerrainResolution = 240;
+	public Material BaseMaterial;
+	public int Resolution = 240;
 
 	public float HeightMultiplier = 100;
 	public AnimationCurve HeightCurve;
@@ -30,7 +31,13 @@ public class MyTerrainGenerator : MonoBehaviour
 	[ReadOnly] public float MinHeight;
 	[ReadOnly] public float MaxHeight;
 
-	public void DrawTerrainInEditor()
+    private void Start()
+    {
+		Destroy(GetComponent<MeshFilter>());
+		Destroy(GetComponent<MeshRenderer>());
+	}
+
+    public void DrawTerrainInEditor()
 	{
 		MinVal = MinHeight = float.MaxValue;
 		MaxVal = MaxHeight = float.MinValue;
@@ -38,8 +45,9 @@ public class MyTerrainGenerator : MonoBehaviour
 		MyTerrainData mapData = GenerateTerrainData(new Rect(new Vector2(transform.position.x-EditorTerrainSize/2f, transform.position.y-EditorTerrainSize/2f), new Vector2(EditorTerrainSize, EditorTerrainSize)));
 		MyTerrainMeshData meshData = GenerateMeshData(mapData, EditorLOD);
 
-		var meshFilter = GetComponent<MeshFilter>();
-		var meshRenderer = GetComponent<MeshRenderer>();
+		var editorDisplay = transform.GetChild(0);
+		var meshFilter = editorDisplay.GetComponent<MeshFilter>();
+		var meshRenderer = editorDisplay.GetComponent<MeshRenderer>();
 
 		if (DrawMode == TerrainDrawMode.HeightMap || DrawMode == TerrainDrawMode.ColourMap)
 		{
@@ -111,7 +119,7 @@ public class MyTerrainGenerator : MonoBehaviour
 			colorMap = CreateColorMap(noiseMap);
 		}
 
-		return new MyTerrainData(area, TerrainResolution, noiseMap, colorMap);
+		return new MyTerrainData(area, Resolution, noiseMap, colorMap);
 	}
 
 	private float[,] CreateNoiseMap(Rect area)
@@ -125,11 +133,11 @@ public class MyTerrainGenerator : MonoBehaviour
 		noise.SetFractalType(FractalType);
 		noise.SetNoiseType(NoiseType);
 
-		int NoiseMapSize = TerrainResolution + 1;
+		int NoiseMapSize = Resolution + 1;
 
 		float[,] noiseMap = new float[NoiseMapSize, NoiseMapSize];
 
-		var noiseMapStep = area.size.x / TerrainResolution;
+		var noiseMapStep = area.size.x / Resolution;
 		var offset = area.position;
 
 		for (int y = 0; y < NoiseMapSize; y++)
@@ -146,20 +154,18 @@ public class MyTerrainGenerator : MonoBehaviour
 		return noiseMap;
 	}
 
-
-
 	private Color[] CreateHeightMap(float[,] noiseMap)
 	{
-		Color[] heightMap = new Color[TerrainResolution * TerrainResolution];
+		Color[] heightMap = new Color[Resolution * Resolution];
 		var heightCurve = new AnimationCurve(HeightCurve.keys);
 
-		for (int y = 0; y < TerrainResolution; y++)
+		for (int y = 0; y < Resolution; y++)
 		{
-			for (int x = 0; x < TerrainResolution; x++)
+			for (int x = 0; x < Resolution; x++)
 			{
 				var height = heightCurve.Evaluate(noiseMap[x, y]);
 
-				heightMap[y * TerrainResolution + x] = Color.Lerp(Color.black, Color.white, height);
+				heightMap[y * Resolution + x] = Color.Lerp(Color.black, Color.white, height);
 			}
 		}
 
@@ -168,12 +174,12 @@ public class MyTerrainGenerator : MonoBehaviour
 
 	private Color[] CreateColorMap(float[,] noiseMap)
 	{
-		Color[] colorMap = new Color[TerrainResolution * TerrainResolution];
+		Color[] colorMap = new Color[Resolution * Resolution];
 		var heightCurve = new AnimationCurve(HeightCurve.keys);
 
-		for (int y = 0; y < TerrainResolution; y++)
+		for (int y = 0; y < Resolution; y++)
 		{
-			for (int x = 0; x < TerrainResolution; x++)
+			for (int x = 0; x < Resolution; x++)
 			{
 				var height = heightCurve.Evaluate(noiseMap[x, y]) * HeightMultiplier;
 
@@ -181,7 +187,7 @@ public class MyTerrainGenerator : MonoBehaviour
 				{
 					if (height < region.Height)
 					{
-						colorMap[y * TerrainResolution + x] = region.Colour;
+						colorMap[y * Resolution + x] = region.Colour;
 						break;
 					}
 				}
@@ -194,31 +200,31 @@ public class MyTerrainGenerator : MonoBehaviour
 
 	public MyTerrainMeshData GenerateMeshData(MyTerrainData terrainData, int lod)
 	{
-		if (lod <= 0) lod = 1;
-
 		var mesh = new MyTerrainMeshData(terrainData, lod);
 
-		var vertStep = terrainData.Area.size.x / mesh.MeshResolution;
-		var uvStep = 1f / mesh.MeshResolution;
+		var meshStepSize = mesh.LOD + 1;
+		var meshResolution = terrainData.Resolution / meshStepSize;
+		var vertStep = terrainData.Area.size.x / meshResolution;
+		var uvStep = 1f / meshResolution;
 		var heightCurve = new AnimationCurve(HeightCurve.keys);
-		var offset = terrainData.Area.position;
+		var offset = Vector2.zero;
 
-		; for (int y = 0; y < mesh.MeshResolution + 1; y++)
+		; for (int y = 0; y < meshResolution + 1; y++)
 		{
-			for (int x = 0; x < mesh.MeshResolution + 1; x++)
+			for (int x = 0; x < meshResolution + 1; x++)
 			{
-				var height = heightCurve.Evaluate(terrainData.NoiseMap[x, y]) * HeightMultiplier;
+				var height = heightCurve.Evaluate(terrainData.NoiseMap[x * meshStepSize, y * meshStepSize]) * HeightMultiplier;
 
 				LogMinMax(ref MinHeight, ref MaxHeight, height);
 
 				mesh.AddVertice(new Vector3(offset.x + x * vertStep, height, offset.y + y * vertStep));
 				mesh.AddUV(new Vector2(x * uvStep, y * uvStep));
 
-				if (x < mesh.MeshResolution && y < mesh.MeshResolution)
+				if (x < meshResolution && y < meshResolution)
 				{
-					var idx = y * mesh.MeshResolution + x;
-					mesh.AddTriangle(idx + y, idx + y + mesh.MeshResolution + 1, idx + y + mesh.MeshResolution + 2);
-					mesh.AddTriangle(idx + y, idx + y + mesh.MeshResolution + 2, idx + y + 1);
+					var idx = y * meshResolution + x;
+					mesh.AddTriangle(idx + y, idx + y + meshResolution + 1, idx + y + meshResolution + 2);
+					mesh.AddTriangle(idx + y, idx + y + meshResolution + 2, idx + y + 1);
 				}
 			}
 		}
@@ -262,17 +268,15 @@ public class MyTerrainMeshData
 {
 	public readonly MyTerrainData TerrainData;
 	public readonly int LOD;
-	public readonly int MeshResolution;
 
 	private List<Vector3> _verts = new List<Vector3>();
 	private List<Vector2> _uvs = new List<Vector2>();
 	private List<int> _tris = new List<int>();
 
     public MyTerrainMeshData(MyTerrainData terrainData, int lod)
-    {
+	{
+		LOD = lod < 0 ? 0 : lod;
 		TerrainData = terrainData;
-		LOD = lod <= 0 ? 1 : lod;
-		MeshResolution = terrainData.Resolution / lod;
 	}
 
 	public void AddVertice(Vector3 vertice)

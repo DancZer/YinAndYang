@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public static class MethodExtensions
@@ -22,11 +20,13 @@ public static class MethodExtensions
         }
     }
 
-    public static Vector3 OffsetXZ(this Bounds bounds)
+    public static Vector2 To2DMapPos(this Vector3 pos3d)
     {
-        var offset = bounds.center - bounds.size / 2f;
+        return new Vector2(pos3d.x, pos3d.z); ;
+    }
 
-        offset.y = 0;
-        return offset;
+    public static Bounds ToMapBounds(this Rect rect)
+    {
+        return new Bounds(new Vector3(rect.x + rect.size.x / 2f, 0, rect.y + rect.size.y / 2f), new Vector3(rect.size.x, 0, rect.size.x));
     }
 }
