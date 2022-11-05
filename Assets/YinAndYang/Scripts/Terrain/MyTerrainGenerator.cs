@@ -6,10 +6,11 @@ public class MyTerrainGenerator : MonoBehaviour
 	public enum TerrainDrawMode { HeightMap, ColourMap, Mesh };
 
 	public TerrainDrawMode DrawMode;
+#if UNITY_EDITOR
 	public int EditorTerrainSize = 240;
 	public bool EditorAutoUpdate;
 	[Range(1,6)] public int EditorLOD = 1;
-
+#endif
 	public Material BaseMaterial;
 	public int Resolution = 240;
 
@@ -25,19 +26,21 @@ public class MyTerrainGenerator : MonoBehaviour
 	public float Gain = 2;
 	public float Lacunarity = 2;
 
+#if UNITY_EDITOR
 	[ReadOnly] public float MinVal;
 	[ReadOnly] public float MaxVal;
 
 	[ReadOnly] public float MinHeight;
 	[ReadOnly] public float MaxHeight;
-
-    private void Start()
+#endif
+	private void Start()
     {
-		Destroy(GetComponent<MeshFilter>());
-		Destroy(GetComponent<MeshRenderer>());
+		var editorDisplay = transform.GetChild(0);
+		editorDisplay.gameObject.SetActive(false);
 	}
 
-    public void DrawTerrainInEditor()
+#if UNITY_EDITOR
+	public void DrawTerrainInEditor()
 	{
 		MinVal = MinHeight = float.MaxValue;
 		MaxVal = MaxHeight = float.MinValue;
@@ -55,9 +58,11 @@ public class MyTerrainGenerator : MonoBehaviour
 		}
 		else if (DrawMode == TerrainDrawMode.Mesh)
 		{
-			meshFilter.mesh = meshData.CreateMesh();
+			meshData.CreateMesh();
+			meshFilter.mesh = meshData.Mesh;
 		}
-		meshRenderer.sharedMaterial.SetTexture("_MainTex", meshData.CreateTexture());
+		meshData.CreateTexture();
+		meshRenderer.sharedMaterial.SetTexture("_MainTex", meshData.Texture);
 	}
 
 	private Mesh CreatePlaneMesh(Rect area)
@@ -105,6 +110,8 @@ public class MyTerrainGenerator : MonoBehaviour
 
 		return mesh;
 	}
+#endif
+
 	public MyTerrainData GenerateTerrainData(Rect area)
 	{
 		var noiseMap = CreateNoiseMap(area);
@@ -146,8 +153,9 @@ public class MyTerrainGenerator : MonoBehaviour
 			{
 				var val = noise.GetNoise(offset.x + x * noiseMapStep, offset.y + y * noiseMapStep);
 				noiseMap[x, y] = val;
-
+#if UNITY_EDITOR
 				LogMinMax(ref MinVal, ref MaxVal, val);
+#endif
 			}
 		}
 
@@ -187,7 +195,7 @@ public class MyTerrainGenerator : MonoBehaviour
 				{
 					if (height < region.Height)
 					{
-						colorMap[y * Resolution + x] = region.Colour;
+						colorMap[y * Resolution + x] = region.Color;
 						break;
 					}
 				}
@@ -200,7 +208,7 @@ public class MyTerrainGenerator : MonoBehaviour
 
 	public MyTerrainMeshData GenerateMeshData(MyTerrainData terrainData, int lod)
 	{
-		var mesh = new MyTerrainMeshData(terrainData, lod);
+		var mesh = new MyTerrainMeshData(terrainData, lod, BaseMaterial);
 
 		var meshStepSize = mesh.LOD + 1;
 		var meshResolution = terrainData.Resolution / meshStepSize;
@@ -214,9 +222,9 @@ public class MyTerrainGenerator : MonoBehaviour
 			for (int x = 0; x < meshResolution + 1; x++)
 			{
 				var height = heightCurve.Evaluate(terrainData.NoiseMap[x * meshStepSize, y * meshStepSize]) * HeightMultiplier;
-
+#if UNITY_EDITOR
 				LogMinMax(ref MinHeight, ref MaxHeight, height);
-
+#endif
 				mesh.AddVertice(new Vector3(offset.x + x * vertStep, height, offset.y + y * vertStep));
 				mesh.AddUV(new Vector2(x * uvStep, y * uvStep));
 
@@ -231,7 +239,7 @@ public class MyTerrainGenerator : MonoBehaviour
 
 		return mesh;
 	}
-
+#if UNITY_EDITOR
 	private void LogMinMax(ref float minVal, ref float maxVal, float val)
     {
 		if (val < minVal)
@@ -244,6 +252,7 @@ public class MyTerrainGenerator : MonoBehaviour
 			maxVal = val;
 		}
 	}
+#endif
 }
 
 
@@ -268,15 +277,22 @@ public class MyTerrainMeshData
 {
 	public readonly MyTerrainData TerrainData;
 	public readonly int LOD;
+	public readonly Material Material;
+	public readonly string Name;
 
-	private List<Vector3> _verts = new List<Vector3>();
-	private List<Vector2> _uvs = new List<Vector2>();
-	private List<int> _tris = new List<int>();
+	List<Vector3> _verts = new List<Vector3>();
+	List<Vector2> _uvs = new List<Vector2>();
+	List<int> _tris = new List<int>();
 
-    public MyTerrainMeshData(MyTerrainData terrainData, int lod)
+	public Mesh Mesh { get; private set; }
+	public Texture2D Texture { get; private set; }
+
+	public MyTerrainMeshData(MyTerrainData terrainData, int lod, Material material)
 	{
 		LOD = lod < 0 ? 0 : lod;
 		TerrainData = terrainData;
+		Material = material;
+		Name = $"Area:{terrainData.Area}_LOD:{lod}";
 	}
 
 	public void AddVertice(Vector3 vertice)
@@ -293,28 +309,30 @@ public class MyTerrainMeshData
 		_tris.AddRange(new[] { a, b, c });
 	}
 
-	public Mesh CreateMesh()
+	public void CreateMesh()
     {
-		var mesh = new Mesh();
-		mesh.SetVertices(_verts);
-		mesh.SetTriangles(_tris, 0);
-		mesh.SetUVs(0, _uvs);
-		mesh.RecalculateNormals();
-		mesh.RecalculateTangents();
+		if (Mesh != null) return;
 
-		mesh.Optimize();
+		Mesh = new Mesh();
+		Mesh.name = "Mesh" + Name;
+		Mesh.SetVertices(_verts);
+		Mesh.SetTriangles(_tris, 0);
+		Mesh.SetUVs(0, _uvs);
+		Mesh.RecalculateNormals();
+		Mesh.RecalculateTangents();
 
-		return mesh;
+		Mesh.Optimize();
 	}
 
-	public Texture2D CreateTexture()
+	public void CreateTexture()
 	{
-		var texture = new Texture2D(TerrainData.Resolution, TerrainData.Resolution);
+		if (Texture != null) return;
 
-		texture.filterMode = FilterMode.Point;
-		texture.wrapMode = TextureWrapMode.Clamp;
-		texture.SetPixels(TerrainData.ColorMap);
-		texture.Apply();
-		return texture;
+		Texture = new Texture2D(TerrainData.Resolution, TerrainData.Resolution);
+
+		Texture.filterMode = FilterMode.Point;
+		Texture.wrapMode = TextureWrapMode.Clamp;
+		Texture.SetPixels(TerrainData.ColorMap);
+		Texture.Apply();
 	}
 }

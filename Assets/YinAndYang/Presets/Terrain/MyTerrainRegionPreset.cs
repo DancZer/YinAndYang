@@ -7,5 +7,5 @@ using UnityEngine;
 public class MyTerrainRegionPreset : ScriptableObject
 {
 	public float Height;
-	public Color Colour;
+	public Color Color;
 }

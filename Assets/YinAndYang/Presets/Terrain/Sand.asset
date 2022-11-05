@@ -13,4 +13,4 @@ MonoBehaviour:
   m_Name: Sand
   m_EditorClassIdentifier: 
   Height: 2
-  Colour: {r: 0.95272315, g: 1, b: 0.033018887, a: 0}
+  Color: {r: 1, g: 0.99247026, b: 0, a: 0}

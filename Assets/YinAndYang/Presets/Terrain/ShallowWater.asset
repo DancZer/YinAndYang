@@ -13,4 +13,4 @@ MonoBehaviour:
   m_Name: ShallowWater
   m_EditorClassIdentifier: 
   Height: 0
-  Colour: {r: 0, g: 0.33647555, b: 0.7924528, a: 0}
+  Color: {r: 0.1273585, g: 0.34239808, b: 1, a: 0}
