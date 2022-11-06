@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 8254927834038735759}
   - component: {fileID: 3861187235205719202}
   - component: {fileID: 3790447940453653542}
+  - component: {fileID: 3666139540239327148}
   m_Layer: 7
   m_Name: Base
   m_TagString: Untagged
@@ -97,6 +98,18 @@ BoxCollider:
   serializedVersion: 2
   m_Size: {x: 1, y: 1, z: 1}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &3666139540239327148
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 78993883993227868}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 96088649eee2143498a6639fee5fef25, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &1089079358528281833
 GameObject:
   m_ObjectHideFlags: 0
@@ -185,8 +198,7 @@ GameObject:
   - component: {fileID: 4173727367535733413}
   - component: {fileID: 8329445831993360019}
   - component: {fileID: 2216839088216806525}
-  - component: {fileID: -1621930427047737683}
-  - component: {fileID: -1868500605843207599}
+  - component: {fileID: 7374136519953448017}
   m_Layer: 7
   m_Name: Stockpile
   m_TagString: Untagged
@@ -263,7 +275,7 @@ MonoBehaviour:
   - {fileID: 7765885092807871271}
   - {fileID: 9127555060908042637}
   - {fileID: 4886931845182176821}
---- !u!114 &-1621930427047737683
+--- !u!114 &7374136519953448017
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -272,45 +284,10 @@ MonoBehaviour:
   m_GameObject: {fileID: 4454323959355499713}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f37f20ec90364bb44bc2a14d52aca6a2, type: 3}
+  m_Script: {fileID: 11500000, guid: 4765d4292fe264a4aaa23dde0177bfa6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _componentIndexCache: 255
-  _addedNetworkObject: {fileID: -1868500605843207599}
-  _networkObjectCache: {fileID: 0}
-  GrabOffset: {x: 0, y: 0, z: 0}
-  DropPosOffset: {x: 0, y: 0, z: 0}
-  SpawnObjectOnPickUp: 0
-  IsGrabAtTop: 0
-  IsKinematicOnRelease: 0
-  SpwanOnPickUpPrefab: {fileID: 0}
-  State: 1
---- !u!114 &-1868500605843207599
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4454323959355499713}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 26b716c41e9b56b4baafaf13a523ba2e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  <IsNested>k__BackingField: 0
-  <ComponentIndex>k__BackingField: 0
-  _networkBehaviours: []
-  <ParentNetworkObject>k__BackingField: {fileID: 0}
-  <ChildNetworkObjects>k__BackingField: []
-  _isNetworked: 1
-  _isGlobal: 0
-  _defaultDespawnType: 0
-  NetworkObserver: {fileID: 0}
-  <PrefabId>k__BackingField: -1
-  _scenePathHash: 0
-  <SceneId>k__BackingField: 0
-  <AssetPathHash>k__BackingField: 1003659347627257224
-  _sceneNetworkObjects: []
+  MoveBuildingToTerrain: 0
 --- !u!1001 &579865827141405618
 PrefabInstance:
   m_ObjectHideFlags: 0

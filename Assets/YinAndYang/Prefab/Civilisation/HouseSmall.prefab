@@ -45,6 +45,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4765d4292fe264a4aaa23dde0177bfa6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  MoveBuildingToTerrain: 0
 --- !u!1 &8174280518504970610
 GameObject:
   m_ObjectHideFlags: 0
@@ -57,6 +58,8 @@ GameObject:
   - component: {fileID: 9164083431784616493}
   - component: {fileID: 837458486341648595}
   - component: {fileID: 9031352592046439208}
+  - component: {fileID: 1430194608088682183}
+  - component: {fileID: 3512497423517920639}
   m_Layer: 7
   m_Name: Body
   m_TagString: Untagged
@@ -142,3 +145,27 @@ BoxCollider:
   serializedVersion: 2
   m_Size: {x: 1, y: 1, z: 1}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &1430194608088682183
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8174280518504970610}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 96088649eee2143498a6639fee5fef25, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &3512497423517920639
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8174280518504970610}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 96088649eee2143498a6639fee5fef25, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 

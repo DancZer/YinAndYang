@@ -12,9 +12,9 @@ public class MyTerrainManager : MonoBehaviour
     private float ChunkSizeHalf; 
 
     MyTerrainGenerator _terrainGenerator;
-    Dictionary<VectorXZ, MyTerrainChunk> _chunks = new();
+    Dictionary<Vector2, MyTerrainChunk> _chunks = new();
     List<MyTerrainChunk> _visibleChunks = new();
-    VectorXZ LastChunkLoadPos;
+    Vector2 LastChunkLoadPos;
     int viewDistanceChunkCount;
 
     ConcurrentQueue<MyTerrainChunk> _loadFinishedChunk = new();
@@ -27,11 +27,11 @@ public class MyTerrainManager : MonoBehaviour
         var maxViewDistance = ViewDistancePreset[ViewDistancePreset.Length - 1].ViewDistance;
         ChunkSizeHalf = ChunkSize / 2f;
         viewDistanceChunkCount = (int)Mathf.Ceil((float)maxViewDistance / ChunkSize);
-        LastChunkLoadPos = VectorXZ.zero;
-        LoadChunksViewDistance(VectorXZ.zero, StartChunkCount, true);
+        LastChunkLoadPos = Vector2.zero;
+        LoadChunksViewDistance(Vector2.zero, StartChunkCount, true);
     }
 
-    MyTerrainChunk GetChunkAt(VectorXZ pos)
+    MyTerrainChunk GetChunkAt(Vector2 pos)
     {
         var area = GetChunkArea(pos);
 
@@ -44,13 +44,14 @@ public class MyTerrainManager : MonoBehaviour
         return chunk;
     }
     
-    RectXZ GetChunkArea(VectorXZ pos)
+    Rect GetChunkArea(Vector2 pos)
     {
-        return new RectXZ(Mathf.RoundToInt(pos.x / ChunkSize) * ChunkSize - ChunkSizeHalf, Mathf.RoundToInt(pos.z / ChunkSize) * ChunkSize- ChunkSizeHalf, ChunkSize, ChunkSize);
+        return new Rect(Mathf.RoundToInt(pos.x / ChunkSize) * ChunkSize - ChunkSizeHalf, Mathf.RoundToInt(pos.y / ChunkSize) * ChunkSize- ChunkSizeHalf, ChunkSize, ChunkSize);
     }
 
     void Update()
     {
+        IsTerrainLoading = false;
         if (_loadFinishedChunk.Count > 0)
         {
             if (_loadFinishedChunk.TryDequeue(out var chunk))
@@ -69,18 +70,18 @@ public class MyTerrainManager : MonoBehaviour
 
         var viewPos = Camera.main.transform.position;
 
-        IsTerrainLoading = LoadChunksViewDistance(viewPos, viewDistanceChunkCount, false);
+        IsTerrainLoading |= LoadChunksViewDistance(viewPos, viewDistanceChunkCount, false);
     }
 
-    bool LoadChunksViewDistance(VectorXZ viewPos, int chunkCount, bool instant)
+    bool LoadChunksViewDistance(Vector2 viewPos, int chunkCount, bool instant)
     {
         if(_visibleChunks.Count > StartChunkCount * StartChunkCount) { 
-            var distanceToChunkEdge = VectorXZ.Distance(LastChunkLoadPos, viewPos);
+            var distanceToChunkEdge = Vector2.Distance(LastChunkLoadPos, viewPos);
 
             if (distanceToChunkEdge < ChunkSize/2f) return false;
             LastChunkLoadPos = viewPos;
 
-            if (LastChunkLoadPos.z > ChunkSize)
+            if (LastChunkLoadPos.y > ChunkSize)
             {
                 //TODO increase chunk count
             }
@@ -97,7 +98,7 @@ public class MyTerrainManager : MonoBehaviour
         {
             for (int z = -chunkCount; z <= chunkCount; z++)
             {
-                var chunk = GetChunkAt(LastChunkLoadPos + new VectorXZ(x*ChunkSize, z*ChunkSize));
+                var chunk = GetChunkAt(LastChunkLoadPos + new Vector2(x*ChunkSize, z*ChunkSize));
                 var chunkLOD = GetLOD(chunk, LastChunkLoadPos);
 
                 isAnyScheduled |= chunk.DisplayChunkAync(chunkLOD, instant, OnChunkLoadFinished);
@@ -109,10 +110,10 @@ public class MyTerrainManager : MonoBehaviour
         return isAnyScheduled;
     }
 
-    private int GetLOD(MyTerrainChunk chunk, VectorXZ view)
+    int GetLOD(MyTerrainChunk chunk, Vector2 view)
     {
         var closestPoint = chunk.Area.ClosestPoint(view);
-        var distance = VectorXZ.Distance(closestPoint, view);
+        var distance = Vector2.Distance(closestPoint, view);
 
         foreach (var preset in ViewDistancePreset)
         {
@@ -125,7 +126,7 @@ public class MyTerrainManager : MonoBehaviour
         return ViewDistancePreset[ViewDistancePreset.Length - 1].LOD;
     }
 
-    public void OnChunkLoadFinished(MyTerrainChunk chunk)
+    void OnChunkLoadFinished(MyTerrainChunk chunk)
     {
         Debug.Log($"TerrainManager.OnChunkLoadFinished {chunk.Area}");
         if (!_visibleChunks.Contains(chunk)) return;
@@ -134,11 +135,14 @@ public class MyTerrainManager : MonoBehaviour
         Debug.Log($"TerrainManager.OnChunkLoadFinished Enqueued {chunk.Area}, remaining {_loadFinishedChunk.Count}");
     }
 
-    public Vector3 GetPosOnTerrain(VectorXZ pos)
+    public Vector3 GetPosOnTerrain(Vector3 pos)
     {
-        var chunk = GetChunkAt(pos);
+        var posXZ = pos.ToXZ();
+        var chunk = GetChunkAt(posXZ);
 
-        return chunk.GetOnTerrainPos(pos);
+        var height = chunk.GetTerrainHeight(posXZ);
+
+        return new Vector3(pos.x, height, pos.z);
     }
 
     /// <summary>
@@ -146,7 +150,7 @@ public class MyTerrainManager : MonoBehaviour
     /// </summary>
     /// <param name="center"></param>
     /// <param name="size"></param>
-    public void FlatTerrain(RectXZ flatArea, float flatHeight)
+    public void FlatTerrain(Rect flatArea, float flatHeight)
     {
         Debug.Log($"TerrainManager.FlatTerrain {flatArea} {flatHeight} ");
 
@@ -156,17 +160,17 @@ public class MyTerrainManager : MonoBehaviour
         var chunk1 = GetChunkAt(flatArea.position);
         FlatChunk(chunk1, flatArea, flatHeight);
 
-        var chunk2 = GetChunkAt(flatArea.position+new VectorXZ(flatArea.size.x,0));
+        var chunk2 = GetChunkAt(flatArea.position+new Vector2(flatArea.size.x,0));
         FlatChunk(chunk2, flatArea, flatHeight);
 
         var chunk3 = GetChunkAt(flatArea.position + flatArea.size);
         FlatChunk(chunk3, flatArea, flatHeight);
 
-        var chunk4 = GetChunkAt(flatArea.position + new VectorXZ(0, flatArea.size.z));
+        var chunk4 = GetChunkAt(flatArea.position + new Vector2(0, flatArea.size.y));
         FlatChunk(chunk4, flatArea, flatHeight);
     }
 
-    private void FlatChunk(MyTerrainChunk chunk, RectXZ flatArea, float toHeight)
+    void FlatChunk(MyTerrainChunk chunk, Rect flatArea, float toHeight)
     {
         Debug.Log($"TerrainManager.FlatChunk {chunk.Area} {flatArea} {toHeight}");
 
@@ -184,7 +188,7 @@ public class MyTerrainManager : MonoBehaviour
 public class MyTerrainChunk
 {
     private const int NoLOD = -1;
-    public RectXZ Area => _dataLoader.Area;
+    public Rect Area => _dataLoader.Area;
 
     public bool IsLoading
     {
@@ -207,7 +211,7 @@ public class MyTerrainChunk
     int _requestedLOD = NoLOD;
     int _displayedLOD = NoLOD;
 
-    public MyTerrainChunk(RectXZ area, MyTerrainGenerator terrainGenerator, Transform parent)
+    public MyTerrainChunk(Rect area, MyTerrainGenerator terrainGenerator, Transform parent)
     {
         _parent = parent;
         _dataLoader = new TerrainMeshDataLoader(this, area, terrainGenerator);
@@ -235,7 +239,7 @@ public class MyTerrainChunk
         {
             if (instant)
             {
-                _dataLoader.LoadInstantMesh(_requestedLOD);
+                _dataLoader.LoadMeshInstant(_requestedLOD);
             }
             else
             {
@@ -272,7 +276,7 @@ public class MyTerrainChunk
             //set material, pos, text only once
             if (_displayedLOD == NoLOD) {
                 meshData.CreateTexture();
-                _gameObject.transform.position = Area.center;
+                _gameObject.transform.position = Area.center.To3D();
                 _meshRenderer.material = meshData.Material;
                 _meshRenderer.material.SetTexture("_MainTex", meshData.Texture);
             }
@@ -290,27 +294,25 @@ public class MyTerrainChunk
         _gameObject.SetActive(_objActive);
     }
 
-    public Vector3 GetOnTerrainPos(VectorXZ globalPos)
+    public float GetTerrainHeight(Vector2 globalPos)
     {
-        _dataLoader.LoadTerrainData();
+        _dataLoader.LoadTerrainDataInstant();
 
         var localPos = globalPos - _dataLoader.Area.position;
 
-        var height = _dataLoader.TerrainData.GetHeightAt(localPos);
-
-        return new Vector3(globalPos.x, height, globalPos.z);
+        return _dataLoader.TerrainData.GetHeightAt(localPos);
     }
 
-    public bool FlatTerrain(RectXZ flatArea, float toHeight)
+    public bool FlatTerrain(Rect flatArea, float toHeight)
     {
-        _dataLoader.LoadTerrainData();
+        _dataLoader.LoadTerrainDataInstant();
 
         Debug.Log($"TerrainChunk.FlatTerrain {Area} {flatArea} {toHeight}");
 
         if (_dataLoader.TerrainData.FlatHeightMap(flatArea, toHeight)) {
             Debug.Log($"TerrainChunk.FlatTerrain success {Area}");
 
-            _dataLoader.IsTerrainDataModified = true;
+            _dataLoader.CancelScheduledJobs();
             _dataLoader.ClearMeshData();
 
             _displayedLOD = NoLOD;
@@ -325,81 +327,157 @@ public class MyTerrainChunk
 }
 public class TerrainMeshDataLoader
 {
-    public readonly RectXZ Area;
+
+    public readonly Rect Area;
     public readonly MyTerrainChunk Chunk;
     public MyTerrainData TerrainData { get; private set; }
-    public bool IsTerrainDataModified;
     public bool IsScheduled { get; private set; }
-    
+
+    readonly object _terrainDataLockObj = new();
     readonly MyTerrainGenerator _terrainGenerator;
     readonly Dictionary<int, MyTerrainMeshData> _terrainMeshDatas = new ();
 
-    public TerrainMeshDataLoader(MyTerrainChunk chunk, RectXZ area, MyTerrainGenerator terrainGenerator)
+    readonly List<CancellationTokenSource> _cancellationTokens = new ();
+
+    public TerrainMeshDataLoader(MyTerrainChunk chunk, Rect area, MyTerrainGenerator terrainGenerator)
     {
         Chunk = chunk;
         Area = area;
         _terrainGenerator = terrainGenerator;
     }
 
-    public void LoadInstantMesh(int lod)
+    public void LoadMeshInstant(int lod)
     {
         if (IsScheduled)
         {
-            Debug.LogError($"Can not load instant terrain chunk, because it is alread scheduled {Area} {lod}");
+            CancelScheduledJobs();
+            Debug.LogWarning($"TerrainMeshDataLoader.LoadMeshInstant {Area} {lod} load is already scheduled. Scheduled result is blocked!");
         }
 
-        Debug.Log($"Terrain chunk load instant {Area} {lod}");
+        Debug.Log($"TerrainMeshDataLoader.LoadMeshInstant {Area} {lod}");
 
-        LoadTerrainData();
-        LoadMeshData(lod);
+        LoadTerrainData(CancellationToken.None);
+        LoadMeshData(lod, CancellationToken.None);
+        Debug.Log($"TerrainMeshDataLoader.LoadMeshInstant {Area} {lod} finished");
     }
+
     public void ScheduleLoadMesh(int lod, Action<MyTerrainChunk> callback)
     {
-        if (IsScheduled) return;
-
-        Debug.Log($"Terrain chunk load scheduled {Area} {lod}");
-
-        IsScheduled = ThreadPool.QueueUserWorkItem(new WaitCallback(delegate
+        var tokenSource = new CancellationTokenSource();
+        lock (_cancellationTokens)
         {
+            _cancellationTokens.Add(tokenSource);
+        }
+
+        Debug.Log($"TerrainMeshDataLoader.ScheduleLoadMesh {Area} {lod}");
+
+        IsScheduled = ThreadPool.QueueUserWorkItem(new WaitCallback( param =>
+        {
+            var cts = (CancellationTokenSource)tokenSource;
+            var token = cts.Token;
             try
             {
-                LoadTerrainData();
-                LoadMeshData(lod);
-                IsScheduled = false;
-                Debug.Log($"Terrain chunk schedule load {Area} {lod} finished");
-                callback(Chunk);
+                if (token.IsCancellationRequested) return;
+
+                LoadTerrainData(token);
+                LoadMeshData(lod, token);
+
+                if (token.IsCancellationRequested) 
+                {
+                    Debug.LogWarning($"TerrainMeshDataLoader.ScheduleLoadMesh {Area} scheduled result blocked! Callback is not triggered.");
+                }
+                else
+                {
+                    Debug.Log($"TerrainMeshDataLoader.ScheduleLoadMesh {Area} {lod} finished");
+                    callback(Chunk);
+                }
             }
-            catch(Exception e)
+            catch (Exception e)
             {
-                Debug.LogError($"Terrain chunk schedule load failed {Area} {lod} {e.Message} {e.StackTrace}");
+                Debug.LogError($"TerrainMeshDataLoader.ScheduleLoadMesh {Area} {lod} {e.Message} {e.StackTrace}");
             }
-        }));
+            finally
+            {
+                lock (_cancellationTokens)
+                {
+                    _cancellationTokens.Remove(cts);
+                }
+            }
+        }), tokenSource);
 
         if (!IsScheduled)
         {
-            Debug.LogError($"Failed to scheduled terrain chunk load {Area} {lod}");
+            Debug.LogError($"TerrainMeshDataLoader.ScheduleLoadMesh failed to start {Area} {lod}");
         }
 
     }
-    public void LoadTerrainData()
+
+    public void LoadTerrainDataInstant()
+    {
+        if (IsScheduled)
+        {
+            CancelScheduledJobs();
+            Debug.LogWarning($"TerrainMeshDataLoader.LoadMeshInstant {Area} load is already scheduled. Scheduled result is blocked!");
+        }
+
+        LoadTerrainData(CancellationToken.None);
+    }
+
+    void LoadTerrainData(CancellationToken token)
+    {
+        var terrainData = _terrainGenerator.GenerateTerrainData(Area);
+
+        SetTerrainData(terrainData, token);
+    }
+
+    void SetTerrainData(MyTerrainData terrainData, CancellationToken token)
     {
         if (TerrainData == null)
         {
-            TerrainData = _terrainGenerator.GenerateTerrainData(Area);
+            if (token.IsCancellationRequested) return;
+
+            lock (_terrainDataLockObj)
+            {
+                if (TerrainData == null)
+                {
+                    if (token.IsCancellationRequested) return;
+                    TerrainData = terrainData;
+                }
+            }
         }
     }
 
-    private void LoadMeshData(int lod)
+    void LoadMeshData(int lod, CancellationToken token)
     {
-        if (HasMeshData(lod)) return;
-        IsTerrainDataModified = false;
+        if (_terrainMeshDatas.ContainsKey(lod)) return;
 
         var meshData = _terrainGenerator.GenerateMeshData(TerrainData, lod);
-        var meshDataForCollision = _terrainGenerator.GenerateMeshData(TerrainData, lod+1);
+        var meshDataForCollision = _terrainGenerator.GenerateMeshData(TerrainData, lod + 1);
 
-        if (!IsTerrainDataModified) { 
-            SetMeshData(meshData);
-            SetMeshData(meshDataForCollision);
+        if (token.IsCancellationRequested)
+        {
+            Debug.LogWarning($"TerrainMeshDataLoader.LoadMeshData {Area} scheduled result blocked!");
+            return;
+        }
+         
+        SetMeshData(meshData, meshDataForCollision, token);
+    }
+
+    void SetMeshData(MyTerrainMeshData terrainMeshData, MyTerrainMeshData colliderMeshData, CancellationToken token)
+    {
+        lock (_terrainMeshDatas)
+        {
+            if (token.IsCancellationRequested) return;
+
+            if (!_terrainMeshDatas.ContainsKey(terrainMeshData.LOD))
+            {
+                _terrainMeshDatas.Add(terrainMeshData.LOD, terrainMeshData);
+            }
+
+            if (!_terrainMeshDatas.ContainsKey(colliderMeshData.LOD))
+            {
+                _terrainMeshDatas.Add(colliderMeshData.LOD, colliderMeshData);
+            }
         }
     }
 
@@ -419,19 +497,24 @@ public class TerrainMeshDataLoader
         }
     }
 
-    private void SetMeshData(MyTerrainMeshData meshData)
-    {
-        lock (_terrainMeshDatas)
-        {
-            _terrainMeshDatas.Add(meshData.LOD, meshData);
-        }
-    }
-
-    internal void ClearMeshData()
+    public void ClearMeshData()
     {
         lock (_terrainMeshDatas)
         {
             _terrainMeshDatas.Clear();
+        }
+    }
+
+    public void CancelScheduledJobs()
+    {
+        lock (_cancellationTokens)
+        {
+            foreach (var token in _cancellationTokens)
+            {
+                token.Cancel();
+            }
+        
+            _cancellationTokens.Clear();
         }
     }
 }

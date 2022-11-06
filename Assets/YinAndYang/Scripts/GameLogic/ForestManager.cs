@@ -76,6 +76,7 @@ public class ForestManager : NetworkBehaviour
     {
         if (!IsServer) return;
         if (_lastUpdateTime + ForestUpdateTime > Time.timeSinceLevelLoad) return;
+        if (_terrainManager.IsTerrainLoading) return;
 
         _lastUpdateTime = Time.timeSinceLevelLoad;
 

@@ -2,8 +2,8 @@ using UnityEngine;
 
 public class BuildingFootprint : MonoBehaviour
 {
-    public RectXZ GetFootprint()
+    public Rect GetFootprint()
     {
-        return new RectXZ(transform.position, transform.localScale);
+        return new Rect(transform.position.ToXZ(), transform.localScale.ToXZ());
     }
 }
