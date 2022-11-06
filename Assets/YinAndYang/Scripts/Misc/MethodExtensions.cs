@@ -19,13 +19,4 @@ public static class MethodExtensions
             trans.gameObject.layer = layer;
         }
     }
-
-    public static Vector2 ToXZ(this Vector3 pos)
-    {
-        return new Vector2(pos.x, pos.z); ;
-    }
-    public static Bounds ToMapBounds(this Rect rect)
-    {
-        return new Bounds(new Vector3(rect.x + rect.size.x / 2f, 0, rect.y + rect.size.y / 2f), new Vector3(rect.size.x, 0, rect.size.x));
-    }
 }

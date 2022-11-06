@@ -55,16 +55,18 @@ public class MyTerrainGenerator : MonoBehaviour
 		
 		var editorDisplay = transform.GetChild(0);
 
-		var editorDisplayArea = new Rect(
-			new Vector2(editorDisplay.position.x - EditorTerrainSize / 2f, editorDisplay.position.z - EditorTerrainSize / 2f), 
-			new Vector2(EditorTerrainSize, EditorTerrainSize));
+		var editorDisplayArea = new RectXZ(
+			editorDisplay.position.x - EditorTerrainSize / 2f, 
+			editorDisplay.position.z - EditorTerrainSize / 2f, 
+			EditorTerrainSize, 
+			EditorTerrainSize);
 
 		MyTerrainData mapData = GenerateTerrainData(editorDisplayArea);
 
 		if(EditorBuilding != null) { 
 			var flatArea = EditorBuilding.GetComponentInChildren<BuildingFootprint>().GetFootprint();
 			var pos = EditorBuilding.transform.position;
-			flatArea.center = pos.ToXZ();
+			flatArea.center = pos;
 			mapData.FlatHeightMap(flatArea, pos.y);
 		}
 
@@ -86,7 +88,7 @@ public class MyTerrainGenerator : MonoBehaviour
 		meshRenderer.sharedMaterial.SetTexture("_MainTex", meshData.Texture);
 	}
 
-	private Mesh CreatePlaneMesh(Rect area)
+	private Mesh CreatePlaneMesh(RectXZ area)
 	{
 		var mesh = new Mesh();
 
@@ -96,10 +98,10 @@ public class MyTerrainGenerator : MonoBehaviour
 		var offset = area.size / -2f;
 
 		var numFaces = 1;
-		verts.Add(new Vector3(offset.x, 0, offset.y));
-		verts.Add(new Vector3(offset.x, 0, offset.y + area.size.y));
-		verts.Add(new Vector3(offset.x + area.size.x, 0, offset.y + area.size.y));
-		verts.Add(new Vector3(offset.x + area.size.x, 0, offset.y));
+		verts.Add(new Vector3(offset.x, 0, offset.z));
+		verts.Add(new Vector3(offset.x, 0, offset.z + area.size.z));
+		verts.Add(new Vector3(offset.x + area.size.x, 0, offset.z + area.size.z));
+		verts.Add(new Vector3(offset.x + area.size.x, 0, offset.z));
 
 		uvs.Add(new Vector2(0, 0));
 		uvs.Add(new Vector2(0, 1));
@@ -153,7 +155,7 @@ public class MyTerrainGenerator : MonoBehaviour
 
 #endif
 
-    public MyTerrainData GenerateTerrainData(Rect area)
+    public MyTerrainData GenerateTerrainData(RectXZ area)
 	{
 		var heightMap = CreateHeightMap(area);
 		Color[] colorMap;
@@ -170,7 +172,7 @@ public class MyTerrainGenerator : MonoBehaviour
 		return new MyTerrainData(area, heightMap, colorMap);
 	}
 
-	private float[,] CreateHeightMap(Rect area)
+	private float[,] CreateHeightMap(RectXZ area)
     {
 		var heightCurve = new AnimationCurve(HeightCurve.keys);
 		var noise = new FastNoiseLite(Seed);
@@ -193,7 +195,7 @@ public class MyTerrainGenerator : MonoBehaviour
 		{
 			for (int x = 0; x < NoiseMapSize; x++)
 			{
-				var val = noise.GetNoise(offset.x + x * noiseMapStep, offset.y + y * noiseMapStep);
+				var val = noise.GetNoise(offset.x + x * noiseMapStep, offset.z + y * noiseMapStep);
 				var height = (UseHeightCurveEvaluator ? heightCurve.Evaluate(val) : heightMap[x, y]) * HeightMultiplier;
 				heightMap[x, y] = height;
 #if UNITY_EDITOR
@@ -259,7 +261,7 @@ public class MyTerrainGenerator : MonoBehaviour
 		{
 			for (int x = 0; x < meshResolution + 1; x++)
 			{
-				mesh.AddVertice(new Vector3(offset.x + x * vertStep, terrainData.HeightMap[x * meshStepSize, y * meshStepSize], offset.y + y * vertStep));
+				mesh.AddVertice(new Vector3(offset.x + x * vertStep, terrainData.HeightMap[x * meshStepSize, y * meshStepSize], offset.z + y * vertStep));
 				mesh.AddUV(new Vector2(x * uvStep, y * uvStep));
 
 				if (x < meshResolution && y < meshResolution)
@@ -292,7 +294,7 @@ public class MyTerrainGenerator : MonoBehaviour
 
 public class MyTerrainData
 {
-	public readonly Rect Area;
+	public readonly RectXZ Area;
 	public readonly int HeightMapResolution;
 
 	public readonly float[,] HeightMap;
@@ -300,7 +302,7 @@ public class MyTerrainData
 
 	private float _heightMapStepSize;
 
-    public MyTerrainData(Rect area, float[,] heightMap, Color[] colorMap)
+    public MyTerrainData(RectXZ area, float[,] heightMap, Color[] colorMap)
 	{
 		Area = area;
 		HeightMapResolution = heightMap.GetLength(0)-1;
@@ -310,32 +312,32 @@ public class MyTerrainData
 		_heightMapStepSize = HeightMapResolution / Area.width;
     }
 
-	public float GetHeightAt(Vector2 localPos)
+	public float GetHeightAt(VectorXZ localPos)
     {
-		var heightMapPos = Vector2Int.FloorToInt(localPos * _heightMapStepSize);
+		var heightMapPos = VectorXZInt.FloorToInt(localPos * _heightMapStepSize);
 
-		return HeightMap[heightMapPos.x, heightMapPos.y];
+		return HeightMap[heightMapPos.x, heightMapPos.z];
 	}
 
-	public bool FlatHeightMap(Rect flatArea, float flatValue)
+	public bool FlatHeightMap(RectXZ flatArea, float flatValue)
     {
-		var flatAreaLocal = new Rect(flatArea.position - Area.position, flatArea.size);
+		var flatAreaLocal = new RectXZ(flatArea.position - Area.position, flatArea.size);
 
-		var startPosScaled = Vector2Int.FloorToInt((flatAreaLocal.position) * _heightMapStepSize)-Vector2Int.one;
-		var endPosScaled = Vector2Int.FloorToInt((flatAreaLocal.position + flatArea.size) * _heightMapStepSize)+Vector2Int.one*2;
+		var startPosScaled = VectorXZInt.FloorToInt((flatAreaLocal.position) * _heightMapStepSize)-VectorXZInt.one;
+		var endPosScaled = VectorXZInt.FloorToInt((flatAreaLocal.position + flatArea.size) * _heightMapStepSize)+ VectorXZInt.one*2;
 
 		var heightMapResolution = HeightMapResolution + 1;
-		var startPos = Vector2Int.Min(Vector2Int.Max(startPosScaled, Vector2Int.zero), new Vector2Int(heightMapResolution, heightMapResolution));
-		var endPos = Vector2Int.Min(Vector2Int.Max(endPosScaled, Vector2Int.zero), new Vector2Int(heightMapResolution, heightMapResolution));
+		var startPos = VectorXZInt.Min(VectorXZInt.Max(startPosScaled, VectorXZInt.zero), new VectorXZInt(heightMapResolution, heightMapResolution));
+		var endPos = VectorXZInt.Min(VectorXZInt.Max(endPosScaled, VectorXZInt.zero), new VectorXZInt(heightMapResolution, heightMapResolution));
 
 		Debug.Log($"MyTerrainData.FlatHeightMap {Area} {HeightMapResolution} {_heightMapStepSize} Flat {flatArea} {flatAreaLocal} {flatValue} SP {startPosScaled} {startPos} EP {endPosScaled} {endPos}");
 
 		var modified = false;
-        for (int y = startPos.y; y < endPos.y; y++)
+        for (int z = startPos.z; z < endPos.z; z++)
         {
 			for (int x = startPos.x; x < endPos.x; x++)
 			{
-				HeightMap[x, y] = flatValue;
+				HeightMap[x, z] = flatValue;
 				modified = true;
 			}
 		}

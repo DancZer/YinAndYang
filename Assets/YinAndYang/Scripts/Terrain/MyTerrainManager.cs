@@ -12,9 +12,9 @@ public class MyTerrainManager : MonoBehaviour
     private float ChunkSizeHalf; 
 
     MyTerrainGenerator _terrainGenerator;
-    Dictionary<Vector2, MyTerrainChunk> _chunks = new();
+    Dictionary<VectorXZ, MyTerrainChunk> _chunks = new();
     List<MyTerrainChunk> _visibleChunks = new();
-    Vector2 LastChunkLoadPos;
+    VectorXZ LastChunkLoadPos;
     int viewDistanceChunkCount;
 
     ConcurrentQueue<MyTerrainChunk> _loadFinishedChunk = new();
@@ -27,11 +27,11 @@ public class MyTerrainManager : MonoBehaviour
         var maxViewDistance = ViewDistancePreset[ViewDistancePreset.Length - 1].ViewDistance;
         ChunkSizeHalf = ChunkSize / 2f;
         viewDistanceChunkCount = (int)Mathf.Ceil((float)maxViewDistance / ChunkSize);
-        LastChunkLoadPos = Vector2.zero;
-        LoadChunksViewDistance(Vector2.zero, StartChunkCount, true);
+        LastChunkLoadPos = VectorXZ.zero;
+        LoadChunksViewDistance(VectorXZ.zero, StartChunkCount, true);
     }
 
-    MyTerrainChunk GetChunkAt(Vector2 pos)
+    MyTerrainChunk GetChunkAt(VectorXZ pos)
     {
         var area = GetChunkArea(pos);
 
@@ -44,9 +44,9 @@ public class MyTerrainManager : MonoBehaviour
         return chunk;
     }
     
-    Rect GetChunkArea(Vector2 pos)
+    RectXZ GetChunkArea(VectorXZ pos)
     {
-        return new Rect(Mathf.RoundToInt(pos.x / ChunkSize) * ChunkSize - ChunkSizeHalf, Mathf.RoundToInt(pos.y / ChunkSize) * ChunkSize- ChunkSizeHalf, ChunkSize, ChunkSize);
+        return new RectXZ(Mathf.RoundToInt(pos.x / ChunkSize) * ChunkSize - ChunkSizeHalf, Mathf.RoundToInt(pos.z / ChunkSize) * ChunkSize- ChunkSizeHalf, ChunkSize, ChunkSize);
     }
 
     void Update()
@@ -67,20 +67,20 @@ public class MyTerrainManager : MonoBehaviour
 
         if (Camera.main == null) return;
 
-        var viewPos = Camera.main.transform.position.ToXZ();
+        var viewPos = Camera.main.transform.position;
 
         IsTerrainLoading = LoadChunksViewDistance(viewPos, viewDistanceChunkCount, false);
     }
 
-    bool LoadChunksViewDistance(Vector2 viewPos, int chunkCount, bool instant)
+    bool LoadChunksViewDistance(VectorXZ viewPos, int chunkCount, bool instant)
     {
         if(_visibleChunks.Count > StartChunkCount * StartChunkCount) { 
-            var distanceToChunkEdge = Mathf.Abs(Vector3.Distance(LastChunkLoadPos, viewPos));
+            var distanceToChunkEdge = VectorXZ.Distance(LastChunkLoadPos, viewPos);
 
             if (distanceToChunkEdge < ChunkSize/2f) return false;
             LastChunkLoadPos = viewPos;
 
-            if (LastChunkLoadPos.y > ChunkSize)
+            if (LastChunkLoadPos.z > ChunkSize)
             {
                 //TODO increase chunk count
             }
@@ -97,7 +97,7 @@ public class MyTerrainManager : MonoBehaviour
         {
             for (int z = -chunkCount; z <= chunkCount; z++)
             {
-                var chunk = GetChunkAt(LastChunkLoadPos + new Vector2(x*ChunkSize, z*ChunkSize));
+                var chunk = GetChunkAt(LastChunkLoadPos + new VectorXZ(x*ChunkSize, z*ChunkSize));
                 var chunkLOD = GetLOD(chunk, LastChunkLoadPos);
 
                 isAnyScheduled |= chunk.DisplayChunkAync(chunkLOD, instant, OnChunkLoadFinished);
@@ -109,10 +109,10 @@ public class MyTerrainManager : MonoBehaviour
         return isAnyScheduled;
     }
 
-    private int GetLOD(MyTerrainChunk chunk, Vector3 view)
+    private int GetLOD(MyTerrainChunk chunk, VectorXZ view)
     {
-        var closestPoint = chunk.Bound.ClosestPoint(view);
-        var distance = Mathf.Abs(Vector3.Distance(closestPoint, view));
+        var closestPoint = chunk.Area.ClosestPoint(view);
+        var distance = VectorXZ.Distance(closestPoint, view);
 
         foreach (var preset in ViewDistancePreset)
         {
@@ -134,12 +134,11 @@ public class MyTerrainManager : MonoBehaviour
         Debug.Log($"TerrainManager.OnChunkLoadFinished Enqueued {chunk.Area}, remaining {_loadFinishedChunk.Count}");
     }
 
-    public Vector3 GetPosOnTerrain(Vector3 pos)
+    public Vector3 GetPosOnTerrain(VectorXZ pos)
     {
-        var pos2D = pos.ToXZ();
-        var chunk = GetChunkAt(pos2D);
+        var chunk = GetChunkAt(pos);
 
-        return chunk.GetOnTerrainPos(pos2D);
+        return chunk.GetOnTerrainPos(pos);
     }
 
     /// <summary>
@@ -147,7 +146,7 @@ public class MyTerrainManager : MonoBehaviour
     /// </summary>
     /// <param name="center"></param>
     /// <param name="size"></param>
-    public void FlatTerrain(Rect flatArea, float flatHeight)
+    public void FlatTerrain(RectXZ flatArea, float flatHeight)
     {
         Debug.Log($"TerrainManager.FlatTerrain {flatArea} {flatHeight} ");
 
@@ -157,17 +156,17 @@ public class MyTerrainManager : MonoBehaviour
         var chunk1 = GetChunkAt(flatArea.position);
         FlatChunk(chunk1, flatArea, flatHeight);
 
-        var chunk2 = GetChunkAt(flatArea.position+new Vector2(flatArea.size.x,0));
+        var chunk2 = GetChunkAt(flatArea.position+new VectorXZ(flatArea.size.x,0));
         FlatChunk(chunk2, flatArea, flatHeight);
 
         var chunk3 = GetChunkAt(flatArea.position + flatArea.size);
         FlatChunk(chunk3, flatArea, flatHeight);
 
-        var chunk4 = GetChunkAt(flatArea.position + new Vector2(0, flatArea.size.y));
+        var chunk4 = GetChunkAt(flatArea.position + new VectorXZ(0, flatArea.size.z));
         FlatChunk(chunk4, flatArea, flatHeight);
     }
 
-    private void FlatChunk(MyTerrainChunk chunk, Rect flatArea, float toHeight)
+    private void FlatChunk(MyTerrainChunk chunk, RectXZ flatArea, float toHeight)
     {
         Debug.Log($"TerrainManager.FlatChunk {chunk.Area} {flatArea} {toHeight}");
 
@@ -185,15 +184,7 @@ public class MyTerrainManager : MonoBehaviour
 public class MyTerrainChunk
 {
     private const int NoLOD = -1;
-
-    public readonly Bounds Bound;
-    public Rect Area
-    {
-        get
-        {
-            return _dataLoader.Area;
-        }
-    }
+    public RectXZ Area => _dataLoader.Area;
 
     public bool IsLoading
     {
@@ -216,12 +207,10 @@ public class MyTerrainChunk
     int _requestedLOD = NoLOD;
     int _displayedLOD = NoLOD;
 
-    public MyTerrainChunk(Rect area, MyTerrainGenerator terrainGenerator, Transform parent)
+    public MyTerrainChunk(RectXZ area, MyTerrainGenerator terrainGenerator, Transform parent)
     {
         _parent = parent;
         _dataLoader = new TerrainMeshDataLoader(this, area, terrainGenerator);
-
-        Bound = area.ToMapBounds();
     }
 
     public void HideChunk()
@@ -283,7 +272,7 @@ public class MyTerrainChunk
             //set material, pos, text only once
             if (_displayedLOD == NoLOD) {
                 meshData.CreateTexture();
-                _gameObject.transform.position = Bound.center;
+                _gameObject.transform.position = Area.center;
                 _meshRenderer.material = meshData.Material;
                 _meshRenderer.material.SetTexture("_MainTex", meshData.Texture);
             }
@@ -301,7 +290,7 @@ public class MyTerrainChunk
         _gameObject.SetActive(_objActive);
     }
 
-    public Vector3 GetOnTerrainPos(Vector2 globalPos)
+    public Vector3 GetOnTerrainPos(VectorXZ globalPos)
     {
         _dataLoader.LoadTerrainData();
 
@@ -309,10 +298,10 @@ public class MyTerrainChunk
 
         var height = _dataLoader.TerrainData.GetHeightAt(localPos);
 
-        return new Vector3(globalPos.x, height, globalPos.y);
+        return new Vector3(globalPos.x, height, globalPos.z);
     }
 
-    public bool FlatTerrain(Rect flatArea, float toHeight)
+    public bool FlatTerrain(RectXZ flatArea, float toHeight)
     {
         _dataLoader.LoadTerrainData();
 
@@ -336,7 +325,7 @@ public class MyTerrainChunk
 }
 public class TerrainMeshDataLoader
 {
-    public readonly Rect Area;
+    public readonly RectXZ Area;
     public readonly MyTerrainChunk Chunk;
     public MyTerrainData TerrainData { get; private set; }
     public bool IsTerrainDataModified;
@@ -345,7 +334,7 @@ public class TerrainMeshDataLoader
     readonly MyTerrainGenerator _terrainGenerator;
     readonly Dictionary<int, MyTerrainMeshData> _terrainMeshDatas = new ();
 
-    public TerrainMeshDataLoader(MyTerrainChunk chunk, Rect area, MyTerrainGenerator terrainGenerator)
+    public TerrainMeshDataLoader(MyTerrainChunk chunk, RectXZ area, MyTerrainGenerator terrainGenerator)
     {
         Chunk = chunk;
         Area = area;

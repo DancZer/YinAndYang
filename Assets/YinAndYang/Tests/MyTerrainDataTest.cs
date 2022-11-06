@@ -11,11 +11,11 @@ public class MyTerrainDataTest
     {
         var data = GetDefaultData();
 
-        data.FlatHeightMap(new Rect(new Vector2(25,25), new Vector2(50,50)), 50);
+        data.FlatHeightMap(new RectXZ(new VectorXZ(25,25), new VectorXZ(50,50)), 50);
 
-        Assert.AreEqual(50, data.GetHeightAt(new Vector2(25, 25)));
-        Assert.AreEqual(50, data.GetHeightAt(new Vector2(50, 50)));
-        Assert.AreEqual(50, data.GetHeightAt(new Vector2(25, 25)));
+        Assert.AreEqual(50, data.GetHeightAt(new VectorXZ(25, 25)));
+        Assert.AreEqual(50, data.GetHeightAt(new VectorXZ(50, 50)));
+        Assert.AreEqual(50, data.GetHeightAt(new VectorXZ(25, 25)));
     }
 
     [Test]
@@ -23,11 +23,11 @@ public class MyTerrainDataTest
     {
         var data = GetDefaultData();
 
-        data.FlatHeightMap(new Rect(new Vector2(-100, 25), new Vector2(150, 50)), 50);
+        data.FlatHeightMap(new RectXZ(new VectorXZ(-100, 25), new VectorXZ(150, 50)), 50);
 
-        Assert.AreEqual(50, data.GetHeightAt(new Vector2(25, 25)));
-        Assert.AreEqual(50, data.GetHeightAt(new Vector2(50, 50)));
-        Assert.AreEqual(50, data.GetHeightAt(new Vector2(25, 25)));
+        Assert.AreEqual(50, data.GetHeightAt(new VectorXZ(25, 25)));
+        Assert.AreEqual(50, data.GetHeightAt(new VectorXZ(50, 50)));
+        Assert.AreEqual(50, data.GetHeightAt(new VectorXZ(25, 25)));
     }
 
     [Test]
@@ -35,11 +35,11 @@ public class MyTerrainDataTest
     {
         var data = GetDefaultData();
 
-        data.FlatHeightMap(new Rect(new Vector2(-100, -100), new Vector2(150, 150)), 50);
+        data.FlatHeightMap(new RectXZ(new VectorXZ(-100, -100), new VectorXZ(150, 150)), 50);
 
-        Assert.AreEqual(50, data.GetHeightAt(new Vector2(25, 25)));
-        Assert.AreEqual(50, data.GetHeightAt(new Vector2(50, 50)));
-        Assert.AreEqual(50, data.GetHeightAt(new Vector2(25, 25)));
+        Assert.AreEqual(50, data.GetHeightAt(new VectorXZ(25, 25)));
+        Assert.AreEqual(50, data.GetHeightAt(new VectorXZ(50, 50)));
+        Assert.AreEqual(50, data.GetHeightAt(new VectorXZ(25, 25)));
     }
 
 
@@ -49,11 +49,11 @@ public class MyTerrainDataTest
     {
         var data = GetLowResData();
 
-        data.FlatHeightMap(new Rect(new Vector2(25, 25), new Vector2(50, 50)), 50);
+        data.FlatHeightMap(new RectXZ(new VectorXZ(25, 25), new VectorXZ(50, 50)), 50);
 
-        Assert.AreEqual(50, data.GetHeightAt(new Vector2(25, 25)));
-        Assert.AreEqual(50, data.GetHeightAt(new Vector2(50, 50)));
-        Assert.AreEqual(50, data.GetHeightAt(new Vector2(25, 25)));
+        Assert.AreEqual(50, data.GetHeightAt(new VectorXZ(25, 25)));
+        Assert.AreEqual(50, data.GetHeightAt(new VectorXZ(50, 50)));
+        Assert.AreEqual(50, data.GetHeightAt(new VectorXZ(25, 25)));
     }
 
     [Test]
@@ -61,11 +61,11 @@ public class MyTerrainDataTest
     {
         var data = GetLowResData();
 
-        data.FlatHeightMap(new Rect(new Vector2(-100, 25), new Vector2(150, 50)), 50);
+        data.FlatHeightMap(new RectXZ(new VectorXZ(-100, 25), new VectorXZ(150, 50)), 50);
 
-        Assert.AreEqual(50, data.GetHeightAt(new Vector2(25, 25)));
-        Assert.AreEqual(50, data.GetHeightAt(new Vector2(50, 50)));
-        Assert.AreEqual(50, data.GetHeightAt(new Vector2(25, 25)));
+        Assert.AreEqual(50, data.GetHeightAt(new VectorXZ(25, 25)));
+        Assert.AreEqual(50, data.GetHeightAt(new VectorXZ(50, 50)));
+        Assert.AreEqual(50, data.GetHeightAt(new VectorXZ(25, 25)));
     }
 
     [Test]
@@ -73,11 +73,11 @@ public class MyTerrainDataTest
     {
         var data = GetLowResData();
 
-        data.FlatHeightMap(new Rect(new Vector2(-100, -100), new Vector2(150, 150)), 50);
+        data.FlatHeightMap(new RectXZ(new VectorXZ(-100, -100), new VectorXZ(150, 150)), 50);
 
-        Assert.AreEqual(50, data.GetHeightAt(new Vector2(25, 25)));
-        Assert.AreEqual(50, data.GetHeightAt(new Vector2(50, 50)));
-        Assert.AreEqual(50, data.GetHeightAt(new Vector2(25, 25)));
+        Assert.AreEqual(50, data.GetHeightAt(new VectorXZ(25, 25)));
+        Assert.AreEqual(50, data.GetHeightAt(new VectorXZ(50, 50)));
+        Assert.AreEqual(50, data.GetHeightAt(new VectorXZ(25, 25)));
     }
 
 
@@ -87,11 +87,11 @@ public class MyTerrainDataTest
     {
         var data = GetHighResData();
 
-        data.FlatHeightMap(new Rect(new Vector2(25, 25), new Vector2(50, 50)), 50);
+        data.FlatHeightMap(new RectXZ(new VectorXZ(25, 25), new VectorXZ(50, 50)), 50);
 
-        Assert.AreEqual(50, data.GetHeightAt(new Vector2(25, 25)));
-        Assert.AreEqual(50, data.GetHeightAt(new Vector2(50, 50)));
-        Assert.AreEqual(50, data.GetHeightAt(new Vector2(25, 25)));
+        Assert.AreEqual(50, data.GetHeightAt(new VectorXZ(25, 25)));
+        Assert.AreEqual(50, data.GetHeightAt(new VectorXZ(50, 50)));
+        Assert.AreEqual(50, data.GetHeightAt(new VectorXZ(25, 25)));
     }
 
     [Test]
@@ -99,11 +99,11 @@ public class MyTerrainDataTest
     {
         var data = GetHighResData();
 
-        data.FlatHeightMap(new Rect(new Vector2(-100, 25), new Vector2(150, 50)), 50);
+        data.FlatHeightMap(new RectXZ(new VectorXZ(-100, 25), new VectorXZ(150, 50)), 50);
 
-        Assert.AreEqual(50, data.GetHeightAt(new Vector2(25, 25)));
-        Assert.AreEqual(50, data.GetHeightAt(new Vector2(50, 50)));
-        Assert.AreEqual(50, data.GetHeightAt(new Vector2(25, 25)));
+        Assert.AreEqual(50, data.GetHeightAt(new VectorXZ(25, 25)));
+        Assert.AreEqual(50, data.GetHeightAt(new VectorXZ(50, 50)));
+        Assert.AreEqual(50, data.GetHeightAt(new VectorXZ(25, 25)));
     }
 
     [Test]
@@ -111,11 +111,11 @@ public class MyTerrainDataTest
     {
         var data = GetHighResData();
 
-        data.FlatHeightMap(new Rect(new Vector2(-100, -100), new Vector2(150, 150)), 50);
+        data.FlatHeightMap(new RectXZ(new VectorXZ(-100, -100), new VectorXZ(150, 150)), 50);
 
-        Assert.AreEqual(50, data.GetHeightAt(new Vector2(25, 25)));
-        Assert.AreEqual(50, data.GetHeightAt(new Vector2(50, 50)));
-        Assert.AreEqual(50, data.GetHeightAt(new Vector2(25, 25)));
+        Assert.AreEqual(50, data.GetHeightAt(new VectorXZ(25, 25)));
+        Assert.AreEqual(50, data.GetHeightAt(new VectorXZ(50, 50)));
+        Assert.AreEqual(50, data.GetHeightAt(new VectorXZ(25, 25)));
     }
 
 
@@ -125,7 +125,7 @@ public class MyTerrainDataTest
     {
         var data = GetDefaultData();
 
-        Assert.AreEqual(0, data.GetHeightAt(new Vector2(0, 0)));
+        Assert.AreEqual(0, data.GetHeightAt(new VectorXZ(0, 0)));
     }
 
     [Test]
@@ -133,7 +133,7 @@ public class MyTerrainDataTest
     {
         var data = GetDefaultData();
 
-        Assert.AreEqual(1020, data.GetHeightAt(new Vector2(10, 10)));
+        Assert.AreEqual(1020, data.GetHeightAt(new VectorXZ(10, 10)));
     }
 
     [Test]
@@ -141,7 +141,7 @@ public class MyTerrainDataTest
     {
         var data = GetLowResData();
 
-        Assert.AreEqual(0, data.GetHeightAt(new Vector2(0, 0)));
+        Assert.AreEqual(0, data.GetHeightAt(new VectorXZ(0, 0)));
     }
 
     [Test]
@@ -149,7 +149,7 @@ public class MyTerrainDataTest
     {
         var data = GetLowResData();
 
-        Assert.AreEqual(1020, data.GetHeightAt(new Vector2(10, 10)));
+        Assert.AreEqual(1020, data.GetHeightAt(new VectorXZ(10, 10)));
     }
 
     [Test]
@@ -157,7 +157,7 @@ public class MyTerrainDataTest
     {
         var data = GetHighResData();
 
-        Assert.AreEqual(0, data.GetHeightAt(new Vector2(0, 0)));
+        Assert.AreEqual(0, data.GetHeightAt(new VectorXZ(0, 0)));
     }
 
     [Test]
@@ -165,7 +165,7 @@ public class MyTerrainDataTest
     {
         var data = GetHighResData();
 
-        Assert.AreEqual(1020, data.GetHeightAt(new Vector2(10, 10)));
+        Assert.AreEqual(1020, data.GetHeightAt(new VectorXZ(10, 10)));
     }
 
     private static MyTerrainData GetDefaultData()
@@ -173,7 +173,7 @@ public class MyTerrainDataTest
         int textResolution = 100;
         float size = 100;
 
-        var area = new Rect(size / -2f, size / -2f, size, size);
+        var area = new RectXZ(size / -2f, size / -2f, size, size);
 
         return new MyTerrainData(area, GenerateHeightMap(textResolution+1, size / textResolution), GenerateColorMap(textResolution));
     }
@@ -182,7 +182,7 @@ public class MyTerrainDataTest
         int textResolution = 100;
         float size = 200;
 
-        var area = new Rect(size / -2f, size / -2f, size, size);
+        var area = new RectXZ(size / -2f, size / -2f, size, size);
 
         return new MyTerrainData(area, GenerateHeightMap(textResolution + 1, size / textResolution), GenerateColorMap(textResolution));
     }
@@ -192,7 +192,7 @@ public class MyTerrainDataTest
         int textResolution = 100;
         float size = 50;
 
-        var area = new Rect(size / -2f, size / -2f, size, size);
+        var area = new RectXZ(size / -2f, size / -2f, size, size);
 
         return new MyTerrainData(area, GenerateHeightMap(textResolution + 1, size/textResolution), GenerateColorMap(textResolution));
     }
