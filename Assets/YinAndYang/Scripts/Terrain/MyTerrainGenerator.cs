@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+[ExecuteInEditMode]
 public class MyTerrainGenerator : MonoBehaviour
 {
 	public enum TerrainDrawMode { HeightMap, ColourMap, Mesh };
@@ -15,6 +16,7 @@ public class MyTerrainGenerator : MonoBehaviour
 	public int Resolution = 240;
 
 	public float HeightMultiplier = 100;
+	public bool UseHeightCurveEvaluator = true;
 	public AnimationCurve HeightCurve;
 	public MyTerrainRegionPreset[] Regions;
 
@@ -33,33 +35,43 @@ public class MyTerrainGenerator : MonoBehaviour
 	[ReadOnly] public float MinHeight;
 	[ReadOnly] public float MaxHeight;
 #endif
-	private void Start()
-    {
-		var editorDisplay = transform.GetChild(0);
-		editorDisplay.gameObject.SetActive(false);
-	}
 
 #if UNITY_EDITOR
-	public void DrawTerrainInEditor()
+
+	Vector3 lastDrawPos;
+
+    private void OnValidate()
+    {
+		lastDrawPos = Vector3.one * float.MaxValue;
+    }
+
+    public void DrawTerrainInEditor()
 	{
+		var editorDisplay = transform.GetChild(0);
+
+		if (lastDrawPos == editorDisplay.position) return;
+		lastDrawPos = editorDisplay.position;
+
 		MinVal = MinHeight = float.MaxValue;
 		MaxVal = MaxHeight = float.MinValue;
 
-		MyTerrainData mapData = GenerateTerrainData(new Rect(new Vector2(transform.position.x-EditorTerrainSize/2f, transform.position.y-EditorTerrainSize/2f), new Vector2(EditorTerrainSize, EditorTerrainSize)));
+		var editorDisplayArea = new Rect(
+			new Vector2(editorDisplay.position.x - EditorTerrainSize / 2f, editorDisplay.position.z - EditorTerrainSize / 2f), 
+			new Vector2(EditorTerrainSize, EditorTerrainSize));
+		MyTerrainData mapData = GenerateTerrainData(editorDisplayArea);
 		MyTerrainMeshData meshData = GenerateMeshData(mapData, EditorLOD);
 
-		var editorDisplay = transform.GetChild(0);
 		var meshFilter = editorDisplay.GetComponent<MeshFilter>();
 		var meshRenderer = editorDisplay.GetComponent<MeshRenderer>();
 
 		if (DrawMode == TerrainDrawMode.HeightMap || DrawMode == TerrainDrawMode.ColourMap)
 		{
-			meshFilter.mesh = CreatePlaneMesh(mapData.Area);
+			meshFilter.sharedMesh = CreatePlaneMesh(mapData.Area);
 		}
 		else if (DrawMode == TerrainDrawMode.Mesh)
 		{
 			meshData.CreateMesh();
-			meshFilter.mesh = meshData.Mesh;
+			meshFilter.sharedMesh = meshData.Mesh;
 		}
 		meshData.CreateTexture();
 		meshRenderer.sharedMaterial.SetTexture("_MainTex", meshData.Texture);
@@ -72,7 +84,7 @@ public class MyTerrainGenerator : MonoBehaviour
 		var verts = new List<Vector3>();
 		var uvs = new List<Vector2>();
 
-		var offset = area.position;
+		var offset = area.size / -2f;
 
 		var numFaces = 1;
 		verts.Add(new Vector3(offset.x, 0, offset.y));
@@ -110,9 +122,15 @@ public class MyTerrainGenerator : MonoBehaviour
 
 		return mesh;
 	}
+
+    void Update()
+    {
+		DrawTerrainInEditor();
+    }
+
 #endif
 
-	public MyTerrainData GenerateTerrainData(Rect area)
+    public MyTerrainData GenerateTerrainData(Rect area)
 	{
 		var noiseMap = CreateNoiseMap(area);
 		Color[] colorMap;
@@ -171,7 +189,7 @@ public class MyTerrainGenerator : MonoBehaviour
 		{
 			for (int x = 0; x < Resolution; x++)
 			{
-				var height = heightCurve.Evaluate(noiseMap[x, y]);
+				var height = UseHeightCurveEvaluator ? heightCurve.Evaluate(noiseMap[x, y]) : noiseMap[x, y];
 
 				heightMap[y * Resolution + x] = Color.Lerp(Color.black, Color.white, height);
 			}
@@ -189,7 +207,7 @@ public class MyTerrainGenerator : MonoBehaviour
 		{
 			for (int x = 0; x < Resolution; x++)
 			{
-				var height = heightCurve.Evaluate(noiseMap[x, y]) * HeightMultiplier;
+				var height = (UseHeightCurveEvaluator ? heightCurve.Evaluate(noiseMap[x, y]) : noiseMap[x, y]) * HeightMultiplier;
 
 				foreach (var region in Regions)
 				{
@@ -205,7 +223,6 @@ public class MyTerrainGenerator : MonoBehaviour
 		return colorMap;
 	}
 
-
 	public MyTerrainMeshData GenerateMeshData(MyTerrainData terrainData, int lod)
 	{
 		var mesh = new MyTerrainMeshData(terrainData, lod, BaseMaterial);
@@ -215,13 +232,13 @@ public class MyTerrainGenerator : MonoBehaviour
 		var vertStep = terrainData.Area.size.x / meshResolution;
 		var uvStep = 1f / meshResolution;
 		var heightCurve = new AnimationCurve(HeightCurve.keys);
-		var offset = Vector2.zero;
+		var offset = terrainData.Area.size / -2f;
 
 		; for (int y = 0; y < meshResolution + 1; y++)
 		{
 			for (int x = 0; x < meshResolution + 1; x++)
 			{
-				var height = heightCurve.Evaluate(terrainData.NoiseMap[x * meshStepSize, y * meshStepSize]) * HeightMultiplier;
+				var height = (UseHeightCurveEvaluator? heightCurve.Evaluate(terrainData.NoiseMap[x * meshStepSize, y * meshStepSize]) : terrainData.NoiseMap[x * meshStepSize, y * meshStepSize]) * HeightMultiplier;
 #if UNITY_EDITOR
 				LogMinMax(ref MinHeight, ref MaxHeight, height);
 #endif

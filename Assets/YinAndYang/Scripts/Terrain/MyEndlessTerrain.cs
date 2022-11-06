@@ -8,7 +8,8 @@ public class MyEndlessTerrain : MonoBehaviour
 {
     private const int StartChunkCount = 2;
     public ViewDistancePreset[] ViewDistancePreset; 
-    [Range(1, 240)] public int ChunkSize = 240;
+    [Range(1, 240)] public float ChunkSize = 240;
+    private float ChunkSizeHalf; 
 
     MyTerrainGenerator _terrainGenerator;
     Dictionary<Vector2, MyTerrainChunk> _chunks = new();
@@ -23,6 +24,7 @@ public class MyEndlessTerrain : MonoBehaviour
         _terrainGenerator = GetComponent<MyTerrainGenerator>();
 
         var maxViewDistance = ViewDistancePreset[ViewDistancePreset.Length - 1].ViewDistance;
+        ChunkSizeHalf = ChunkSize / 2f;
         viewDistanceChunkCount = (int)Mathf.Ceil((float)maxViewDistance / ChunkSize);
         LastChunkLoadPos = Vector2.zero;
         LoadChunksViewDistance(Vector2.zero, StartChunkCount, true);
@@ -43,7 +45,7 @@ public class MyEndlessTerrain : MonoBehaviour
     
     Rect GetChunkArea(Vector2 pos)
     {
-        return new Rect(Mathf.Floor(pos.x / ChunkSize) * ChunkSize, Mathf.Floor(pos.y / ChunkSize) * ChunkSize, ChunkSize, ChunkSize);
+        return new Rect(Mathf.Floor(pos.x / ChunkSize) * ChunkSize - ChunkSizeHalf, Mathf.Floor(pos.y / ChunkSize) * ChunkSize- ChunkSizeHalf, ChunkSize, ChunkSize);
     }
 
     // Update is called once per frame
