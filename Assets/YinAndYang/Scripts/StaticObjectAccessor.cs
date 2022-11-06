@@ -2,35 +2,35 @@ using UnityEngine;
 
 public static class StaticObjectAccessor
 {
+    private static GameTimeManager gameTimeManager;
+    public static GameTimeManager GetTimeManager()
+    {
+        if (gameTimeManager != null) return gameTimeManager;
+
+        return gameTimeManager = GameObject.FindObjectOfType<GameTimeManager>();
+    }
+
+    private static MyTerrainManager myTerrainManager;
+    public static MyTerrainManager GetMyTerrainManager()
+    {
+        if (myTerrainManager != null) return myTerrainManager;
+
+        return myTerrainManager = GameObject.FindObjectOfType<MyTerrainManager>();
+    }
+
+    private static PlayerStatHandler playerStatHandler;
     public static PlayerStatHandler GetPlayerStatHandler()
     {
-        foreach(var go in GameObject.FindGameObjectsWithTag("Player")){
-            var stat = go.GetComponent<PlayerStatHandler>();
+        if (playerStatHandler != null) return playerStatHandler;
 
-            if (stat != null && stat.IsOwner) return stat;
+        foreach (var stat in GameObject.FindObjectsOfType<PlayerStatHandler>())
+        {
+            if (stat != null && stat.IsOwner) return playerStatHandler = stat;
         }
 
         throw new GodNotFoundException();
     }
-    public static GameObject GetPlayerTemple()
-    {
-        return GameObject.FindGameObjectWithTag("Temple");
-    }
-
-    public static GameTimeManager GetTimeManager()
-    {
-        return GameObject.FindGameObjectWithTag("GameLogic").GetComponent<GameTimeManager>();
-    }
-    public static MyTerrainManager GetMyTerrainManager()
-    {
-        return GetTerrainObject().GetComponent<MyTerrainManager>();
-    }
-    public static GameObject GetTerrainObject()
-    {
-        return GameObject.FindGameObjectWithTag("TerrainObject");
-    }
-
-    public class GodNotFoundException : UnityException
-    {
-    }
+}
+public class GodNotFoundException : UnityException
+{
 }

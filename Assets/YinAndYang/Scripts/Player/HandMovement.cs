@@ -248,7 +248,7 @@ public class HandMovement : NetworkBehaviour
 
             if (rigidbody.isKinematic)
             {
-                GrabObject.transform.position = _myTerrainManager.GetGroundPosAtCord(new Vector3(GrabObject.transform.position.x, 0, GrabObject.transform.position.z)) + GrabObject.DropPosOffset;
+                GrabObject.transform.position = _myTerrainManager.GetPosOnTerrain(new Vector3(GrabObject.transform.position.x, 0, GrabObject.transform.position.z)) + GrabObject.DropPosOffset;
             }
         }
         _grabObjectLayerBak = -1;

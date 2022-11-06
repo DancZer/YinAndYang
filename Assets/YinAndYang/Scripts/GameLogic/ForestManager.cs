@@ -217,7 +217,7 @@ public class ForestManager : NetworkBehaviour
             Debug.LogWarning($"Tree is outside the ref. tree max distance: {treePreset.ForestTypeName} at {newPos} in range {(newPos - refPos).magnitude}");
         }
 
-        return _terrainManager.GetGroundPosAtCord(newPos);
+        return _terrainManager.GetPosOnTerrain(newPos);
     }
 
     private TreeGrowthHandler CreateNewTree(TreePreset treePreset, Vector3 pos, Quaternion rotation, bool init = false)

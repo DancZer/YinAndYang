@@ -1,7 +1,7 @@
 using UnityEngine;
 using FishNet;
 
-public class MyTerrainManager : MonoBehaviour
+public class MyTerrainManagerQuadTree : MonoBehaviour
 {
     public GameObject TilePrefab;
     [Range(0, 6)] public int ChunkMaxLevel = 8;
