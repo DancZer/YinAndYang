@@ -11,7 +11,7 @@ public static class StaticObjectAccessor
     }
 
     private static MyTerrainManager myTerrainManager;
-    public static MyTerrainManager GetMyTerrainManager()
+    public static MyTerrainManager GetTerrainManager()
     {
         if (myTerrainManager != null) return myTerrainManager;
 

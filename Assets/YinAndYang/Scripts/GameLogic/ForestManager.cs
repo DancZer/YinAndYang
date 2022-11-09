@@ -30,7 +30,7 @@ public class ForestManager : NetworkBehaviour
 
         if (!enabled) return;
 
-        _terrainManager = StaticObjectAccessor.GetMyTerrainManager();
+        _terrainManager = StaticObjectAccessor.GetTerrainManager();
 
         foreach (var treePrefab in treePrefabArray){
             var handler = treePrefab.GetComponent<TreeGrowthHandler>();

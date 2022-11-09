@@ -41,7 +41,7 @@ public class HandMovement : NetworkBehaviour
 
         if (IsOwner)
         {
-            _myTerrainManager = StaticObjectAccessor.GetMyTerrainManager();
+            _myTerrainManager = StaticObjectAccessor.GetTerrainManager();
             _handLayer = HandLayerMask.GetLastLayer();
             _innerContainerTransform = transform.GetChild(0);
             

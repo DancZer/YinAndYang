@@ -9,7 +9,7 @@ public class BuildingOnTerrain : MonoBehaviour
 
     void Start()
     {
-        _terrainManager = StaticObjectAccessor.GetMyTerrainManager();
+        _terrainManager = StaticObjectAccessor.GetTerrainManager();
         _buildingFootprint = GetComponentInChildren<BuildingFootprint>();
     }
     

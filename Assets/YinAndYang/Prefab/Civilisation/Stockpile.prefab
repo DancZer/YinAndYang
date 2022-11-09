@@ -287,7 +287,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4765d4292fe264a4aaa23dde0177bfa6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  MoveBuildingToTerrain: 0
+  MoveBuildingToTerrain: 1
 --- !u!1001 &579865827141405618
 PrefabInstance:
   m_ObjectHideFlags: 0
