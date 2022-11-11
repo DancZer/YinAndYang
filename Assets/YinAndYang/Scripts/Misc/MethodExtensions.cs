@@ -26,7 +26,7 @@ public static class MethodExtensions
         return new Vector2(point.x, point.z);
     }
 
-    public static Vector2 ToXZ(this Vector3 vect)
+    public static Vector2 To2D(this Vector3 vect)
     {
         return new Vector2(vect.x, vect.z);
     }

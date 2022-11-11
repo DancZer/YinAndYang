@@ -4,6 +4,9 @@ public class BuildingFootprint : MonoBehaviour
 {
     public Rect GetFootprint()
     {
-        return new Rect(transform.position.ToXZ(), transform.localScale.ToXZ());
+        var rect =  new Rect(Vector2.zero, transform.localScale.To2D());
+        rect.center = transform.position.To2D();
+
+        return rect;
     }
 }

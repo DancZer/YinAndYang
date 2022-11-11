@@ -23,9 +23,7 @@ public class BuildingOnTerrain : MonoBehaviour
         }
 
         if(_buildingFootprint != null) {
-            var footprint = _buildingFootprint.GetFootprint();
-            footprint.center = transform.position.ToXZ();
-            _terrainManager.FlatTerrain(footprint, transform.position.y);
+            _terrainManager.FlatTerrain(_buildingFootprint.GetFootprint(), transform.position.y);
         }
 
         enabled = false;

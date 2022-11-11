@@ -1,8 +1,9 @@
 using System.Collections.Generic;
 using UnityEngine;
+using FishNet.Object;
 
 [ExecuteInEditMode]
-public class MyTerrainGenerator : MonoBehaviour
+public class MyTerrainGenerator : NetworkBehaviour
 {
 	public enum TerrainDrawMode { HeightMap, ColourMap, Mesh };
 
@@ -66,7 +67,6 @@ public class MyTerrainGenerator : MonoBehaviour
 		if(EditorBuilding != null) { 
 			var flatArea = EditorBuilding.GetComponentInChildren<BuildingFootprint>().GetFootprint();
 			var pos = EditorBuilding.transform.position;
-			flatArea.center = pos;
 			mapData.FlatHeightMap(flatArea, pos.y);
 		}
 
@@ -337,8 +337,11 @@ public class MyTerrainData
         {
 			for (int x = startPos.x; x < endPos.x; x++)
 			{
-				HeightMap[x, y] = flatValue;
-				modified = true;
+				if(HeightMap[x, y] != flatValue)
+                {
+					HeightMap[x, y] = flatValue;
+					modified = true;
+				}
 			}
 		}
 
@@ -384,9 +387,7 @@ public class MyTerrainMeshData
 
 	public void CreateMesh()
     {
-		Debug.Log($"MyTerrainMeshData.CreateMesh {TerrainData.Area}");
 		if (Mesh != null) return;
-		Debug.Log($"MyTerrainMeshData.CreateMesh Done {TerrainData.Area}");
 
 		Mesh = new Mesh();
 		Mesh.name = "Mesh" + Name;
@@ -401,9 +402,7 @@ public class MyTerrainMeshData
 
 	public void CreateTexture()
 	{
-		Debug.Log($"MyTerrainMeshData.CreateTexture {TerrainData.Area}");
 		if (Texture != null) return;
-		Debug.Log($"MyTerrainMeshData.CreateTexture Done {TerrainData.Area}");
 
 		Texture = new Texture2D(TerrainData.HeightMapResolution, TerrainData.HeightMapResolution);
 
