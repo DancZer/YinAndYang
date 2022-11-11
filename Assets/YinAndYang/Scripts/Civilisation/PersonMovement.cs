@@ -1,8 +1,6 @@
 using UnityEngine;
-using FishNet.Object;
-using FishNet.Object.Synchronizing;
 
-public class PersonMovement : NetworkBehaviour
+public class PersonMovement : MonoBehaviour
 {
     public float PatrolSearchRadius = 100;
     public float CompletionRadius = 2;
@@ -18,27 +16,16 @@ public class PersonMovement : NetworkBehaviour
     private Person _person;
     private Rigidbody _rigidbody;
 
-    public override void OnStartServer()
+    void Start()
     {
-        base.OnStartServer();
-
         _person = GetComponent<Person>();
         _rigidbody = GetComponent<Rigidbody>();
         _terrainManager = StaticObjectAccessor.GetTerrainManager();
     }
 
-    public override void OnStartClient()
-    {
-        base.OnStartClient();
-    }
-
-    // Update is called once per frame
     void Update()
     {
-        if (IsServer)
-        {
-            Patroling();
-        }
+        Patroling();
     }
 
     private void Patroling()

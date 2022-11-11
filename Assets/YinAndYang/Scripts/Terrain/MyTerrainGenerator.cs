@@ -44,11 +44,6 @@ public class MyTerrainGenerator : NetworkBehaviour
 	Vector3 lastDrawPos;
 	Vector3 buildingLastDrawPos;
 
-	private void OnValidate()
-    {
-		lastDrawPos = Vector3.one * float.MaxValue;
-    }
-
     public void DrawTerrainInEditor()
 	{
 		MinVal = MinHeight = float.MaxValue;

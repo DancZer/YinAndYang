@@ -1,8 +1,8 @@
-using FishNet.Object;
+using UnityEngine;
 
-public class Person : NetworkBehaviour
+public class Person : MonoBehaviour
 {
-    public enum Sexs
+    public enum Gender
     {
         Male, Female
     }
@@ -13,7 +13,9 @@ public class Person : NetworkBehaviour
 
     public string PersonName;
     public GameDate BirthDate;
-    public Sexs Sex;
+    public Gender Sex;
+
+    public TownCenter TownCenter;
 
     public GameDate Age 
     { 
@@ -25,19 +27,8 @@ public class Person : NetworkBehaviour
 
     private GameTimeManager _timeManager;
 
-    public override void OnStartServer()
+    void Start()
     {
-        base.OnStartServer();
-
         _timeManager = StaticObjectAccessor.GetTimeManager();
-    }
-
-    public override void OnStartClient()
-    {
-        base.OnStartClient();
-    }
-
-    void Update()
-    {
     }
 }
