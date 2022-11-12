@@ -11,12 +11,12 @@ public class MyTerrainManagerQuadTree : MonoBehaviour
     public LayerMask GroundMask;
     [ReadOnly] public float ChunkSize;
 
-    MyTerrainGenerator _terrainGenerator;
+    MapGenerator _terrainGenerator;
     QuadTreeNode<MyTerrainData> _root;
 
     void Start()
     {
-        _terrainGenerator = GetComponent<MyTerrainGenerator>();
+        _terrainGenerator = GetComponent<MapGenerator>();
     }
 
     void Update()

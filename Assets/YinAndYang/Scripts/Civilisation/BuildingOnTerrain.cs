@@ -2,7 +2,7 @@ using UnityEngine;
 
 public class BuildingOnTerrain : MonoBehaviour
 {
-    private MyTerrainManager _terrainManager;
+    private MapManager _terrainManager;
     private BuildingFootprint _buildingFootprint;
 
     public bool MoveBuildingToTerrain = true;

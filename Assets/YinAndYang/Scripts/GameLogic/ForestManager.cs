@@ -20,7 +20,7 @@ public class ForestManager : NetworkBehaviour
     private List<TreeGrowthHandler> _globalTreeList = new List<TreeGrowthHandler>();
     private Dictionary<string, List<TreeGrowthHandler>> _treeByName = new Dictionary<string, List<TreeGrowthHandler>>();
 
-    private MyTerrainManager _terrainManager;
+    private MapManager _terrainManager;
 
     private int _forestIdxCounter;
 

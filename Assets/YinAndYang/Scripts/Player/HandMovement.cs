@@ -28,7 +28,7 @@ public class HandMovement : NetworkBehaviour
     private int _grabObjectLayerBak = -1;
     private HandActionState _handActuinState = HandActionState.None;
     private Transform _innerContainerTransform;
-    private MyTerrainManager _myTerrainManager;
+    private MapManager _myTerrainManager;
 
     public override void OnStartServer()
     {

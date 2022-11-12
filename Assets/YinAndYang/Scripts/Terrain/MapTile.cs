@@ -4,17 +4,17 @@ using System.Collections.Generic;
 using System.Threading;
 using UnityEngine;
 
-public class MyTerrainChunk : MonoBehaviour
+public class MapTile : MonoBehaviour
 {
     private const int NoLOD = -1;
     public Rect Area { get; private set; }
 
     TerrainDataLoader _terrainDataLoader;
     TerrainMeshDataLoader _terrainMeshDataLoader;
-    Action<MyTerrainChunk> _meshLoadCallback;
+    Action<MapTile> _meshLoadCallback;
 
-    MyTerrainManager _terrainManager;
-    MyTerrainGenerator _terrainGenerator;
+    MapManager _terrainManager;
+    MapGenerator _terrainGenerator;
 
     MeshFilter _meshFilter;
     MeshRenderer _meshRenderer;
@@ -23,20 +23,25 @@ public class MyTerrainChunk : MonoBehaviour
     int _requestedLOD = NoLOD;
     int _displayedLOD = NoLOD;
 
-    public void Initialize(Rect area)
+    private void Start()
     {
-        Area = area;
         _meshFilter = GetComponent<MeshFilter>();
         _meshRenderer = GetComponent<MeshRenderer>();
         _meshCollider = GetComponent<MeshCollider>();
 
         _terrainManager = StaticObjectAccessor.GetTerrainManager();
-        _terrainGenerator = _terrainManager.GetComponent<MyTerrainGenerator>();
+        _terrainGenerator = _terrainManager.GetComponent<MapGenerator>();
         _terrainDataLoader = new TerrainDataLoader(Area, _terrainGenerator);
         _terrainMeshDataLoader = new TerrainMeshDataLoader(_terrainDataLoader, _terrainGenerator);
     }
 
-    public void HideChunk()
+    public void Initialize(Rect area)
+    {
+        Area = area;
+        
+    }
+
+    public void HideTile()
     {
         gameObject.SetActive(false);
     }
@@ -48,7 +53,7 @@ public class MyTerrainChunk : MonoBehaviour
         Debug.Log($"MyTerrainChunk.LoadTerrainData {Area}");
     }
 
-    public bool DisplayChunkAync(int newLOD, bool instant, Action<MyTerrainChunk> callback)
+    public bool DisplayChunkAync(int newLOD, bool instant, Action<MapTile> callback)
     {
         gameObject.SetActive(true);
 
@@ -145,7 +150,7 @@ public class MyTerrainChunk : MonoBehaviour
         collisionMeshData.CreateMesh();
         _meshCollider.sharedMesh = collisionMeshData.Mesh;
 
-        name = "Chunk" + meshData.Name;
+        name = "MapTile" + meshData.Name;
 
         _displayedLOD = _requestedLOD;
     }
@@ -189,11 +194,11 @@ public class TerrainDataLoader : MyJob<object, MyTerrainData>
     public readonly Rect Area;
     
     readonly object _dataLock = new();
-    readonly MyTerrainGenerator _terrainGenerator;
+    readonly MapGenerator _terrainGenerator;
 
     MyTerrainData _terrainData;
 
-    public TerrainDataLoader(Rect area, MyTerrainGenerator terrainGenerator)
+    public TerrainDataLoader(Rect area, MapGenerator terrainGenerator)
     {
         Area = area;
         _terrainGenerator = terrainGenerator;
@@ -242,10 +247,10 @@ public class TerrainMeshDataLoader : MyJob<int, MyTerrainMeshData>
     readonly object _dataLock = new();
 
     readonly TerrainDataLoader _terrainDataLoader;
-    readonly MyTerrainGenerator _terrainGenerator;
+    readonly MapGenerator _terrainGenerator;
     readonly Dictionary<int, MyTerrainMeshData> _terrainMeshDatas = new();
 
-    public TerrainMeshDataLoader(TerrainDataLoader dataLoader, MyTerrainGenerator terrainGenerator)
+    public TerrainMeshDataLoader(TerrainDataLoader dataLoader, MapGenerator terrainGenerator)
     {
         _terrainDataLoader = dataLoader;
         _terrainGenerator = terrainGenerator;
@@ -350,7 +355,7 @@ public abstract class MyJob<TI, TO>
             }
             catch (Exception e)
             {
-                Debug.LogError($"MyTerrainChunk.ScheduleLoadMesh {e.Message} {e.StackTrace}");
+                Debug.LogError($"MapTile.ScheduleLoadMesh {e.Message} {e.StackTrace}");
             }
             finally
             {

@@ -3,7 +3,7 @@ using UnityEngine;
 using FishNet.Object;
 
 [ExecuteInEditMode]
-public class MyTerrainGenerator : NetworkBehaviour
+public class MapGenerator : NetworkBehaviour
 {
 	public enum TerrainDrawMode { HeightMap, ColourMap, Mesh };
 
