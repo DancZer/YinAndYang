@@ -5,5 +5,6 @@ using UnityEngine;
 public class ViewDistancePreset : ScriptableObject
 {
     public float ViewDistance;
-    public int LOD;
+    public int DisplayLOD;
+    public int CollisionLOD;
 }

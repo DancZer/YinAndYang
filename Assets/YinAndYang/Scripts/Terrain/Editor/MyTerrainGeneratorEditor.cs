@@ -3,12 +3,12 @@
 using UnityEngine;
 using UnityEditor;
 
-[CustomEditor(typeof(MapGenerator))]
+[CustomEditor(typeof(TerrainGenerator))]
 public class MyTerrainGeneratorEditor : Editor
 {
 	public override void OnInspectorGUI()
 	{
-		MapGenerator mapGen = (MapGenerator)target;
+		TerrainGenerator mapGen = (TerrainGenerator)target;
 
 		if (DrawDefaultInspector())
 		{

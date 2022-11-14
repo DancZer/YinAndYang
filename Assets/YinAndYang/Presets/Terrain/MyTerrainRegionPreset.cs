@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 [System.Serializable]
-[CreateAssetMenu(fileName = "Height Map Preset", menuName = "Scriptables/HeightMapPreset", order = 3)]
+[CreateAssetMenu(fileName = "Height Terrain Preset", menuName = "Scriptables/HeightTerrainPreset", order = 3)]
 public class MyTerrainRegionPreset : ScriptableObject
 {
 	public float Height;

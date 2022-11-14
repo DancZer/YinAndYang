@@ -10,12 +10,20 @@ public static class StaticObjectAccessor
         return gameTimeManager = GameObject.FindObjectOfType<GameTimeManager>();
     }
 
-    private static MapManager myTerrainManager;
-    public static MapManager GetTerrainManager()
+    private static TerrainManager terrainManager;
+    public static TerrainManager GetTerrainManager()
     {
-        if (myTerrainManager != null) return myTerrainManager;
+        if (terrainManager != null) return terrainManager;
 
-        return myTerrainManager = GameObject.FindObjectOfType<MapManager>();
+        return terrainManager = GameObject.FindObjectOfType<TerrainManager>();
+    }
+
+    private static TerrainGenerator terrainGenerator;
+    public static TerrainGenerator GetTerrainGenerator()
+    {
+        if (terrainGenerator != null) return terrainGenerator;
+
+        return terrainGenerator = GameObject.FindObjectOfType<TerrainGenerator>();
     }
 
     private static PlayerStatHandler playerStatHandler;

@@ -1,21 +1,34 @@
 using UnityEngine;
+using FishNet.Object;
 
-public class BuildingOnTerrain : MonoBehaviour
+public class BuildingOnTerrain : NetworkBehaviour
 {
-    private MapManager _terrainManager;
+    private TerrainManager _terrainManager;
     private BuildingFootprint _buildingFootprint;
 
     public bool MoveBuildingToTerrain = true;
 
-    void Start()
+    public override void OnStartServer()
     {
+        base.OnStartServer();
+
         _terrainManager = StaticObjectAccessor.GetTerrainManager();
         _buildingFootprint = GetComponentInChildren<BuildingFootprint>();
     }
-    
+
+    public override void OnStartClient()
+    {
+        base.OnStartClient();
+
+        if (!IsServer)
+        {
+            enabled = false;
+        }
+    }
+
     void Update()
     {
-        if (_terrainManager.IsTerrainLoading) return;
+        if (_terrainManager.IsLoading || _terrainManager.GetTileAt(transform.position) == null) return;
 
         if (MoveBuildingToTerrain)
         {

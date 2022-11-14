@@ -20,7 +20,7 @@ public class ForestManager : NetworkBehaviour
     private List<TreeGrowthHandler> _globalTreeList = new List<TreeGrowthHandler>();
     private Dictionary<string, List<TreeGrowthHandler>> _treeByName = new Dictionary<string, List<TreeGrowthHandler>>();
 
-    private MapManager _terrainManager;
+    private TerrainManager _terrainManager;
 
     private int _forestIdxCounter;
 
@@ -76,7 +76,6 @@ public class ForestManager : NetworkBehaviour
     {
         if (!IsServer) return;
         if (_lastUpdateTime + ForestUpdateTime > Time.timeSinceLevelLoad) return;
-        if (_terrainManager.IsTerrainLoading) return;
 
         _lastUpdateTime = Time.timeSinceLevelLoad;
 

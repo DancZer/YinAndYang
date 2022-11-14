@@ -23,7 +23,7 @@ public class TownGenerator : MonoBehaviour
     public Transform CenterOfEditorTown;
     public float SizeInEditor = 100;
 #else
-    MyTerrainManager _terainManager;
+    TerrainManager _terainManager;
 #endif
 
 #if UNITY_EDITOR

@@ -7,7 +7,7 @@ public class PersonMovement : MonoBehaviour
     public float RestBetweenPatrol = 10;
     public float WalkSpeed = 2;
 
-    private MapManager _terrainManager;
+    private TerrainManager _terrainManager;
 
     private Vector3 _patrolDestPos;
     private bool _isPatrolDestSet;

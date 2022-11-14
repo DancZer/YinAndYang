@@ -28,7 +28,7 @@ public class HandMovement : NetworkBehaviour
     private int _grabObjectLayerBak = -1;
     private HandActionState _handActuinState = HandActionState.None;
     private Transform _innerContainerTransform;
-    private MapManager _myTerrainManager;
+    private TerrainManager _myTerrainManager;
 
     public override void OnStartServer()
     {
@@ -56,7 +56,8 @@ public class HandMovement : NetworkBehaviour
     {
         if (!Application.isFocused ||
             !IsOwner || 
-            !MiscHelper.IsOnTheScreen(Input.mousePosition)
+            !MiscHelper.IsOnTheScreen(Input.mousePosition) ||
+            _myTerrainManager.IsLoading
             ) return;
 
         var ray = Camera.main.ScreenPointToRay(Input.mousePosition);
