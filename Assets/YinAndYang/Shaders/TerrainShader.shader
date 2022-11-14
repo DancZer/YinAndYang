@@ -36,34 +36,19 @@ Shader "Custom/TerrainShader"
 
 		void surf (Input IN, inout SurfaceOutputStandard OUT) 
         {
-            if(IN.worldPos.y <= heightColoursStartHeight[0])
-            {
-                 OUT.Albedo = heightColours[0];
-            }
-            else if(IN.worldPos.y >= heightColoursStartHeight[heightColourCount-1])
-            {
-                OUT.Albedo = heightColours[heightColourCount-1];
-            }
-            else
-            {
-                int endIdx = 0;
-
-			    for (int i = 1; i < heightColourCount; i++) 
-                {
-                    if(IN.worldPos.y < heightColoursStartHeight[i])
-                    {
-                        endIdx = i;
-                    }else{
-                        break;
-                    }
-			    }
-
-                int startIdx = (endIdx > 0) ? (endIdx - 1) : endIdx;
+            float heightPercentage = inverseLerp(minHeight, maxHeight, IN.worldPos.y);
             
-			    float percentage = inverseLerp(heightColoursStartHeight[startIdx]-minHeight, heightColoursStartHeight[endIdx]-minHeight, IN.worldPos.y-minHeight);
+            OUT.Albedo = heightColours[0];
 
-                OUT.Albedo = heightColours[startIdx] * (1-percentage) * heightColours[endIdx] * percentage;
-            }
+			for (int i = 0; i < heightColourCount; i++) 
+            {
+                float colorPercentage = inverseLerp(minHeight, maxHeight, heightColoursStartHeight[i]);
+
+                float colorStrenght = inverseLerp(-0.005, 0.005, heightPercentage - colorPercentage);
+
+                OUT.Albedo = OUT.Albedo * (1-colorStrenght) + heightColours[i] * colorStrenght;
+			}
+
 		}
         ENDCG
     }

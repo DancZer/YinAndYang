@@ -383,7 +383,7 @@ public class TerrainTile
 		HeightMapSize = size + 1;
 		MapSize = size;
 
-		HeightMapStepSize = MapSize / Area.width;
+		HeightMapStepSize = Area.width / MapSize;
 	}
 
 	public float GetHeightAt(Vector2 localPos)
@@ -404,7 +404,7 @@ public class TerrainTile
 		var startPos = Vector2Int.Min(Vector2Int.Max(startPosScaled, Vector2Int.zero), new Vector2Int(HeightMapSize, HeightMapSize));
 		var endPos = Vector2Int.Min(Vector2Int.Max(endPosScaled, Vector2Int.zero), new Vector2Int(HeightMapSize, HeightMapSize));
 
-		Debug.Log($"MyTerrainData.FlatHeightMap {Area} {MapSize} {HeightMapStepSize} Flat {flatArea} {flatAreaLocal} {flatValue} SP {startPosScaled} {startPos} EP {endPosScaled} {endPos}");
+		//Debug.Log($"MyTerrainData.FlatHeightMap {Area} {MapSize} {HeightMapStepSize} Flat {flatArea} {flatAreaLocal} {flatValue} SP {startPosScaled} {startPos} EP {endPosScaled} {endPos}");
 
 		var modified = false;
 		for (int y = startPos.y; y < endPos.y; y++)
