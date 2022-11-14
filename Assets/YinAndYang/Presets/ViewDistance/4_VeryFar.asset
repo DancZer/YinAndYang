@@ -13,5 +13,5 @@ MonoBehaviour:
   m_Name: 4_VeryFar
   m_EditorClassIdentifier: 
   ViewDistance: 1920
-  DisplayLOD: 4
-  CollisionLOD: 5
+  DisplayLOD: 3
+  CollisionLOD: 4

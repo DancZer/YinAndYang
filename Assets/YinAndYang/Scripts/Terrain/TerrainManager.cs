@@ -1,6 +1,6 @@
 using FishNet.Object;
 using FishNet.Object.Synchronizing;
-using System;
+using System.Linq;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
@@ -30,7 +30,10 @@ public class TerrainManager : NetworkBehaviour
     readonly Dictionary<string, TerrainTileDisplay> _generatedTileDisplays = new();
     HashSet<TerrainTileDisplay> _activeTileDisplays = new();
 
+    HashSet<Vector2> _generateTilesRequestViewPos = new();
+
     int lastDebugQueueCount=-1;
+    float _maxViewDistance;
 
     public bool IsLoading
     {
@@ -65,8 +68,9 @@ public class TerrainManager : NetworkBehaviour
         _terrainGenerator = StaticObjectAccessor.GetTerrainGenerator();
         _terrainGenerator.InitMaterial();
 
-        var maxViewDistance = ViewDistancePreset[ViewDistancePreset.Length - 1].ViewDistance;
-        _chunkTileIdx = Mathf.FloorToInt(maxViewDistance / TileSize);
+        _maxViewDistance = ViewDistancePreset[ViewDistancePreset.Length - 1].ViewDistance;
+
+        _chunkTileIdx = Mathf.FloorToInt(_maxViewDistance / TileSize);
         _lastDisplayPosClient = new Vector2(float.MaxValue, float.MaxValue);
     }
 
@@ -88,7 +92,7 @@ public class TerrainManager : NetworkBehaviour
         var token = _cancellationTokenSource.Token;
 
         while (!token.IsCancellationRequested)
-        {
+        { 
             if (_tileGeneratorRequestQueue.TryDequeue(out Vector2 pos))
             {
                 var tile = new TerrainTile(new Rect(pos, new Vector2(TileSize, TileSize)));
@@ -119,7 +123,7 @@ public class TerrainManager : NetworkBehaviour
             {
                 foreach (var preset in ViewDistancePreset)
                 {
-                    Debug.Log($"GenerateTerrainTileOnThread {tile.Name} LOD {preset.DisplayLOD} {preset.CollisionLOD}");
+                    //Debug.Log($"GenerateTerrainTileOnThread {tile.Name} LOD {preset.DisplayLOD} {preset.CollisionLOD}");
 
                     if (!token.IsCancellationRequested)
                     {
@@ -165,21 +169,23 @@ public class TerrainManager : NetworkBehaviour
         { 
             if (Camera.main == null) return;
 
+            Camera.main.farClipPlane = _maxViewDistance;
             var viewPos = Camera.main.transform.position.To2D();
 
             if (GeneratorQueueCount == 0)
             {
-                if (IsChunkLoadedInViewDistance(viewPos))
+                if ((_lastDisplayPosClient - viewPos).magnitude > TileSize / 2)
                 {
-                    if ((_lastDisplayPosClient - viewPos).magnitude > TileSize/2)
+                    if (IsChunkLoadedInViewDistance(viewPos))
                     {
                         ActivateTilesInViewDistance(viewPos);
-                        _lastDisplayPosClient = viewPos;
                     }
-                }
-                else
-                {
-                    GenerateTerrainAround(viewPos);
+                    else
+                    {
+                        GenerateTerrainAround(viewPos);
+                    }
+
+                    _lastDisplayPosClient = viewPos;
                 }
             }
         }
@@ -188,7 +194,7 @@ public class TerrainManager : NetworkBehaviour
         {
             lastDebugQueueCount = GeneratorQueueCount;
 
-            Debug.Log($"QueueCount {lastDebugQueueCount}");
+            //Debug.Log($"QueueCount {lastDebugQueueCount}");
         }
     }
 
@@ -201,7 +207,7 @@ public class TerrainManager : NetworkBehaviour
     [Server]
     void CreateDisplayObjectOnServer(TerrainTile tile)
     {
-        Debug.Log($"CreateDisplayObjectOnServer {tile.Name}");
+        //Debug.Log($"CreateDisplayObjectOnServer {tile.Name}");
 
         var obj = Instantiate(TilePrefab, tile.Area.center.To3D(), Quaternion.identity);
         obj.name = tile.Name;
@@ -220,7 +226,7 @@ public class TerrainManager : NetworkBehaviour
     [ObserversRpc]
     void SetObjectOnClient(GameObject obj, TerrainTile tile)
     {
-        Debug.Log($"SetObjectOnClient {tile.Name}");
+        //Debug.Log($"SetObjectOnClient {tile.Name}");
 
         var tileDisplay = obj.GetComponent<TerrainTileDisplay>();
         tileDisplay.SetTile(tile);
@@ -230,12 +236,14 @@ public class TerrainManager : NetworkBehaviour
             _generatedTiles.Add(tile.Area.position, tile);
             _generatedTileDisplays.Add(tile.Name, tileDisplay);
         }
+
+        UpdateTileDisplay(tile, _lastDisplayPosClient, _activeTileDisplays);
     }
 
     [ObserversRpc]
     void UpdateTileOnClient(TerrainTile tile)
     {
-        Debug.Log($"UpdateTileOnClient {tile.Name}");
+        //Debug.Log($"UpdateTileOnClient {tile.Name}");
 
         _generatedTiles[tile.Area.position] = tile;
         var display = _generatedTileDisplays[tile.Name];
@@ -245,7 +253,7 @@ public class TerrainManager : NetworkBehaviour
     [Client]
     bool IsChunkLoadedInViewDistance(Vector2 viewPos)
     {
-        Debug.Log($"IsChunkLoadedInViewDistance {viewPos}");
+        //Debug.Log($"IsChunkLoadedInViewDistance {viewPos}");
 
         for (int x = -_chunkTileIdx; x <= _chunkTileIdx; x++)
         {
@@ -272,21 +280,7 @@ public class TerrainManager : NetworkBehaviour
             {
                 var pos = viewPos + new Vector2(x * TileSize, z * TileSize);
                 var tile = GetTileAt(pos);
-                var viewPreset = GetTileLOD(tile, viewPos);
-                var tileDisplay = _generatedTileDisplays[tile.Name];
-
-                Debug.Log($"ActivateTilesInViewDistance {tile.Name} {viewPreset}");
-
-                if (viewPreset != null)
-                {
-                    tileDisplay.Display(viewPreset);
-                    tileDisplay.gameObject.SetActive(true);
-                    newActiveTileDisplays.Add(tileDisplay);
-                }
-                else
-                {
-                    tileDisplay.gameObject.SetActive(false);
-                }
+                UpdateTileDisplay(tile, viewPos, newActiveTileDisplays);
             }
         }
 
@@ -300,18 +294,51 @@ public class TerrainManager : NetworkBehaviour
         _activeTileDisplays = newActiveTileDisplays;
     }
 
+    void UpdateTileDisplay(TerrainTile tile, Vector2 viewPos, HashSet<TerrainTileDisplay> newActiveTileDisplays)
+    {
+        var tileDisplay = _generatedTileDisplays[tile.Name];
+        var viewPreset = GetTileLOD(tile, viewPos);
+
+        //Debug.Log($"ActivateTilesInViewDistance {tile.Name} {viewPreset}");
+
+        if (viewPreset != null)
+        {
+            tileDisplay.Display(viewPreset);
+            tileDisplay.gameObject.SetActive(true);
+
+            if (!newActiveTileDisplays.Contains(tileDisplay))
+            {
+                newActiveTileDisplays.Add(tileDisplay);
+            }
+        }
+        else
+        {
+            tileDisplay.gameObject.SetActive(false);
+        }
+    }
+
     [ServerRpc(RequireOwnership = false)]
     private void GenerateTerrainAround(Vector2 viewPos)
     {
-        Debug.Log($"GenerateTerrainAround {viewPos}");
+        //Debug.Log($"GenerateTerrainAround {viewPos}");
+        if (_generateTilesRequestViewPos.Contains(viewPos)) return;
+        _generateTilesRequestViewPos.Add(viewPos);
+
+        var requestPosList = new List<Vector2>();
 
         for (int x = -_chunkTileIdx; x <= _chunkTileIdx; x++)
         {
             for (int z = -_chunkTileIdx; z <= _chunkTileIdx; z++)
             {
                 var pos = viewPos + new Vector2(x * TileSize, z * TileSize);
-                RequestTileGeneration(pos);
+                requestPosList.Add(pos);
             }
+        }
+
+        //request firs which is closer to the player
+        foreach (var pos in requestPosList.OrderBy(p => Vector2.Distance(p, viewPos)))
+        {
+            RequestTileGeneration(pos);
         }
     }
 
@@ -322,24 +349,19 @@ public class TerrainManager : NetworkBehaviour
 
         if (_generatedTiles.ContainsKey(tilePos)) return;
 
-        foreach (var posInQueue in _tileGeneratorRequestQueue)
-        {
-            if (posInQueue == tilePos) return;
-        }
-
-        Debug.Log($"RequestTileGeneration {tilePos}");
+        //Debug.Log($"RequestTileGeneration {tilePos}");
 
         _tileGeneratorRequestQueue.Enqueue(tilePos);
         UpdateQueueCount();
     }
 
     [Client]
-    ViewDistancePreset GetTileLOD(TerrainTile tile, Vector2 view)
+    ViewDistancePreset GetTileLOD(TerrainTile tile, Vector2 viewPos)
     {
-        var closestPoint = tile.Area.ClosestPoint(view);
-        var distance = Vector2.Distance(closestPoint, view);
+        //var closestPoint = tile.Area.ClosestPoint(viewPos);
+        var distance = Vector2.Distance(tile.Area.center, viewPos);
 
-        Debug.Log($"GetLODWithinTheViewDistance {tile.Area} {distance}");
+        //Debug.Log($"GetLODWithinTheViewDistance {tile.Area} {distance}");
 
         foreach (var preset in ViewDistancePreset)
         {

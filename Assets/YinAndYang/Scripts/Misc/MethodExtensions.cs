@@ -22,7 +22,7 @@ public static class MethodExtensions
 
     public static Vector2 ClosestPoint(this Rect rect, Vector2 pos)
     {
-        var point = new Bounds(rect.position + rect.size / 2f, rect.size).ClosestPoint(pos);
+        var point = new Bounds(rect.center.To3D(), rect.size.To3D()).ClosestPoint(pos.To3D());
         return new Vector2(point.x, point.z);
     }
 

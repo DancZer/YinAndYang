@@ -13,5 +13,5 @@ MonoBehaviour:
   m_Name: 3_Far
   m_EditorClassIdentifier: Assembly-CSharp::ViewDistancePreset
   ViewDistance: 960
-  DisplayLOD: 3
-  CollisionLOD: 4
+  DisplayLOD: 2
+  CollisionLOD: 3

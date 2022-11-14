@@ -8,7 +8,7 @@ public class TerrainGenerator : NetworkBehaviour
 {
 	public enum TerrainDrawMode { HeightMap, ColourMap, Mesh };
 
-	static int[] MeshStepSizeByLOD = { 1, 2, 4, 8, 24, 30, 48 };
+	static int[] MeshStepSizeByLOD = { 4, 8, 12, 20, 24, 30, 48 };
 
 	public TerrainDrawMode DrawMode;
 #if UNITY_EDITOR
@@ -286,7 +286,7 @@ public class TerrainGenerator : NetworkBehaviour
 #if UNITY_EDITOR
 		var offset = tile.Area.size / -2f;
 #else
-		var offset = tile.Area.position;
+		var offset = tile.Area.size / -2f;
 #endif
 
 		; for (int y = 0; y < meshResolution + 1; y++)

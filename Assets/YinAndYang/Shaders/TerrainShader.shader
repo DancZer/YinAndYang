@@ -44,7 +44,7 @@ Shader "Custom/TerrainShader"
             {
                 float colorPercentage = inverseLerp(minHeight, maxHeight, heightColoursStartHeight[i]);
 
-                float colorStrenght = inverseLerp(-0.005, 0.005, heightPercentage - colorPercentage);
+                float colorStrenght = inverseLerp(-0.007, 0.007, heightPercentage - colorPercentage);
 
                 OUT.Albedo = OUT.Albedo * (1-colorStrenght) + heightColours[i] * colorStrenght;
 			}

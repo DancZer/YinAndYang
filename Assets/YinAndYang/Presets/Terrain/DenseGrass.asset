@@ -12,5 +12,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0362cca8597894d42abe1cf0fee5a0e1, type: 3}
   m_Name: DenseGrass
   m_EditorClassIdentifier: 
-  Height: 25
+  Height: 12
   Color: {r: 0.016058652, g: 0.3018868, b: 0, a: 0}

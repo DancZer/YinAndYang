@@ -13,5 +13,5 @@ MonoBehaviour:
   m_Name: 2_Medium
   m_EditorClassIdentifier: Assembly-CSharp::ViewDistancePreset
   ViewDistance: 480
-  DisplayLOD: 2
-  CollisionLOD: 3
+  DisplayLOD: 1
+  CollisionLOD: 2

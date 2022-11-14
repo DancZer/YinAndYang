@@ -13,5 +13,5 @@ MonoBehaviour:
   m_Name: 5_Last
   m_EditorClassIdentifier: 
   ViewDistance: 3840
-  DisplayLOD: 5
-  CollisionLOD: 6
+  DisplayLOD: 4
+  CollisionLOD: 5

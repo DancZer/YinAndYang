@@ -12,5 +12,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0362cca8597894d42abe1cf0fee5a0e1, type: 3}
   m_Name: HighGround
   m_EditorClassIdentifier: 
-  Height: 40
+  Height: 35
   Color: {r: 0.31132078, g: 0.09519071, b: 0, a: 0}
