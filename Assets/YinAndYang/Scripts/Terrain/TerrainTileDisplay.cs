@@ -3,11 +3,13 @@ using FishNet.Object;
 
 public class TerrainTileDisplay : NetworkBehaviour
 {
+#if UNITY_EDITOR
+    public ViewDistancePreset EditorViewDistance;
+#endif
     TerrainTile _tile;
     ViewDistancePreset displayedPreset;
 
     MeshFilter _meshFilter;
-    MeshRenderer _meshRenderer;
     MeshCollider _meshCollider;
 
     public override void OnStartClient()
@@ -15,7 +17,6 @@ public class TerrainTileDisplay : NetworkBehaviour
         base.OnStartClient();
 
         _meshFilter = GetComponent<MeshFilter>();
-        _meshRenderer = GetComponent<MeshRenderer>();
         _meshCollider = GetComponent<MeshCollider>();
     }
 

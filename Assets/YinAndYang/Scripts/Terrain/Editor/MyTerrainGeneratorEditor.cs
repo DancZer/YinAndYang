@@ -6,7 +6,17 @@ using UnityEditor;
 [CustomEditor(typeof(TerrainGenerator))]
 public class MyTerrainGeneratorEditor : Editor
 {
-	public override void OnInspectorGUI()
+	private void OnValidate()
+	{
+		TerrainGenerator mapGen = (TerrainGenerator)target;
+
+		if (mapGen.EditorAutoUpdate)
+		{
+			EditorApplication.update += DrawTerrainInEditor;
+		}
+	}
+
+    public override void OnInspectorGUI()
 	{
 		TerrainGenerator mapGen = (TerrainGenerator)target;
 
@@ -22,6 +32,14 @@ public class MyTerrainGeneratorEditor : Editor
 		{
 			mapGen.DrawTerrainInEditor();
 		}
+	}
+
+	public void DrawTerrainInEditor()
+    {
+		EditorApplication.update -= DrawTerrainInEditor;
+
+		TerrainGenerator mapGen = (TerrainGenerator)target;
+		mapGen.DrawTerrainInEditor();
 	}
 }
 #endif

@@ -8,13 +8,17 @@ public class TerrainGenerator : NetworkBehaviour
 {
 	public enum TerrainDrawMode { HeightMap, ColourMap, Mesh };
 
-	static int[] MeshStepSizeByLOD = { 4, 8, 12, 20, 24, 30, 48 };
+	public static int[] MeshStepSizeByLOD = { 4, 8, 12, 20, 24, 30, 48 };
 
 	public TerrainDrawMode DrawMode;
 #if UNITY_EDITOR
 	public int EditorTerrainSize = 240;
 	public bool EditorAutoUpdate;
-	public ViewDistancePreset EditorViewDistance;
+	public TerrainTileDisplay EditorCenterTile;
+	public TerrainTileDisplay EditorLeftTile;
+	public TerrainTileDisplay EditorRightTile;
+	public TerrainTileDisplay EditorForwardTile;
+	public TerrainTileDisplay EditorBackwardTile;
 	public BuildingOnTerrain EditorBuilding;
 	public float FlatAreaHeight = 10;
 #endif
@@ -44,8 +48,7 @@ public class TerrainGenerator : NetworkBehaviour
 
 #if UNITY_EDITOR
 
-	Vector3 lastDrawPos;
-	Vector3 buildingLastDrawPos;
+	List<Vector3> lastPosList = new();
 
     public void DrawTerrainInEditor()
 	{
@@ -53,43 +56,64 @@ public class TerrainGenerator : NetworkBehaviour
 
 		MinVal = MinHeight = float.MaxValue;
 		MaxVal = MaxHeight = float.MinValue;
-		
-		var editorDisplay = transform.GetChild(0);
+
+		UpdateEditorDisplay(EditorCenterTile
+			, new TerrainTileDisplay[] { 
+				EditorLeftTile,
+				EditorForwardTile,
+				EditorRightTile,
+				EditorBackwardTile
+			}
+			);
+		UpdateEditorDisplay(EditorLeftTile);
+		UpdateEditorDisplay(EditorRightTile);
+		UpdateEditorDisplay(EditorForwardTile);
+		UpdateEditorDisplay(EditorBackwardTile);
+	}
+
+	private void UpdateEditorDisplay(TerrainTileDisplay tileDisplay, TerrainTileDisplay[] neigbours = null)
+    {
+		if (tileDisplay == null) return;
 
 		var editorDisplayArea = new Rect(
-			editorDisplay.position.x - EditorTerrainSize / 2f, 
-			editorDisplay.position.z - EditorTerrainSize / 2f, 
-			EditorTerrainSize, 
-			EditorTerrainSize);
+				tileDisplay.transform.position.x - EditorTerrainSize / 2f,
+				tileDisplay.transform.position.z - EditorTerrainSize / 2f,
+				EditorTerrainSize,
+				EditorTerrainSize);
 
 		TerrainTile tile = new TerrainTile(editorDisplayArea);
-			
+
 		GenerateTerrainData(tile);
 
-		if(EditorBuilding != null) { 
+		if (EditorBuilding != null)
+		{
 			var flatArea = EditorBuilding.GetComponentInChildren<BuildingFootprint>().GetFootprint();
 			var pos = EditorBuilding.transform.position;
 			tile.FlatHeightMap(flatArea, pos.y);
 		}
 
-		if (EditorViewDistance == null) return;
+		if (tileDisplay.EditorViewDistance == null) return;
 
-		GenerateMeshData(tile, EditorViewDistance.DisplayLOD);
-		GenerateMeshData(tile, EditorViewDistance.CollisionLOD);
+		GenerateMeshData(tile, tileDisplay.EditorViewDistance.DisplayLOD);
+		GenerateMeshData(tile, tileDisplay.EditorViewDistance.CollisionLOD);
 
 		if (DrawMode == TerrainDrawMode.HeightMap || DrawMode == TerrainDrawMode.ColourMap)
 		{
-			var meshFilter = editorDisplay.GetComponent<MeshFilter>();
-			var meshRenderer = editorDisplay.GetComponent<MeshRenderer>();
+			var meshFilter = tileDisplay.GetComponent<MeshFilter>();
+			var meshRenderer = tileDisplay.GetComponent<MeshRenderer>();
 
 			meshFilter.sharedMesh = CreatePlaneMesh(tile.Area);
 			meshRenderer.sharedMaterial = BaseMaterial;
 		}
 		else if (DrawMode == TerrainDrawMode.Mesh)
 		{
-			var tileDisplay = editorDisplay.GetComponent<TerrainTileDisplay>();
+			if(neigbours != null && neigbours.Length == 4)
+            {
+				tile.MeshDatas[tileDisplay.EditorViewDistance.DisplayLOD].AdjustMeshToNeighboursLOD(neigbours.Select(n => n.EditorViewDistance.DisplayLOD).ToArray());
+			}
+
 			tileDisplay.SetTile(tile);
-			tileDisplay.Display(EditorViewDistance);
+			tileDisplay.Display(tileDisplay.EditorViewDistance);
 		}
 	}
 
@@ -141,21 +165,56 @@ public class TerrainGenerator : NetworkBehaviour
 
     void Update()
     {
-		var editorDisplay = transform.GetChild(0);
+		var list = new List<Transform>();
 
-		if (!editorDisplay.gameObject.activeSelf) return;
+		if (EditorBuilding != null)
+			list.Add(EditorBuilding.transform);
 
-		var buildingPos = Vector3.zero;
-		if(EditorBuilding != null)
+		if (EditorCenterTile != null)
+			list.Add(EditorCenterTile.transform);
+
+		if (EditorLeftTile != null)
+			list.Add(EditorLeftTile.transform);
+		if (EditorRightTile != null)
+			list.Add(EditorRightTile.transform);
+
+		if (EditorForwardTile != null)
+			list.Add(EditorForwardTile.transform);
+		if (EditorBackwardTile != null)
+			list.Add(EditorBackwardTile.transform);
+
+		if (ShouldDraw(list))
         {
-			buildingPos = EditorBuilding.transform.position;
+			DrawTerrainInEditor();
 		}
+	}
+	private bool ShouldDraw(List<Transform> list)
+    {
+		if(lastPosList.Count == list.Count)
+        {
+			var changed = false;
 
-		if (lastDrawPos == editorDisplay.position && buildingLastDrawPos == buildingPos) return;
-		lastDrawPos = editorDisplay.position;
-		buildingLastDrawPos = buildingPos;
+            for (int i = 0; i < list.Count; i++)
+            {
+				if(lastPosList[i] != list[i].position)
+                {
+					lastPosList[i] = list[i].position;
+					changed = true;
+				}
+            }
 
-		DrawTerrainInEditor();
+			return changed;
+		}
+        else
+        {
+			lastPosList.Clear();
+
+			foreach (var t in list)
+            {
+				lastPosList.Add(t.position);
+			}
+			return true;
+        }
 	}
 
 #endif
@@ -277,30 +336,28 @@ public class TerrainGenerator : NetworkBehaviour
 	{
 		if (tile.HasMesh(lod)) return;
 
-		var meshData = new TerrainMeshData(lod);
+		lod = lod < 0 ? 0 : lod;
 
-		var meshStepSize = MeshStepSizeByLOD[meshData.LOD];
-		var meshResolution = tile.MapSize / meshStepSize;
-		var vertStep = tile.Area.size.x / meshResolution;
-		var uvStep = 1f / meshResolution;
-#if UNITY_EDITOR
+		var meshStepSize = MeshStepSizeByLOD[lod];
+		var meshSizeInQuads = tile.MapSize / meshStepSize;
+		var vertStep = tile.Area.size.x / meshSizeInQuads;
+		var uvStep = 1f / meshSizeInQuads;
 		var offset = tile.Area.size / -2f;
-#else
-		var offset = tile.Area.size / -2f;
-#endif
 
-		; for (int y = 0; y < meshResolution + 1; y++)
+		var meshData = new TerrainMeshData(lod, meshSizeInQuads+1);
+
+		; for (int y = 0; y < meshData.SizeInVert; y++)
 		{
-			for (int x = 0; x < meshResolution + 1; x++)
+			for (int x = 0; x < meshData.SizeInVert; x++)
 			{
 				meshData.Verts.Add(new Vector3(offset.x + x * vertStep, tile.HeightMap[y * meshStepSize * tile.HeightMapSize + x * meshStepSize], offset.y + y * vertStep));
 				meshData.UVs.Add(new Vector2(x * uvStep, y * uvStep));
 
-				if (x < meshResolution && y < meshResolution)
+				if (x < meshSizeInQuads && y < meshSizeInQuads)
 				{
-					var idx = y * meshResolution + x;
-					meshData.AddTriangle(idx + y, idx + y + meshResolution + 1, idx + y + meshResolution + 2);
-					meshData.AddTriangle(idx + y, idx + y + meshResolution + 2, idx + y + 1);
+					var idx = y * meshSizeInQuads + x;
+					meshData.AddTriangle(idx + y, idx + y + meshSizeInQuads + 1, idx + y + meshSizeInQuads + 2);
+					meshData.AddTriangle(idx + y, idx + y + meshSizeInQuads + 2, idx + y + 1);
 				}
 			}
 		}
@@ -427,6 +484,7 @@ public class TerrainTile
 public class TerrainMeshData
 {
 	public readonly int LOD;
+	public readonly int SizeInVert;
 
 	public readonly List<Vector3> Verts = new();
 	public readonly List<Vector2> UVs = new();
@@ -439,9 +497,10 @@ public class TerrainMeshData
     {
     }
 
-	public TerrainMeshData(int lod)
+	public TerrainMeshData(int lod, int size)
 	{
 		LOD = lod < 0 ? 0 : lod;
+		SizeInVert = size;
 	}
 	public void AddTriangle(int a, int b, int c)
 	{
@@ -463,6 +522,213 @@ public class TerrainMeshData
 		_mesh.Optimize();
 
 		return _mesh;
+	}
+
+	public void ResetMeshToDefault()
+    {
+        for (int i = 0; i < SizeInVert; i++)
+        {
+			//x axis
+			var vertexPos = 0 * SizeInVert + i;
+			_mesh.vertices[vertexPos] = Verts[vertexPos];
+			vertexPos = SizeInVert * SizeInVert + i;
+			_mesh.vertices[vertexPos] = Verts[vertexPos];
+
+			//y axis
+			vertexPos = i * SizeInVert + 0;
+			_mesh.vertices[vertexPos] = Verts[vertexPos];
+			vertexPos = i * SizeInVert + SizeInVert;
+			_mesh.vertices[vertexPos] = Verts[vertexPos];
+		}
+
+		_mesh.RecalculateNormals();
+		_mesh.RecalculateTangents();
+
+		//_mesh.Optimize();
+	}
+
+	/// <summary>
+	/// Neighbour lods should be in order of Left, Forward, Right, Backward
+	/// </summary>
+	/// <param name="lods"></param>
+	public void AdjustMeshToNeighboursLOD(int[] lods)
+	{
+		if (lods == null) throw new UnityException($"Argument null {nameof(lods)}");
+		if (lods.Length != 4) throw new UnityException($"Argument lods has not 4 values but {lods.Length}");
+
+		if (lods[0] == LOD && lods[1] == LOD && lods[2] == LOD && lods[3] == LOD) return;
+
+		var selfLODStep = TerrainGenerator.MeshStepSizeByLOD[LOD];
+		var adjustedMeshVerts = new List<Vector3>();
+		adjustedMeshVerts.AddRange(Verts);
+		var lastIdx = SizeInVert - 1;
+
+		//LEFT
+		var neighbourLOD = lods[0];
+		if (neighbourLOD > LOD)
+        {
+			var leftLODStep = TerrainGenerator.MeshStepSizeByLOD[neighbourLOD];
+			float stepDif = leftLODStep/(float)selfLODStep;
+
+			float startIdx = 0f;
+			float endIdx = stepDif;
+
+			for (int i = 0; i < SizeInVert; i++)
+			{
+                if (i >= endIdx)
+                {
+					startIdx = endIdx;
+					endIdx += stepDif;
+
+					if (startIdx >= SizeInVert)
+					{
+						startIdx = SizeInVert - 1;
+					}
+
+					if (endIdx >= SizeInVert)
+                    {
+						endIdx = SizeInVert - 1;
+                    }
+                }
+
+				var percent = Mathf.InverseLerp(startIdx, endIdx, i);
+
+				var startVert = Verts[Mathf.FloorToInt(startIdx) * SizeInVert + 0];
+				var endVert = Verts[Mathf.FloorToInt(endIdx) * SizeInVert + 0];
+				var resultVert = adjustedMeshVerts[i * SizeInVert + 0];
+
+				resultVert.y = Mathf.Lerp(startVert.y, endVert.y, percent);
+				adjustedMeshVerts[i * SizeInVert + 0] = resultVert;
+			}
+		}
+
+		//FORWARD
+		neighbourLOD = lods[1];
+		if (neighbourLOD > LOD)
+		{
+			var leftLODStep = TerrainGenerator.MeshStepSizeByLOD[neighbourLOD];
+			float stepDif = leftLODStep / (float)selfLODStep;
+
+			float startIdx = 0f;
+			float endIdx = stepDif;
+
+			for (int i = 0; i < SizeInVert; i++)
+			{
+				if (i >= endIdx)
+				{
+					startIdx = endIdx;
+					endIdx += stepDif;
+
+					if (startIdx >= SizeInVert)
+					{
+						startIdx = SizeInVert - 1;
+					}
+
+					if (endIdx >= SizeInVert)
+					{
+						endIdx = SizeInVert - 1;
+					}
+				}
+
+				var percent = Mathf.InverseLerp(startIdx, endIdx, i);
+
+				var startVert = Verts[lastIdx * SizeInVert + Mathf.FloorToInt(startIdx)];
+				var endVert = Verts[lastIdx * SizeInVert + Mathf.FloorToInt(endIdx)];
+				var resultVert = adjustedMeshVerts[lastIdx * SizeInVert + i];
+
+				resultVert.y = Mathf.Lerp(startVert.y, endVert.y, percent);
+				adjustedMeshVerts[lastIdx * SizeInVert + i] = resultVert;
+			}
+		}
+
+		//RIGHT
+		neighbourLOD = lods[2];
+		if (neighbourLOD > LOD)
+		{
+			var leftLODStep = TerrainGenerator.MeshStepSizeByLOD[neighbourLOD];
+			float stepDif = leftLODStep / (float)selfLODStep;
+
+			float startIdx = 0f;
+			float endIdx = stepDif;
+
+			for (int i = 0; i < SizeInVert; i++)
+			{
+				if (i >= endIdx)
+				{
+					startIdx = endIdx;
+					endIdx += stepDif;
+
+					if (startIdx >= SizeInVert)
+					{
+						startIdx = SizeInVert - 1;
+					}
+
+					if (endIdx >= SizeInVert)
+					{
+						endIdx = SizeInVert - 1;
+					}
+				}
+
+				var percent = Mathf.InverseLerp(startIdx, endIdx, i);
+
+				var startVert = Verts[Mathf.FloorToInt(startIdx) * SizeInVert + lastIdx];
+				var endVert = Verts[Mathf.FloorToInt(endIdx) * SizeInVert + lastIdx];
+				var resultVert = adjustedMeshVerts[i * SizeInVert + lastIdx];
+
+				resultVert.y = Mathf.Lerp(startVert.y, endVert.y, percent);
+				adjustedMeshVerts[i * SizeInVert + lastIdx] = resultVert;
+			}
+		}
+
+
+		//Backward
+		neighbourLOD = lods[3];
+		if (neighbourLOD > LOD)
+		{
+			var leftLODStep = TerrainGenerator.MeshStepSizeByLOD[neighbourLOD];
+			float stepDif = leftLODStep / (float)selfLODStep;
+
+			float startIdx = 0f;
+			float endIdx = stepDif;
+
+			for (int i = 0; i < SizeInVert; i++)
+			{
+				if (i >= endIdx)
+				{
+					startIdx = endIdx;
+					endIdx += stepDif;
+
+					if (startIdx >= SizeInVert)
+					{
+						startIdx = SizeInVert - 1;
+					}
+
+					if (endIdx >= SizeInVert)
+					{
+						endIdx = SizeInVert - 1;
+					}
+				}
+
+				var percent = Mathf.InverseLerp(startIdx, endIdx, i);
+
+				var startVert = Verts[0 * SizeInVert + Mathf.FloorToInt(startIdx)];
+				var endVert = Verts[0 * SizeInVert + Mathf.FloorToInt(endIdx)];
+				var resultVert = adjustedMeshVerts[0 * SizeInVert + i];
+
+				resultVert.y = Mathf.Lerp(startVert.y, endVert.y, percent);
+				adjustedMeshVerts[0 * SizeInVert + i] = resultVert;
+			}
+		}
+
+		_mesh = new Mesh();
+		_mesh.name = $"Mesh LOD {LOD} Adjusted to {string.Join(",", lods)}";
+		_mesh.SetVertices(adjustedMeshVerts);
+		_mesh.SetTriangles(Tris, 0);
+		_mesh.SetUVs(0, UVs);
+		_mesh.RecalculateNormals();
+		_mesh.RecalculateTangents();
+
+		_mesh.Optimize();
 	}
 
 }
