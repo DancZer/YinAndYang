@@ -33,9 +33,13 @@ public class TerrainGenerator : NetworkBehaviour
 	public FastNoiseLite.NoiseType NoiseType;
 	public FastNoiseLite.FractalType FractalType;
 	public int Seed = 1234;
+	[Range(0.00001f, 100000)]
 	public float Frequency = 0.5f;
+	[Range(1, 10)]
 	public int Octaves = 3;
+	[Range(0.0001f, 1000)]
 	public float Gain = 2;
+	[Range(0.0001f, 1000)]
 	public float Lacunarity = 2;
 
 #if UNITY_EDITOR
@@ -259,13 +263,13 @@ public class TerrainGenerator : NetworkBehaviour
     {
 		var heightCurve = new AnimationCurve(HeightCurve.keys);
 		var noise = new FastNoiseLite(Seed);
-		
+
+		noise.SetNoiseType(NoiseType);
+		noise.SetFractalType(FractalType);
+		noise.SetFrequency(Frequency);
 		noise.SetFractalOctaves(Octaves);
 		noise.SetFractalGain(Gain);
 		noise.SetFractalLacunarity(Lacunarity);
-		noise.SetFrequency(Frequency);
-		noise.SetFractalType(FractalType);
-		noise.SetNoiseType(NoiseType);
 
 		int NoiseMapSize = Resolution + 1;
 

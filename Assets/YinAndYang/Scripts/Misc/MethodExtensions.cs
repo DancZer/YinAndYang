@@ -34,4 +34,8 @@ public static class MethodExtensions
     {
         return new Vector3(vect.x, 0, vect.y);
     }
+    public static Vector2Int ToInt(this Vector2 vect)
+    {
+        return new Vector2Int((int)vect.x, (int)vect.y);
+    }
 }
