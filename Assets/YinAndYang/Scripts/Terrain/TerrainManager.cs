@@ -14,15 +14,13 @@ public class TerrainManager : NetworkBehaviour
     public ViewDistancePreset[] ViewDistancePreset;
     public GameObject TilePrefab;
 
-    public float TileSize = 240;
-
     Vector2 _lastDisplayPosClient;
     int _chunkTileIdx;
 
     TerrainGenerator _terrainGenerator;
 
     [SyncVar] int GeneratorQueueCount;
-    readonly ConcurrentQueue<Vector2> _tileGeneratorRequestQueue = new();
+    readonly ConcurrentQueue<Vector2Int> _tileGeneratorRequestQueue = new();
     readonly ConcurrentQueue<TerrainTile> _tileReMeshGeneratorResultQueue = new();
     readonly ConcurrentQueue<TerrainTile> _tileGeneratorResultQueue = new();
 
@@ -32,7 +30,7 @@ public class TerrainManager : NetworkBehaviour
     Thread _tileMeshGenetatorThread;
 #endif
 
-    readonly Dictionary<Vector2, TerrainTile> _generatedTiles = new();
+    readonly Dictionary<Vector2Int, TerrainTile> _generatedTiles = new();
     readonly Dictionary<string, TerrainTileDisplay> _generatedTileDisplays = new();
     HashSet<TerrainTileDisplay> _activeTileDisplays = new();
 
@@ -77,7 +75,7 @@ public class TerrainManager : NetworkBehaviour
 
         _maxViewDistance = ViewDistancePreset[ViewDistancePreset.Length - 1].ViewDistance;
 
-        _chunkTileIdx = Mathf.FloorToInt(_maxViewDistance / TileSize);
+        _chunkTileIdx = Mathf.FloorToInt(_maxViewDistance / TerrainGenerator.TileSize);
         _lastDisplayPosClient = new Vector2(float.MaxValue, float.MaxValue);
     }
 
@@ -111,9 +109,9 @@ public class TerrainManager : NetworkBehaviour
 
     void ProcessGenerateTile(CancellationToken token)
     {
-        if (_tileGeneratorRequestQueue.TryDequeue(out Vector2 pos))
+        if (_tileGeneratorRequestQueue.TryDequeue(out Vector2Int pos))
         {
-            var tile = new TerrainTile(new Rect(pos, new Vector2(TileSize, TileSize)));
+            var tile = new TerrainTile(pos);
 
             if (!token.IsCancellationRequested)
             {
@@ -196,11 +194,11 @@ public class TerrainManager : NetworkBehaviour
             if (Camera.main == null) return;
 
             Camera.main.farClipPlane = _maxViewDistance;
-            var viewPos = Camera.main.transform.position.To2D();
+            var viewPos = Camera.main.transform.position.To2DInt();
 
             if (GeneratorQueueCount == 0)
             {
-                if ((_lastDisplayPosClient - viewPos).magnitude > TileSize / 2)
+                if ((_lastDisplayPosClient - viewPos).magnitude > TerrainGenerator.TileSizeHalf)
                 {
                     if (IsChunkLoadedInViewDistance(viewPos))
                     {
@@ -241,13 +239,13 @@ public class TerrainManager : NetworkBehaviour
     {
         //Debug.Log($"CreateDisplayObjectOnServer {tile.Name}");
 
-        var obj = Instantiate(TilePrefab, tile.Area.center.To3D(), Quaternion.identity);
+        var obj = Instantiate(TilePrefab, tile.Pos.To3D(), Quaternion.identity);
         obj.name = tile.Name;
 
         var tileDisplay = obj.GetComponent<TerrainTileDisplay>();
         tileDisplay.SetTile(tile);
 
-        _generatedTiles.Add(tile.Area.position, tile);
+        _generatedTiles.Add(tile.Pos, tile);
         _generatedTileDisplays.Add(tile.Name, tileDisplay);
 
         ServerManager.Spawn(obj);
@@ -265,7 +263,7 @@ public class TerrainManager : NetworkBehaviour
 
         if (!IsServer)
         {
-            _generatedTiles.Add(tile.Area.position, tile);
+            _generatedTiles.Add(tile.Pos, tile);
             _generatedTileDisplays.Add(tile.Name, tileDisplay);
         }
 
@@ -277,7 +275,7 @@ public class TerrainManager : NetworkBehaviour
     {
         //Debug.Log($"UpdateTileOnClient {tile.Name}");
 
-        _generatedTiles[tile.Area.position] = tile;
+        _generatedTiles[tile.Pos] = tile;
         var display = _generatedTileDisplays[tile.Name];
         display.SetTile(tile);
     }
@@ -291,7 +289,7 @@ public class TerrainManager : NetworkBehaviour
         {
             for (int z = -_chunkTileIdx; z <= _chunkTileIdx; z++)
             {
-                var pos = viewPos + new Vector2(x * TileSize, z * TileSize);
+                var pos = viewPos + new Vector2(x * TerrainGenerator.TileSize, z * TerrainGenerator.TileSize);
                 var tile = GetTileAt(pos);
                 if (tile == null) return false;
                 if (!_generatedTileDisplays.ContainsKey(tile.Name)) return false;
@@ -310,7 +308,7 @@ public class TerrainManager : NetworkBehaviour
         {
             for (int z = -_chunkTileIdx; z <= _chunkTileIdx; z++)
             {
-                var pos = viewPos + new Vector2(x * TileSize, z * TileSize);
+                var pos = viewPos + new Vector2(x * TerrainGenerator.TileSize, z * TerrainGenerator.TileSize);
                 var tile = GetTileAt(pos);
                 UpdateTileDisplay(tile, viewPos, newActiveTileDisplays);
             }
@@ -362,7 +360,7 @@ public class TerrainManager : NetworkBehaviour
         {
             for (int z = -_chunkTileIdx; z <= _chunkTileIdx; z++)
             {
-                var pos = viewPos + new Vector2(x * TileSize, z * TileSize);
+                var pos = viewPos + new Vector2(x * TerrainGenerator.TileSize, z * TerrainGenerator.TileSize);
                 requestPosList.Add(pos);
             }
         }
@@ -370,14 +368,14 @@ public class TerrainManager : NetworkBehaviour
         //request firs which is closer to the player
         foreach (var pos in requestPosList.OrderBy(p => Vector2.Distance(p, viewPos)))
         {
-            RequestTileGeneration(pos);
+            RequestTileGeneration(pos.ToInt());
         }
     }
 
     [Server]
     void RequestTileGeneration(Vector2 pos)
     {
-        var tilePos = CalculateTerrainTilePos(pos);
+        var tilePos = pos.ToTilePos();
 
         if (_generatedTiles.ContainsKey(tilePos)) return;
 
@@ -391,7 +389,7 @@ public class TerrainManager : NetworkBehaviour
     ViewDistancePreset GetTileLOD(TerrainTile tile, Vector2 viewPos)
     {
         //var closestPoint = tile.Area.ClosestPoint(viewPos);
-        var distance = Vector2.Distance(tile.Area.center, viewPos);
+        var distance = Vector2.Distance(tile.Pos + TerrainGenerator.TileSizeHalfVect, viewPos);
 
         //Debug.Log($"GetLODWithinTheViewDistance {tile.Area} {distance}");
 
@@ -413,9 +411,7 @@ public class TerrainManager : NetworkBehaviour
     /// <returns></returns>
     public TerrainTile GetTileAt(Vector2 pos)
     {
-        var tilePos = CalculateTerrainTilePos(pos);
-
-        if(_generatedTiles.TryGetValue(tilePos, out var tile))
+        if(_generatedTiles.TryGetValue(pos.ToTilePos(), out var tile))
         {
             return tile;
         }
@@ -423,24 +419,18 @@ public class TerrainManager : NetworkBehaviour
         return null;
     }
 
-    Vector2 CalculateTerrainTilePos(Vector2 pos)
-    {
-        var halfSize = TileSize / 2;
-        return new Vector2(Mathf.RoundToInt(pos.x / TileSize) * TileSize - halfSize, Mathf.RoundToInt(pos.y / TileSize) * TileSize - halfSize);
-    }
-
     public Vector3 GetPosOnTerrain(Vector3 pos)
     {
-        var posXZ = pos.To2D();
+        var posXZ = pos.To2DInt();
         var tile = GetTileAt(posXZ);
 
-        var height = tile.GetHeightAt(posXZ-tile.Area.position);
+        var height = tile.GetHeightAt(posXZ-tile.Pos);
 
         return new Vector3(pos.x, height, pos.z);
     }
 
     [ServerRpc]
-    public void FlatTerrain(Rect flatArea, float toHeight)
+    public void FlatTerrain(RectInt flatArea, float toHeight)
     {
         var tiles = new HashSet<TerrainTile>();
         tiles.Add(GetTileAt(flatArea.center));

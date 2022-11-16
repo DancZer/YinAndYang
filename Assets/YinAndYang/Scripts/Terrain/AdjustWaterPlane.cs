@@ -17,7 +17,7 @@ public class AdjustWaterPlane : MonoBehaviour
     {
         if (Camera.main == null) return;
 
-        var camPos = Camera.main.transform.position.To2D();
+        var camPos = Camera.main.transform.position.To2DInt();
         if (Vector2.Distance(_lastPos, camPos) > MoveAfterDistance)
         {
             transform.position = camPos.To3D();
