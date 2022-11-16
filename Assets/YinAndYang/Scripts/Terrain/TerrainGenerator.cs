@@ -6,11 +6,10 @@ using System.Linq;
 [ExecuteInEditMode]
 public class TerrainGenerator : NetworkBehaviour
 {
+	public const int Resolution = 240;
 	public static int[] MeshStepSizeByLOD = { 4, 8, 12, 20, 24, 30, 48 };
 
 	public Material BaseMaterial;
-
-	public int Resolution = 240;
 
 	public int Seed = 1234;
 	
@@ -40,8 +39,7 @@ public class TerrainGenerator : NetworkBehaviour
 	[Range(1, 5)]
 	public int BiomeBlendStepSize = 1;
 
-	Dictionary<int, BiomePreset> _biomeMap = new();
-	FastNoiseLite _biomeMapNoise;
+	TerrainBiomeMap BiomeMap;
 	float _biomeBlendPercentage;
 
 	float _minHeight;
@@ -64,7 +62,7 @@ public class TerrainGenerator : NetworkBehaviour
 	List<Vector2> _lastPosListTerrain = new();
 	List<Vector2> _lastPosListBiome = new();
 
-	public void DrawTerrainInEditor()
+	private void DrawTerrainInEditor()
 	{
 		SetupGenerator();
 
@@ -162,7 +160,7 @@ public class TerrainGenerator : NetworkBehaviour
 				var worldPosX = area.position.x + x;
 				var worldPosY = area.position.y + y;
 
-				var biome = GetBiome(worldPosX, worldPosY);
+				var biome = BiomeMap.GetBiome(worldPosX, worldPosY);
 				var height = GetHeight(worldPosX, worldPosY, biomeGenerator);
 
 				var percentage = Mathf.InverseLerp(_minHeight, _maxHeight, height);
@@ -242,8 +240,9 @@ public class TerrainGenerator : NetworkBehaviour
 
 	public void UpdateEditor()
     {
-		Update();
-    }
+		DrawTerrainInEditor();
+		DrawBiomeInEditor();
+	}
 
 	void Update()
 	{
@@ -313,7 +312,9 @@ public class TerrainGenerator : NetworkBehaviour
 		}
 	}
 #endif
-
+	/// <summary>
+	/// Initaialize the Terrain Generator
+	/// </summary>
 	public void SetupGenerator()
 	{
 		_minHeight = float.MaxValue;
@@ -351,41 +352,9 @@ public class TerrainGenerator : NetworkBehaviour
 		BaseMaterial.SetColorArray("heightColours", heightColours);
 		BaseMaterial.SetFloatArray("heightColoursStartHeight", heightColoursStartHeight);
 
-
-		_biomeMapNoise = new FastNoiseLite(Seed);
-		_biomeMapNoise.SetNoiseType(FastNoiseLite.NoiseType.Cellular);
-		_biomeMapNoise.SetFrequency(1f / BiomeSize);
-		_biomeMapNoise.SetCellularDistanceFunction(BiomeDistanceFunction);
-		_biomeMapNoise.SetCellularJitter(BiomeJitter);
-		_biomeMapNoise.SetCellularReturnType(FastNoiseLite.CellularReturnType.CellValue);
-
-		_biomeMapNoise.SetDomainWarpType(DomainWarpType);
-		_biomeMapNoise.SetDomainWarpAmp(DomainWarpAmp);
-
-		_biomeMapNoise.SetFractalType(FractalType);
-		_biomeMapNoise.SetFractalOctaves(FractalOctaves);
-		_biomeMapNoise.SetFractalLacunarity(FractalLacunarity);
-		_biomeMapNoise.SetFractalGain(FractalGain);
-
-		_biomeMap.Clear();
-
-		int biomeId = 0;
-		foreach (var biome in Biomes)
-		{
-			_biomeMap.Add(biomeId, biome);
-			biomeId++;
-		}
+		BiomeMap = new TerrainBiomeMap(Resolution, Biomes, Seed, BiomeSize, BiomeDistanceFunction, BiomeJitter, DomainWarpType, DomainWarpAmp, FractalType, FractalOctaves, FractalLacunarity, FractalGain);
 
 		_biomeBlendPercentage = 1f / ((2 * BiomeBlendStepCount + 1) * (2 * BiomeBlendStepCount + 1));
-	}
-
-	private BiomePreset GetBiome(float x, float y)
-	{
-		_biomeMapNoise.DomainWarp(ref x, ref y);
-
-		var biomeID = Mathf.RoundToInt(Mathf.InverseLerp(-1f, 1f, _biomeMapNoise.GetNoise(x, y)) * (_biomeMap.Count - 1));
-
-		return _biomeMap[biomeID];
 	}
 
 	public void GenerateTerrainData(TerrainTile tile)
@@ -428,7 +397,7 @@ public class TerrainGenerator : NetworkBehaviour
 				var blendWordX = x + bX * BiomeBlendStepSize;
 				var blendWordY = y + bY * BiomeBlendStepSize;
 
-				var biome = GetBiome(blendWordX, blendWordY);
+				var biome = BiomeMap.GetBiome(blendWordX, blendWordY);
 
 				if (!generatorCache.TryGetValue(biome.BiomeName, out var generator))
 				{
@@ -858,5 +827,89 @@ public class BiomeTerrainGenerator
 		}
 
 		return Preset.BaseHeight + val * Preset.HeightMultiplier;
+	}
+}
+
+public class TerrainBiomeMap
+{
+	readonly int _resolution;
+	readonly Dictionary<Vector2Int, int[,]> _biomeMaps = new ();
+	readonly Dictionary<int, BiomePreset> _biomePresets = new();
+	readonly FastNoiseLite _biomeMapNoise;
+
+	Vector2Int _previousMapPos;
+	int[,] _previousMap;
+
+	public TerrainBiomeMap(
+		int resolution,
+		BiomePreset[] biomes, 
+		int seed, 
+		float biomeSize, 
+		FastNoiseLite.CellularDistanceFunction distanceFunction, 
+		float biomeJitter, 
+		FastNoiseLite.DomainWarpType warpType,
+		float wrapAmp,
+		FastNoiseLite.FractalType fractalType,
+		int fractalOctaves,
+		float fractalLacunarity,
+		float fractalGain)
+    {
+		_resolution = resolution;
+
+		_biomeMapNoise = new FastNoiseLite(seed);
+		_biomeMapNoise.SetNoiseType(FastNoiseLite.NoiseType.Cellular);
+		_biomeMapNoise.SetFrequency(1f / biomeSize);
+		_biomeMapNoise.SetCellularDistanceFunction(distanceFunction);
+		_biomeMapNoise.SetCellularJitter(biomeJitter);
+		_biomeMapNoise.SetCellularReturnType(FastNoiseLite.CellularReturnType.CellValue);
+
+		_biomeMapNoise.SetDomainWarpType(warpType);
+		_biomeMapNoise.SetDomainWarpAmp(wrapAmp);
+
+		_biomeMapNoise.SetFractalType(fractalType);
+		_biomeMapNoise.SetFractalOctaves(fractalOctaves);
+		_biomeMapNoise.SetFractalLacunarity(fractalLacunarity);
+		_biomeMapNoise.SetFractalGain(fractalGain);
+
+		int biomeId = 1;
+		foreach (var biome in biomes)
+		{
+			_biomePresets.Add(biomeId, biome);
+			biomeId++;
+		}
+	}
+	public BiomePreset GetBiome(float x, float y)
+	{
+		var worldPosInt = new Vector2Int((int)x, (int)y);
+		var worldMapPos = Vector2Int.FloorToInt(new Vector2(x, y) / _resolution) * _resolution;
+		var localMapPos = worldPosInt - worldMapPos;
+
+		int[,] map;
+
+		if (_previousMapPos == worldMapPos)
+		{
+			map = _previousMap;
+		}
+		else
+		{ 
+			if (!_biomeMaps.TryGetValue(worldMapPos, out map))
+			{
+				map = new int[_resolution, _resolution];
+				_biomeMaps.Add(worldMapPos, map);
+			}
+			_previousMapPos = worldMapPos;
+			_previousMap = map;
+		}
+
+		int biomeID = map[localMapPos.x, localMapPos.y];
+		if(biomeID == 0) { 
+
+			_biomeMapNoise.DomainWarp(ref x, ref y);
+
+			biomeID = Mathf.RoundToInt(Mathf.InverseLerp(-1f, 1f, _biomeMapNoise.GetNoise(x, y)) * (_biomePresets.Count - 1)) + 1;
+			map[localMapPos.x, localMapPos.y] = biomeID;
+		}
+
+		return _biomePresets[biomeID];
 	}
 }

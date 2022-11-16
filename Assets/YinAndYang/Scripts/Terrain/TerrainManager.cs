@@ -222,6 +222,12 @@ public class TerrainManager : NetworkBehaviour
 
             //Debug.Log($"QueueCount {lastDebugQueueCount}");
         }
+
+        if(_activeTileDisplays.Count > 1)
+        {
+            Debug.Log("Quit");
+            UnityEditor.EditorApplication.isPlaying = false;
+        }
     }
 
     [Server]
