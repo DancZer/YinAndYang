@@ -1,3 +1,5 @@
+//#define THREADED
+
 using FishNet.Object;
 using FishNet.Object.Synchronizing;
 using System.Linq;
@@ -6,25 +8,29 @@ using System.Collections.Generic;
 using System.Threading;
 using UnityEngine;
 
+
 public class TerrainManager : NetworkBehaviour
 {
     public ViewDistancePreset[] ViewDistancePreset;
     public GameObject TilePrefab;
-    
+
     public float TileSize = 240;
 
     Vector2 _lastDisplayPosClient;
     int _chunkTileIdx;
 
     TerrainGenerator _terrainGenerator;
-    CancellationTokenSource _cancellationTokenSource;
 
     [SyncVar] int GeneratorQueueCount;
-    readonly ConcurrentQueue<Vector2> _tileGeneratorRequestQueue = new ();
+    readonly ConcurrentQueue<Vector2> _tileGeneratorRequestQueue = new();
     readonly ConcurrentQueue<TerrainTile> _tileReMeshGeneratorResultQueue = new();
     readonly ConcurrentQueue<TerrainTile> _tileGeneratorResultQueue = new();
+
+#if THREADED
+    CancellationTokenSource _cancellationTokenSource;
     Thread _tileGenetatorThread;
     Thread _tileMeshGenetatorThread;
+#endif
 
     readonly Dictionary<Vector2, TerrainTile> _generatedTiles = new();
     readonly Dictionary<string, TerrainTileDisplay> _generatedTileDisplays = new();
@@ -50,14 +56,15 @@ public class TerrainManager : NetworkBehaviour
         GeneratorQueueCount = 0;
 
         _terrainGenerator = StaticObjectAccessor.GetTerrainGenerator();
-        _terrainGenerator.InitMaterial();
-
+        _terrainGenerator.SetupGenerator();
+#if THREADED
         _cancellationTokenSource = new CancellationTokenSource();
         _tileGenetatorThread = new Thread(GenerateTileOnThread);
         _tileGenetatorThread.Start();
 
         _tileMeshGenetatorThread = new Thread(GenerateTileMeshOnThread);
         _tileMeshGenetatorThread.Start();
+#endif
         lastDebugQueueCount = -1;
     }
 
@@ -66,7 +73,7 @@ public class TerrainManager : NetworkBehaviour
         base.OnStartClient();
 
         _terrainGenerator = StaticObjectAccessor.GetTerrainGenerator();
-        _terrainGenerator.InitMaterial();
+        _terrainGenerator.SetupGenerator();
 
         _maxViewDistance = ViewDistancePreset[ViewDistancePreset.Length - 1].ViewDistance;
 
@@ -77,6 +84,7 @@ public class TerrainManager : NetworkBehaviour
     public override void OnStopServer()
     {
         base.OnStopServer();
+#if THREADED
         _cancellationTokenSource.Cancel();
         _tileGenetatorThread.Join();
         _tileMeshGenetatorThread.Join();
@@ -84,65 +92,78 @@ public class TerrainManager : NetworkBehaviour
         _cancellationTokenSource = null;
         _tileGenetatorThread = null;
         _tileMeshGenetatorThread = null;
-
+#endif
     }
 
+#if THREADED
     void GenerateTileOnThread()
     {
         var token = _cancellationTokenSource.Token;
 
         while (!token.IsCancellationRequested)
-        { 
-            if (_tileGeneratorRequestQueue.TryDequeue(out Vector2 pos))
-            {
-                var tile = new TerrainTile(new Rect(pos, new Vector2(TileSize, TileSize)));
-
-                if (!token.IsCancellationRequested)
-                {
-                    _terrainGenerator.GenerateTerrainData(tile);
-                }
-
-                if (!token.IsCancellationRequested)
-                {
-                    _tileReMeshGeneratorResultQueue.Enqueue(tile);
-                }
-            }
+        {
+            ProcessGenerateTile(token);
 
             Thread.Sleep(1);
         }
     }
+#endif
 
+    void ProcessGenerateTile(CancellationToken token)
+    {
+        if (_tileGeneratorRequestQueue.TryDequeue(out Vector2 pos))
+        {
+            var tile = new TerrainTile(new Rect(pos, new Vector2(TileSize, TileSize)));
 
+            if (!token.IsCancellationRequested)
+            {
+                _terrainGenerator.GenerateTerrainData(tile);
+            }
+
+            if (!token.IsCancellationRequested)
+            {
+                _tileReMeshGeneratorResultQueue.Enqueue(tile);
+            }
+        }
+    }
+
+#if THREADED
     void GenerateTileMeshOnThread()
     {
         var token = _cancellationTokenSource.Token;
 
         while (!token.IsCancellationRequested)
         {
-            if (_tileReMeshGeneratorResultQueue.TryDequeue(out var tile))
+            ProcessGenerateTileMesh(token);
+
+            Thread.Sleep(1);
+        }
+    }
+#endif
+
+    void ProcessGenerateTileMesh(CancellationToken token)
+    {
+        if (_tileReMeshGeneratorResultQueue.TryDequeue(out var tile))
+        {
+            foreach (var preset in ViewDistancePreset)
             {
-                foreach (var preset in ViewDistancePreset)
+                //Debug.Log($"GenerateTerrainTileOnThread {tile.Name} LOD {preset.DisplayLOD} {preset.CollisionLOD}");
+
+                if (!token.IsCancellationRequested)
                 {
-                    //Debug.Log($"GenerateTerrainTileOnThread {tile.Name} LOD {preset.DisplayLOD} {preset.CollisionLOD}");
-
-                    if (!token.IsCancellationRequested)
-                    {
-                        _terrainGenerator.GenerateMeshData(tile, preset.DisplayLOD);
-                    }
-
-                    if (!token.IsCancellationRequested)
-                    {
-                        _terrainGenerator.GenerateMeshData(tile, preset.CollisionLOD);
-                    }
+                    _terrainGenerator.GenerateMeshData(tile, preset.DisplayLOD);
                 }
 
                 if (!token.IsCancellationRequested)
                 {
-                    _tileGeneratorResultQueue.Enqueue(tile);
+                    _terrainGenerator.GenerateMeshData(tile, preset.CollisionLOD);
                 }
             }
 
-            Thread.Sleep(1);
+            if (!token.IsCancellationRequested)
+            {
+                _tileGeneratorResultQueue.Enqueue(tile);
+            }
         }
     }
 
@@ -150,6 +171,11 @@ public class TerrainManager : NetworkBehaviour
     {
         if (IsServer)
         {
+#if !THREADED
+            ProcessGenerateTile(CancellationToken.None);
+            ProcessGenerateTileMesh(CancellationToken.None);
+#endif
+
             if (_tileGeneratorResultQueue.TryDequeue(out TerrainTile tile))
             {
                 if (!_generatedTileDisplays.ContainsKey(tile.Name))

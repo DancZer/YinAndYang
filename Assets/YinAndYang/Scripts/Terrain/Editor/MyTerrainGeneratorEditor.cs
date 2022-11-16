@@ -10,9 +10,9 @@ public class MyTerrainGeneratorEditor : Editor
 	{
 		TerrainGenerator mapGen = (TerrainGenerator)target;
 
-		if (mapGen.EditorAutoUpdate)
+		if (mapGen.EditorAutoUpdateMesh || mapGen.EditorAutoUpdateBiome)
 		{
-			EditorApplication.update += DrawTerrainInEditor;
+			EditorApplication.update += UpdateTerrainGenerator;
 		}
 	}
 
@@ -22,24 +22,24 @@ public class MyTerrainGeneratorEditor : Editor
 
 		if (DrawDefaultInspector())
 		{
-			if (mapGen.EditorAutoUpdate)
+			if (mapGen.EditorAutoUpdateMesh || mapGen.EditorAutoUpdateBiome)
 			{
-				mapGen.DrawTerrainInEditor();
+				UpdateTerrainGenerator();
 			}
 		}
 
 		if (GUILayout.Button("Generate"))
 		{
-			mapGen.DrawTerrainInEditor();
+			UpdateTerrainGenerator();
 		}
 	}
 
-	public void DrawTerrainInEditor()
+	public void UpdateTerrainGenerator()
     {
-		EditorApplication.update -= DrawTerrainInEditor;
+		EditorApplication.update -= UpdateTerrainGenerator;
 
 		TerrainGenerator mapGen = (TerrainGenerator)target;
-		mapGen.DrawTerrainInEditor();
+		mapGen.UpdateEditor();
 	}
 }
 #endif

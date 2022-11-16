@@ -6,60 +6,67 @@ using System.Linq;
 [ExecuteInEditMode]
 public class TerrainGenerator : NetworkBehaviour
 {
-	public enum TerrainDrawMode { HeightMap, ColourMap, Mesh };
-
 	public static int[] MeshStepSizeByLOD = { 4, 8, 12, 20, 24, 30, 48 };
 
-	public TerrainDrawMode DrawMode;
+	public Material BaseMaterial;
+
+	public int Resolution = 240;
+
+	public int Seed = 1234;
+	
+	public BiomePreset[] Biomes;
+
+	[Range(1, 10000)]
+	public int BiomeSize = 5;
+	
+	public FastNoiseLite.CellularDistanceFunction BiomeDistanceFunction = FastNoiseLite.CellularDistanceFunction.Manhattan;
+	[Range(0f, 1f)]
+	public float BiomeJitter = 1;
+
+	public FastNoiseLite.DomainWarpType DomainWarpType = FastNoiseLite.DomainWarpType.OpenSimplex2;
+	[Range(0f, 1000f)]
+	public float DomainWarpAmp = 100;
+
+	public FastNoiseLite.FractalType FractalType = FastNoiseLite.FractalType.DomainWarpIndependent;
+	[Range(1, 30)]
+	public int FractalOctaves = 5;
+	[Range(0f, 10f)]
+	public int FractalLacunarity = 3;
+	[Range(0f, 1f)]
+	public int FractalGain = 1;
+
+	[Range(0, 5)]
+	public int BiomeBlendStepCount = 1;
+	[Range(1, 5)]
+	public int BiomeBlendStepSize = 1;
+
+	Dictionary<int, BiomePreset> _biomeMap = new();
+	FastNoiseLite _biomeMapNoise;
+	float _biomeBlendPercentage;
+
+	float _minHeight;
+	float _maxHeight;
+
 #if UNITY_EDITOR
 	public int EditorTerrainSize = 240;
-	public bool EditorAutoUpdate;
+	public bool EditorAutoUpdateMesh;
+	public bool EditorAutoUpdateBiome;
 	public TerrainTileDisplay EditorCenterTile;
 	public TerrainTileDisplay EditorLeftTile;
 	public TerrainTileDisplay EditorRightTile;
 	public TerrainTileDisplay EditorForwardTile;
 	public TerrainTileDisplay EditorBackwardTile;
 	public BuildingOnTerrain EditorBuilding;
+
+	public GameObject EditorBiomeDisplay;
 	public float FlatAreaHeight = 10;
-#endif
-	public Material BaseMaterial;
-	public int Resolution = 240;
 
-	public float HeightMultiplier = 100;
-	public bool UseHeightCurveEvaluator = true;
-	public AnimationCurve HeightCurve;
-	public MyTerrainRegionPreset[] Regions;
+	List<Vector2> _lastPosListTerrain = new();
+	List<Vector2> _lastPosListBiome = new();
 
-	public FastNoiseLite.NoiseType NoiseType;
-	public FastNoiseLite.FractalType FractalType;
-	public int Seed = 1234;
-	[Range(0.00001f, 100000)]
-	public float Frequency = 0.5f;
-	[Range(1, 10)]
-	public int Octaves = 3;
-	[Range(0.0001f, 1000)]
-	public float Gain = 2;
-	[Range(0.0001f, 1000)]
-	public float Lacunarity = 2;
-
-#if UNITY_EDITOR
-	[ReadOnly] public float MinVal;
-	[ReadOnly] public float MaxVal;
-
-	[ReadOnly] public float MinHeight;
-	[ReadOnly] public float MaxHeight;
-#endif
-
-#if UNITY_EDITOR
-
-	List<Vector3> lastPosList = new();
-
-    public void DrawTerrainInEditor()
+	public void DrawTerrainInEditor()
 	{
-		InitMaterial();
-
-		MinVal = MinHeight = float.MaxValue;
-		MaxVal = MaxHeight = float.MinValue;
+		SetupGenerator();
 
 		UpdateEditorDisplay(EditorCenterTile
 			, new TerrainTileDisplay[] { 
@@ -73,6 +80,15 @@ public class TerrainGenerator : NetworkBehaviour
 		UpdateEditorDisplay(EditorRightTile);
 		UpdateEditorDisplay(EditorForwardTile);
 		UpdateEditorDisplay(EditorBackwardTile);
+
+		UpdateEditorBiomeDisplay();
+	}
+
+	private void DrawBiomeInEditor()
+    {
+		SetupGenerator();
+
+		UpdateEditorBiomeDisplay();
 	}
 
 	private void UpdateEditorDisplay(TerrainTileDisplay tileDisplay, TerrainTileDisplay[] neigbours = null)
@@ -101,24 +117,81 @@ public class TerrainGenerator : NetworkBehaviour
 		GenerateMeshData(tile, tileDisplay.EditorViewDistance.DisplayLOD);
 		GenerateMeshData(tile, tileDisplay.EditorViewDistance.CollisionLOD);
 
-		if (DrawMode == TerrainDrawMode.HeightMap || DrawMode == TerrainDrawMode.ColourMap)
-		{
-			var meshFilter = tileDisplay.GetComponent<MeshFilter>();
-			var meshRenderer = tileDisplay.GetComponent<MeshRenderer>();
-
-			meshFilter.sharedMesh = CreatePlaneMesh(tile.Area);
-			meshRenderer.sharedMaterial = BaseMaterial;
+		if(neigbours != null && neigbours.Length == 4)
+        {
+			tile.MeshDatas[tileDisplay.EditorViewDistance.DisplayLOD].AdjustMeshToNeighboursLOD(neigbours.Select(n => n.EditorViewDistance.DisplayLOD).ToArray());
 		}
-		else if (DrawMode == TerrainDrawMode.Mesh)
+
+		tileDisplay.SetTile(tile);
+		tileDisplay.Display(tileDisplay.EditorViewDistance);
+	}
+	private void UpdateEditorBiomeDisplay()
+	{
+		var area = new Rect(EditorBiomeDisplay.transform.position.x + Resolution / -2f, EditorBiomeDisplay.transform.position.z + Resolution / -2f, Resolution, Resolution);
+		var colors = CreateBiomeColorMap(area);
+		var tex = CreateTexture(colors);
+
+		var meshFilter = EditorBiomeDisplay.GetComponent<MeshFilter>();
+		meshFilter.sharedMesh = CreatePlaneMesh(area);
+		var meshRenderer = EditorBiomeDisplay.GetComponent<MeshRenderer>();
+		meshRenderer.sharedMaterial.SetTexture("_MainTex", tex);
+	}
+
+	public Texture CreateTexture(Color[] colors)
+	{
+		var texture = new Texture2D(Resolution, Resolution);
+		texture.filterMode = FilterMode.Point;
+		texture.wrapMode = TextureWrapMode.Clamp;
+		texture.SetPixels(colors);
+		texture.Apply();
+
+		return texture;
+
+	}
+
+	private Color[] CreateBiomeColorMap(Rect area)
+	{
+		var biomeGenerator = new Dictionary<string, BiomeTerrainGenerator>();
+
+		Color[] colorMap = new Color[Resolution * Resolution];
+
+		for (int y = 0; y < Resolution; y++)
 		{
-			if(neigbours != null && neigbours.Length == 4)
-            {
-				tile.MeshDatas[tileDisplay.EditorViewDistance.DisplayLOD].AdjustMeshToNeighboursLOD(neigbours.Select(n => n.EditorViewDistance.DisplayLOD).ToArray());
+			for (int x = 0; x < Resolution; x++)
+			{
+				var worldPosX = area.position.x + x;
+				var worldPosY = area.position.y + y;
+
+				var biome = GetBiome(worldPosX, worldPosY);
+				var height = GetHeight(worldPosX, worldPosY, biomeGenerator);
+
+				var percentage = Mathf.InverseLerp(_minHeight, _maxHeight, height);
+
+				Color color;
+
+                if (percentage > 0.5f)
+                {
+					color = Color.Lerp(biome.ColorInEditor, Color.white, Mathf.InverseLerp(0.5f, 1f, percentage));
+				}
+                else
+                {
+					color = Color.Lerp(Color.black, biome.ColorInEditor, Mathf.InverseLerp(0f, 0.5f, percentage));
+				}
+				
+
+				if (biome != null)
+				{
+					colorMap[y * Resolution + x] = color;
+				}
+				else
+				{
+					colorMap[y * Resolution + x] = Color.black;
+				}
+
 			}
-
-			tileDisplay.SetTile(tile);
-			tileDisplay.Display(tileDisplay.EditorViewDistance);
 		}
+
+		return colorMap;
 	}
 
 	private Mesh CreatePlaneMesh(Rect area)
@@ -128,13 +201,13 @@ public class TerrainGenerator : NetworkBehaviour
 		var verts = new List<Vector3>();
 		var uvs = new List<Vector2>();
 
-		var offset = Vector2.zero;
+		area.center = Vector2.zero;
 
 		var numFaces = 1;
-		verts.Add(new Vector3(offset.x, 0, offset.y));
-		verts.Add(new Vector3(offset.x, 0, offset.y + area.size.y));
-		verts.Add(new Vector3(offset.x + area.size.x, 0, offset.y + area.size.y));
-		verts.Add(new Vector3(offset.x + area.size.x, 0, offset.y));
+		verts.Add(new Vector3(area.position.x, 0, area.position.y));
+		verts.Add(new Vector3(area.position.x, 0, area.position.y + area.size.y));
+		verts.Add(new Vector3(area.position.x + area.size.x, 0, area.position.y + area.size.y));
+		verts.Add(new Vector3(area.position.x + area.size.x, 0, area.position.y));
 
 		uvs.Add(new Vector2(0, 0));
 		uvs.Add(new Vector2(0, 1));
@@ -167,109 +240,164 @@ public class TerrainGenerator : NetworkBehaviour
 		return mesh;
 	}
 
-    void Update()
+	public void UpdateEditor()
     {
+		Update();
+    }
+
+	void Update()
+	{
 		var list = new List<Transform>();
 
-		if (EditorBuilding != null)
-			list.Add(EditorBuilding.transform);
+        if (EditorAutoUpdateMesh) { 
+			if (EditorBuilding != null)
+				list.Add(EditorBuilding.transform);
 
-		if (EditorCenterTile != null)
-			list.Add(EditorCenterTile.transform);
+			if (EditorCenterTile != null)
+				list.Add(EditorCenterTile.transform);
 
-		if (EditorLeftTile != null)
-			list.Add(EditorLeftTile.transform);
-		if (EditorRightTile != null)
-			list.Add(EditorRightTile.transform);
+			if (EditorLeftTile != null)
+				list.Add(EditorLeftTile.transform);
+			if (EditorRightTile != null)
+				list.Add(EditorRightTile.transform);
 
-		if (EditorForwardTile != null)
-			list.Add(EditorForwardTile.transform);
-		if (EditorBackwardTile != null)
-			list.Add(EditorBackwardTile.transform);
+			if (EditorForwardTile != null)
+				list.Add(EditorForwardTile.transform);
+			if (EditorBackwardTile != null)
+				list.Add(EditorBackwardTile.transform);
 
-		if (ShouldDraw(list))
-        {
-			DrawTerrainInEditor();
+			if (ShouldDraw(_lastPosListTerrain, list))
+			{
+				DrawTerrainInEditor();
+			}
+		}
+
+        if (EditorAutoUpdateBiome) { 
+			list.Clear();
+			if (EditorBiomeDisplay != null)
+				list.Add(EditorBiomeDisplay.transform);
+
+			if (ShouldDraw(_lastPosListBiome, list))
+			{
+				DrawBiomeInEditor();
+			}
 		}
 	}
-	private bool ShouldDraw(List<Transform> list)
-    {
-		if(lastPosList.Count == list.Count)
-        {
+	private bool ShouldDraw(List<Vector2> expected, List<Transform> actual)
+	{
+		if (expected.Count == actual.Count)
+		{
 			var changed = false;
 
-            for (int i = 0; i < list.Count; i++)
-            {
-				if(lastPosList[i] != list[i].position)
-                {
-					lastPosList[i] = list[i].position;
+			for (int i = 0; i < actual.Count; i++)
+			{
+				var pos = actual[i].position.To2D();
+				if (expected[i] != pos)
+				{
+					expected[i] = pos;
 					changed = true;
 				}
-            }
+			}
 
 			return changed;
 		}
-        else
-        {
-			lastPosList.Clear();
+		else
+		{
+			expected.Clear();
 
-			foreach (var t in list)
-            {
-				lastPosList.Add(t.position);
+			foreach (var t in actual)
+			{
+				expected.Add(t.position);
 			}
 			return true;
-        }
+		}
 	}
-
 #endif
 
-	public void InitMaterial()
+	public void SetupGenerator()
 	{
-		var heightCurve = new AnimationCurve(HeightCurve.keys);
+		_minHeight = float.MaxValue;
+		_maxHeight = float.MinValue;
 
-		var minHeight = heightCurve.Evaluate(-1) * HeightMultiplier;
-		var maxHeight = heightCurve.Evaluate(1) * HeightMultiplier;
-		var heightColourCount = Regions.Length;
-		var heightColours = Regions.Select(r => r.Color).ToArray();
-		var heightColoursStartHeight = Regions.Select(r => r.Height).ToArray();
+		foreach (var biome in Biomes)
+        {
+			var generator = new BiomeTerrainGenerator(biome, Seed);
 
-		Debug.Log($"InitMaterial {minHeight} {maxHeight} {heightColourCount} {string.Join(",", heightColours)} {string.Join(",",heightColoursStartHeight)}");
+			var biomeMinHeight = generator.GetHeightForNoiseVal(-1);
+			var biomeMaxHeight = generator.GetHeightForNoiseVal(1);
 
-		BaseMaterial.SetFloat("minHeight", minHeight);
-		BaseMaterial.SetFloat("maxHeight", maxHeight);
+			if (biomeMinHeight < _minHeight)
+            {
+				_minHeight = biomeMinHeight;
+			}
+
+			if (biomeMaxHeight > _maxHeight)
+			{
+				_maxHeight = biomeMaxHeight;
+			}
+		}
+
+		MyTerrainRegionPreset[] regions = Biomes[0].Regions;
+
+		var heightColourCount = regions.Length;
+		var heightColours = regions.Select(r => r.Color).ToArray();
+		var heightColoursStartHeight = regions.Select(r => r.Height).ToArray();
+
+		Debug.Log($"InitMaterial {_minHeight} {_maxHeight} {heightColourCount} {string.Join(",", heightColours)} {string.Join(",",heightColoursStartHeight)}");
+
+		BaseMaterial.SetFloat("minHeight", _minHeight);
+		BaseMaterial.SetFloat("maxHeight", _maxHeight);
 		BaseMaterial.SetInt("heightColourCount", heightColourCount);
 		BaseMaterial.SetColorArray("heightColours", heightColours);
 		BaseMaterial.SetFloatArray("heightColoursStartHeight", heightColoursStartHeight);
+
+
+		_biomeMapNoise = new FastNoiseLite(Seed);
+		_biomeMapNoise.SetNoiseType(FastNoiseLite.NoiseType.Cellular);
+		_biomeMapNoise.SetFrequency(1f / BiomeSize);
+		_biomeMapNoise.SetCellularDistanceFunction(BiomeDistanceFunction);
+		_biomeMapNoise.SetCellularJitter(BiomeJitter);
+		_biomeMapNoise.SetCellularReturnType(FastNoiseLite.CellularReturnType.CellValue);
+
+		_biomeMapNoise.SetDomainWarpType(DomainWarpType);
+		_biomeMapNoise.SetDomainWarpAmp(DomainWarpAmp);
+
+		_biomeMapNoise.SetFractalType(FractalType);
+		_biomeMapNoise.SetFractalOctaves(FractalOctaves);
+		_biomeMapNoise.SetFractalLacunarity(FractalLacunarity);
+		_biomeMapNoise.SetFractalGain(FractalGain);
+
+		_biomeMap.Clear();
+
+		int biomeId = 0;
+		foreach (var biome in Biomes)
+		{
+			_biomeMap.Add(biomeId, biome);
+			biomeId++;
+		}
+
+		_biomeBlendPercentage = 1f / ((2 * BiomeBlendStepCount + 1) * (2 * BiomeBlendStepCount + 1));
+	}
+
+	private BiomePreset GetBiome(float x, float y)
+	{
+		_biomeMapNoise.DomainWarp(ref x, ref y);
+
+		var biomeID = Mathf.RoundToInt(Mathf.InverseLerp(-1f, 1f, _biomeMapNoise.GetNoise(x, y)) * (_biomeMap.Count - 1));
+
+		return _biomeMap[biomeID];
 	}
 
 	public void GenerateTerrainData(TerrainTile tile)
 	{
 		var heightMap = CreateHeightMap(tile.Area);
-		Color[] colorMap;
 
-		if (DrawMode == TerrainDrawMode.HeightMap)
-		{
-			colorMap = CreateGrayscaleMap(heightMap);
-		}
-        else
-        {
-			colorMap = CreateColorMap(heightMap);
-		}
-
-		tile.SetMap(heightMap, colorMap, Resolution);
+		tile.SetMap(heightMap, Resolution);
 	}
 
 	private float[] CreateHeightMap(Rect area)
     {
-		var heightCurve = new AnimationCurve(HeightCurve.keys);
-		var noise = new FastNoiseLite(Seed);
-
-		noise.SetNoiseType(NoiseType);
-		noise.SetFractalType(FractalType);
-		noise.SetFrequency(Frequency);
-		noise.SetFractalOctaves(Octaves);
-		noise.SetFractalGain(Gain);
-		noise.SetFractalLacunarity(Lacunarity);
+		var biomeGenerator = new Dictionary<string, BiomeTerrainGenerator>();
 
 		int NoiseMapSize = Resolution + 1;
 
@@ -282,58 +410,37 @@ public class TerrainGenerator : NetworkBehaviour
 		{
 			for (int x = 0; x < NoiseMapSize; x++)
 			{
-				var idx = y * NoiseMapSize + x;
-
-				var val = noise.GetNoise(offset.x + x * noiseMapStep, offset.y + y * noiseMapStep);
-				var height = (UseHeightCurveEvaluator ? heightCurve.Evaluate(val) : heightMap[idx]) * HeightMultiplier;
-				heightMap[idx] = height;
-#if UNITY_EDITOR
-				LogMinMax(ref MinVal, ref MaxVal, val);
-				LogMinMax(ref MinHeight, ref MaxHeight, height);
-#endif
+				heightMap[y * NoiseMapSize + x] = GetHeight(offset.x + x * noiseMapStep, offset.y + y * noiseMapStep, biomeGenerator);
 			}
 		}
 
 		return heightMap;
 	}
 
-	private Color[] CreateGrayscaleMap(float[] heightMap)
-	{
-		Color[] grayscaleMap = new Color[Resolution * Resolution];
+	private float GetHeight(float x, float y, Dictionary<string, BiomeTerrainGenerator> generatorCache)
+    {
+		var blendValue = 0f;
 
-		for (int y = 0; y < Resolution; y++)
+		for (int bY = -BiomeBlendStepCount; bY <= BiomeBlendStepCount; bY++)
 		{
-			for (int x = 0; x < Resolution; x++)
+			for (int bX = -BiomeBlendStepCount; bX <= BiomeBlendStepCount; bX++)
 			{
-				grayscaleMap[y * Resolution + x] = Color.Lerp(Color.black, Color.white, heightMap[y * (Resolution+1) + x] / HeightMultiplier);
-			}
-		}
+				var blendWordX = x + bX * BiomeBlendStepSize;
+				var blendWordY = y + bY * BiomeBlendStepSize;
 
-		return grayscaleMap;
-	}
+				var biome = GetBiome(blendWordX, blendWordY);
 
-	private Color[] CreateColorMap(float[] heightMap)
-	{
-		Color[] colorMap = new Color[Resolution * Resolution];
-
-		for (int y = 0; y < Resolution; y++)
-		{
-			for (int x = 0; x < Resolution; x++)
-			{
-				var height = heightMap[y * (Resolution+1) + x];
-
-				foreach (var region in Regions)
+				if (!generatorCache.TryGetValue(biome.BiomeName, out var generator))
 				{
-					if (height < region.Height)
-					{
-						colorMap[y * Resolution + x] = region.Color;
-						break;
-					}
+					generator = new BiomeTerrainGenerator(biome, Seed);
+					generatorCache.Add(biome.BiomeName, generator);
 				}
+
+				blendValue += _biomeBlendPercentage * generator.GetTerrainHeight(blendWordX, blendWordY);
 			}
 		}
 
-		return colorMap;
+		return blendValue;
 	}
 
 	public void GenerateMeshData(TerrainTile tile, int lod)
@@ -368,32 +475,15 @@ public class TerrainGenerator : NetworkBehaviour
 
 		tile.AddOrUpdateMesh(meshData);
 	}
-#if UNITY_EDITOR
-	private void LogMinMax(ref float minVal, ref float maxVal, float val)
-    {
-		if (val < minVal)
-		{
-			minVal = val;
-		}
-
-		if (val > maxVal)
-		{
-			maxVal = val;
-		}
-	}
-#endif
 }
 
 public class TerrainTile
 {
 	public readonly string Name;
 	public readonly Rect Area;
-
+	public int MapSize;
 	public int HeightMapSize;
 	public float[] HeightMap;
-
-	public int MapSize;
-	public Color[] ColorMap;
 
 	public Dictionary<int, TerrainMeshData> MeshDatas = new();
 	public float HeightMapStepSize;
@@ -436,14 +526,12 @@ public class TerrainTile
 		}
 	}
 
-	public void SetMap(float[] heightMap, Color[] colorMap, int size)
+	public void SetMap(float[] heightMap, int size)
 	{
-		HeightMap = heightMap;
-		ColorMap = colorMap;
-
-		HeightMapSize = size + 1;
 		MapSize = size;
+		HeightMapSize = size + 1;
 
+		HeightMap = heightMap;
 		HeightMapStepSize = Area.width / MapSize;
 	}
 
@@ -734,5 +822,41 @@ public class TerrainMeshData
 
 		_mesh.Optimize();
 	}
+}
+public class BiomeTerrainGenerator
+{
+	public readonly BiomePreset Preset;
 
+	AnimationCurve _heightCurve;
+	FastNoiseLite _noise;
+
+	public BiomeTerrainGenerator(BiomePreset preset, int seed)
+	{
+		Preset = preset;
+
+		_heightCurve = new AnimationCurve(Preset.HeightCurve.keys);
+		_noise = new FastNoiseLite(seed);
+
+		_noise.SetNoiseType(Preset.NoiseType);
+		_noise.SetFractalType(Preset.FractalType);
+		_noise.SetFrequency(Preset.Frequency);
+		_noise.SetFractalOctaves(Preset.Octaves);
+		_noise.SetFractalGain(Preset.Gain);
+		_noise.SetFractalLacunarity(Preset.Lacunarity);
+	}
+
+	public float GetTerrainHeight(float x, float y)
+	{
+		return GetHeightForNoiseVal(_noise.GetNoise(x, y));
+	}
+
+	public float GetHeightForNoiseVal(float val)
+    {
+		if (Preset.UseHeightCurve)
+		{
+			val = _heightCurve.Evaluate(val);
+		}
+
+		return Preset.BaseHeight + val * Preset.HeightMultiplier;
+	}
 }

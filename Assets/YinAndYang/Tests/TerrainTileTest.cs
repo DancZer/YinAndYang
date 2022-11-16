@@ -176,7 +176,7 @@ public class TerrainTileTest
         var area = new Rect(size / -2f, size / -2f, size, size);
 
         var tile = new TerrainTile(area);
-        tile.SetMap(GenerateHeightMap(textResolution + 1, size / textResolution), GenerateColorMap(textResolution), textResolution);
+        tile.SetMap(GenerateHeightMap(textResolution + 1, size / textResolution), textResolution);
 
         return tile;
     }
@@ -188,7 +188,7 @@ public class TerrainTileTest
         var area = new Rect(size / -2f, size / -2f, size, size);
 
         var tile = new TerrainTile(area);
-        tile.SetMap(GenerateHeightMap(textResolution + 1, size / textResolution), GenerateColorMap(textResolution), textResolution);
+        tile.SetMap(GenerateHeightMap(textResolution + 1, size / textResolution), textResolution);
 
         return tile;
     }
@@ -201,7 +201,7 @@ public class TerrainTileTest
         var area = new Rect(size / -2f, size / -2f, size, size);
 
         var tile = new TerrainTile(area);
-        tile.SetMap(GenerateHeightMap(textResolution + 1, size / textResolution), GenerateColorMap(textResolution), textResolution);
+        tile.SetMap(GenerateHeightMap(textResolution + 1, size / textResolution), textResolution);
 
         return tile;
     }
