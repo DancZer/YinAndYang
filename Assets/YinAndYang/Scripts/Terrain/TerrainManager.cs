@@ -1,4 +1,5 @@
 //#define THREADED
+//#define BENCHMARK_STOP
 
 using FishNet.Object;
 using FishNet.Object.Synchronizing;
@@ -111,7 +112,7 @@ public class TerrainManager : NetworkBehaviour
     {
         if (_tileGeneratorRequestQueue.TryDequeue(out Vector2Int pos))
         {
-            var tile = new TerrainTile(pos);
+            var tile = new TerrainTile(pos, TerrainGenerator.TileSize, _terrainGenerator.BiomeBlendSize);
 
             if (!token.IsCancellationRequested)
             {
@@ -217,15 +218,16 @@ public class TerrainManager : NetworkBehaviour
         if(lastDebugQueueCount != GeneratorQueueCount)
         {
             lastDebugQueueCount = GeneratorQueueCount;
-
-            //Debug.Log($"QueueCount {lastDebugQueueCount}");
+            Debug.Log($"QueueCount {lastDebugQueueCount}");
         }
 
-        if(_activeTileDisplays.Count > 1)
+#if BENCHMARK_STOP
+        if (_activeTileDisplays.Count > 1)
         {
             Debug.Log("Quit");
             UnityEditor.EditorApplication.isPlaying = false;
         }
+#endif
     }
 
     [Server]
