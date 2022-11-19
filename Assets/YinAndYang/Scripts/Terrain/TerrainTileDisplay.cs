@@ -24,8 +24,8 @@ public class TerrainTileDisplay : MonoBehaviour
     public void Display(TerrainTile tile, RequiredTileStatePreset preset)
     {
         bool isReadyAndChanged = IsReadyForDisplay(tile, preset) &&
-            _tile is null || _preset is null || 
-            _tile.Id == tile.Id && _preset == preset && _lastDisplayTime != tile.LastChangedTime;
+            (_tile is null || _preset is null || _tile != tile || _preset != preset ||
+            _tile == tile && _preset == preset && _lastDisplayTime != tile.LastChangedTime);
 
         if (!isReadyAndChanged)
         {
