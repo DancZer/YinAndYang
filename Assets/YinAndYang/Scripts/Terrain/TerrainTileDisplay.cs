@@ -24,18 +24,18 @@ public class TerrainTileDisplay : MonoBehaviour
     public void Display(TerrainTile tile, RequiredTileStatePreset preset)
     {
         bool isReadyAndChanged = IsReadyForDisplay(tile, preset) &&
-            _tile == null || _preset == null || 
-            _tile == tile && _preset == preset && _lastDisplayTime != tile.LastChangedTime;
+            _tile is null || _preset is null || 
+            _tile.Id == tile.Id && _preset == preset && _lastDisplayTime != tile.LastChangedTime;
 
         if (!isReadyAndChanged)
         {
 #if UNITY_EDITOR
-            Debug.LogWarning($"Skip Display {tile} {preset}");
+            Debug.LogWarning($"Skip Display tile:{tile}, _tile:{_tile}, preset:{preset}, _preset:{_preset}, _lastDisplayTime:{_lastDisplayTime}");
 #endif
             return;
         }
 
-        Debug.Log($"Display Tile:{tile}, RequiredTileStatePreset:{preset}");
+        //Debug.Log($"Display Tile:{tile}, RequiredTileStatePreset:{preset}");
 
         var meshData = tile.GetMeshData(preset.DisplayLOD);
 

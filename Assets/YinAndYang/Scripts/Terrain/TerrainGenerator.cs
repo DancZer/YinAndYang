@@ -606,7 +606,7 @@ public enum TerrainTileState
 	AdjustedMeshData = 5 
 }
 
-public class TerrainTile : System.IEquatable<TerrainTile>
+public class TerrainTile
 {
 	public readonly string Id;
 	public readonly Vector2 PhysicalPos;
@@ -622,6 +622,13 @@ public class TerrainTile : System.IEquatable<TerrainTile>
 	public TerrainTileState CurrentState;
 	public TerrainTileState PreviousState;
 	public float LastChangedTime = 0;
+
+	public Vector2 PhysicalCenter { 
+		get
+		{
+			return PhysicalPos + TerrainGenerator.TilePhysicalSizeHalfVect;
+		}
+	}
 
 	public TerrainTile()
 	{
@@ -671,7 +678,7 @@ public class TerrainTile : System.IEquatable<TerrainTile>
 	{
 		var heightMapPos = TerrainGenerator.PhysicalSizeToDataResolution(localPos);
 
-		Debug.Log($"GetHeightAt Tile:{this}, localPos:{localPos}, heightMapPos:{heightMapPos}");
+		//Debug.Log($"GetHeightAt Tile:{this}, localPos:{localPos}, heightMapPos:{heightMapPos}");
 
 		return HeightMap[(heightMapPos.y+BlendSize) * DataSize + (heightMapPos.x + BlendSize)];
 	}
@@ -685,7 +692,7 @@ public class TerrainTile : System.IEquatable<TerrainTile>
 
 		if (dataStartPos.x < 0 || dataStartPos.y < 0 || dataEndPos.x >= DataSize || dataEndPos.y >= DataSize) return false;
 		
-		Debug.Log($"FlatHeightMap tile:{this}, globalFlatArea:{globalFlatArea}, flatValue:{flatValue}, flatAreaPhysLocal:{flatAreaPhysLocal}, dataStartPos:{dataStartPos}, dataEndPos:{dataEndPos}");
+		//Debug.Log($"FlatHeightMap tile:{this}, globalFlatArea:{globalFlatArea}, flatValue:{flatValue}, flatAreaPhysLocal:{flatAreaPhysLocal}, dataStartPos:{dataStartPos}, dataEndPos:{dataEndPos}");
 
 		var modified = false;
 		for (int dY = dataStartPos.y; dY < dataEndPos.y; dY++)
@@ -717,24 +724,9 @@ public class TerrainTile : System.IEquatable<TerrainTile>
 		return requiredStatePresets.FirstOrDefault(p => p.Distance > tileDistance);
 	}
 
-	public static bool operator ==(TerrainTile lhv, TerrainTile rhv)
-    {
-		return lhv is not null && rhv is not null && lhv.Id == rhv.Id;
-    }
-
-	public static bool operator !=(TerrainTile lhv, TerrainTile rhv)
-	{
-		return !(lhv == rhv);
-	}
-
-	public override string ToString()
+    public override string ToString()
     {
         return $"Tile Id:{Id} Pos:{PhysicalPos}, CurrentState:{CurrentState}, PreviousState:{PreviousState}, DataSize:{DataSize}, BlendSize:{BlendSize} LastChangedTime:{LastChangedTime}";
-    }
-
-    public bool Equals(TerrainTile other)
-    {
-		return Id == other.Id;
     }
 }
 

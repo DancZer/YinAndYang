@@ -40,8 +40,8 @@ public class TerrainManager : NetworkBehaviour
 
     int lastDebugQueueCount = -1;
 
-    Dictionary<TerrainTile, TerrainTileDisplay> _activeTileDisplays = new();
-    Dictionary<TerrainTile, TerrainTileDisplay> _previousActiveTileDisplays = new();
+    Dictionary<string, TerrainTileDisplay> _activeTileDisplays = new();
+    Dictionary<string, TerrainTileDisplay> _previousActiveTileDisplays = new();
     List<TerrainTileDisplay> _notUsedTileDisplays = new();
 
     public override void OnStartServer()
@@ -264,7 +264,7 @@ public class TerrainManager : NetworkBehaviour
         var maxDistanceTileCount = Mathf.CeilToInt(maxViewDistance.Distance / TerrainGenerator.TilePhysicalSize);
 
         _previousActiveTileDisplays = _activeTileDisplays;
-        _activeTileDisplays = new Dictionary<TerrainTile, TerrainTileDisplay>();
+        _activeTileDisplays = new Dictionary<string, TerrainTileDisplay>();
 
         for (int tX = -maxDistanceTileCount; tX <= maxDistanceTileCount; tX++)
         {
@@ -281,13 +281,18 @@ public class TerrainManager : NetworkBehaviour
 
         IsPlayerAreaLoaded = _activeTileDisplays.Count >= maxDistanceTileCount * maxDistanceTileCount;
 
-        Debug.Log($"IsPlayerAreaLoaded:{IsPlayerAreaLoaded}, _activeTileDisplays:{_activeTileDisplays.Count}, maxDistanceTileCount2:{maxDistanceTileCount * maxDistanceTileCount}");
+        //Debug.Log($"IsPlayerAreaLoaded:{IsPlayerAreaLoaded}, _activeTileDisplays:{_activeTileDisplays.Count}, maxDistanceTileCount2:{maxDistanceTileCount * maxDistanceTileCount}");
 
         foreach (var pair in _previousActiveTileDisplays)
         {
             if (!_activeTileDisplays.ContainsKey(pair.Key))
             {
-                _notUsedTileDisplays.Add(pair.Value);
+                var tileDisplay = pair.Value;
+
+                _notUsedTileDisplays.Add(tileDisplay);
+
+                tileDisplay.gameObject.SetActive(false);
+                tileDisplay.ResetDisplay();
             }
         }
         _previousActiveTileDisplays.Clear();
@@ -296,6 +301,7 @@ public class TerrainManager : NetworkBehaviour
     [ObserversRpc]
     void SetChangedTileOnClient(TerrainTile tile)
     {
+        //Debug.Log($"SetChangedTileOnClient {tile}");
         if (!IsServer)
         {
             if (_generatedTiles.ContainsKey(tile.PhysicalPos))
@@ -318,11 +324,11 @@ public class TerrainManager : NetworkBehaviour
     {
         if (!TerrainTileDisplay.IsReadyForDisplay(tile, preset))
         {
-            Debug.Log($"UpdateDisplayWithPreset Hide Tile:{tile}, Preset:{preset}");
-            if (_activeTileDisplays.TryGetValue(tile, out var tileDisplay))
+            //Debug.Log($"UpdateDisplayWithPreset Hide Tile:{tile}, Preset:{preset}");
+            if (_activeTileDisplays.TryGetValue(tile.Id, out var tileDisplay))
             {
                 _notUsedTileDisplays.Add(tileDisplay);
-                _activeTileDisplays.Remove(tile);
+                _activeTileDisplays.Remove(tile.Id);
 
                 tileDisplay.gameObject.SetActive(false);
                 tileDisplay.ResetDisplay();
@@ -330,13 +336,13 @@ public class TerrainManager : NetworkBehaviour
         }
         else
         {
-            Debug.Log($"UpdateDisplayWithPreset Show Tile:{tile}, Preset:{preset}");
-            if (!_activeTileDisplays.TryGetValue(tile, out var tileDisplay))
+            //Debug.Log($"UpdateDisplayWithPreset Show Tile:{tile}, Preset:{preset}");
+            if (!_activeTileDisplays.TryGetValue(tile.Id, out var tileDisplay))
             {
                 tileDisplay = GetAvailableTerrainDisplay(tile);
-                _activeTileDisplays.Add(tile, tileDisplay);
+                _activeTileDisplays.Add(tile.Id, tileDisplay);
             }
-            tileDisplay.gameObject.transform.position = tile.PhysicalPos.To3D();
+            tileDisplay.gameObject.transform.position = tile.PhysicalCenter.To3D();
             tileDisplay.gameObject.name = tile.Id;
             tileDisplay.gameObject.SetActive(true);
 
@@ -346,12 +352,16 @@ public class TerrainManager : NetworkBehaviour
 
     private TerrainTileDisplay GetAvailableTerrainDisplay(TerrainTile forTile)
     {
-        if(_previousActiveTileDisplays.TryGetValue(forTile, out var tileDisplay))
+        //Debug.Log($"GetAvailableTerrainDisplay {forTile.Id} {_activeTileDisplays.Count} {_previousActiveTileDisplays.Count} {_notUsedTileDisplays.Count}");
+
+        if(_previousActiveTileDisplays.TryGetValue(forTile.Id, out var tileDisplay))
         {
+            //Debug.Log($"GetAvailableTerrainDisplay Previous");
             return tileDisplay;
         }
         else if(_notUsedTileDisplays.Count>0)
         {
+            //Debug.Log($"GetAvailableTerrainDisplay Not used");
             var notUsed = _notUsedTileDisplays[0];
 
             _notUsedTileDisplays.RemoveAt(0);
@@ -360,6 +370,7 @@ public class TerrainManager : NetworkBehaviour
         }
         else
         {
+            //Debug.Log($"GetAvailableTerrainDisplay New");
             var obj = Instantiate(TilePrefab, Vector3.zero, Quaternion.identity);
             return obj.GetComponent<TerrainTileDisplay>();
         }
