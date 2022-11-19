@@ -2,16 +2,28 @@ using System.Collections.Generic;
 using UnityEngine;
 using FishNet.Object;
 using System.Linq;
+using System.Runtime.CompilerServices;
 
 [ExecuteInEditMode]
 public class TerrainGenerator : NetworkBehaviour
 {
-	public const int TileSize = 240;
-	public const int TileSizeHalf = TileSize/2;
-	public const int TileHeightMapSize = TileSize+1;
-	public const int TileHeightMapSizeHalf = TileSizeHalf + 1;
-	public static readonly Vector2Int TileSizeVect = new Vector2Int(TileSize, TileSize);
-	public static readonly Vector2Int TileSizeHalfVect = new Vector2Int(TileSize/2, TileSize/2);
+	public const float TilePhysicalSize = 300;
+	public const float TilePhysicalSizeHalf = TilePhysicalSize/2;
+	public static readonly Vector2 TilePhysicalSizeVect = new Vector2(TilePhysicalSize, TilePhysicalSize);
+	public static readonly Vector2 TilePhysicalSizeHalfVect = new Vector2(TilePhysicalSizeHalf, TilePhysicalSizeHalf);
+
+	public const int TileMeshResolution = 240;
+	public const int TileMeshResolutionHalf = TileMeshResolution/2;
+
+	public const int TileDataResolution = 240;
+	public const int TileDataResolutionHalf = TileDataResolution/2;
+	public static readonly Vector2Int TileDataResolutionVect = new Vector2Int(TileDataResolution, TileDataResolution);
+	public static readonly Vector2Int TileDataResolutionHalfVect = new Vector2Int(TileDataResolutionHalf, TileDataResolutionHalf);
+
+	public const int TileHeightMapDataResolution = TileDataResolution+1;
+	public const int TileHeightMapDataResolutionHalf = TileDataResolutionHalf + 1;
+	public static readonly Vector2Int TileHeightMapDataResolutionVect = new Vector2Int(TileHeightMapDataResolution, TileHeightMapDataResolution);
+	public static readonly Vector2Int TileHeightMapDataResolutionHalfVect = new Vector2Int(TileHeightMapDataResolutionHalf, TileHeightMapDataResolutionHalf);
 
 	public static int[] MeshStepSizeByLOD = { 4, 8, 12, 20, 24, 30, 48 };
 
@@ -92,13 +104,15 @@ public class TerrainGenerator : NetworkBehaviour
 		UpdateEditorBiomeDisplay();
 	}
 
-	private void UpdateEditorDisplay(TerrainTileDisplay tileDisplay, TerrainTileDisplay[] neigbours = null)
+	private void UpdateEditorDisplay(TerrainTileDisplay tileDisplay, TerrainTileDisplay[] neighbours = null)
     {
 		if (tileDisplay == null) return;
 
-		TerrainTile tile = new TerrainTile(tileDisplay.transform.position.To2DInt() - TileSizeHalfVect, TileSize, BiomeBlendSize);
+		var tile = CreateEmptyTile(tileDisplay.transform.position.To2D() - TilePhysicalSizeHalfVect);
 
-		GenerateTerrainData(tile);
+		GenerateBiomeMap(tile);
+		GenerateHeightMap(tile);
+		BlendHeightMap(tile);
 
 		if (EditorBuilding != null)
 		{
@@ -112,9 +126,14 @@ public class TerrainGenerator : NetworkBehaviour
 		GenerateMeshData(tile, tileDisplay.EditorViewDistance.DisplayLOD);
 		GenerateMeshData(tile, tileDisplay.EditorViewDistance.CollisionLOD);
 
-		if(neigbours != null && neigbours.Length == 4)
+		if(neighbours != null && neighbours.Length == 4)
         {
-			tile.MeshDatas[tileDisplay.EditorViewDistance.DisplayLOD].AdjustMeshToNeighboursLOD(neigbours.Select(n => n.EditorViewDistance.DisplayLOD).ToArray());
+			tile.MeshDatas[tileDisplay.EditorViewDistance.DisplayLOD].AdjustMeshToNeighboursLOD(neighbours.Select(n => n.EditorViewDistance.DisplayLOD).ToArray());
+
+			neighbours[0].transform.position = tileDisplay.transform.position + new Vector2(-TilePhysicalSize,0).To3D();
+			neighbours[1].transform.position = tileDisplay.transform.position + new Vector2(0, TilePhysicalSize).To3D();
+			neighbours[2].transform.position = tileDisplay.transform.position + new Vector2(TilePhysicalSize, 0).To3D();
+			neighbours[3].transform.position = tileDisplay.transform.position + new Vector2(0, -TilePhysicalSize).To3D();
 		}
 
 		tileDisplay.SetTile(tile);
@@ -122,9 +141,11 @@ public class TerrainGenerator : NetworkBehaviour
 	}
 	private void UpdateEditorBiomeDisplay()
 	{
-		TerrainTile tile = new TerrainTile(EditorBiomeDisplay.transform.position.To2DInt() - TileSizeHalfVect, TileSize, BiomeBlendSize);
+		var tile = CreateEmptyTile(EditorBiomeDisplay.transform.position.To2D() - TilePhysicalSizeHalfVect);
 
-		GenerateTerrainData(tile);
+		GenerateBiomeMap(tile);
+		GenerateHeightMap(tile);
+		BlendHeightMap(tile);
 
 		var colors = CreateBiomeColorMap(tile);
 		var tex = CreateTexture(colors);
@@ -137,7 +158,7 @@ public class TerrainGenerator : NetworkBehaviour
 
 	public Texture CreateTexture(Color[] colors)
 	{
-		var texture = new Texture2D(TileSize, TileSize);
+		var texture = new Texture2D(TileMeshResolution, TileMeshResolution);
 		texture.filterMode = FilterMode.Point;
 		texture.wrapMode = TextureWrapMode.Clamp;
 		texture.SetPixels(colors);
@@ -149,16 +170,19 @@ public class TerrainGenerator : NetworkBehaviour
 
 	private Color[] CreateBiomeColorMap(TerrainTile tile)
 	{
-		Color[] colorMap = new Color[TileSize * TileSize];
+		Color[] colorMap = new Color[TileMeshResolution * TileMeshResolution];
 
-		for (int y = 0; y < TileSize; y++)
+		for (int mY = 0; mY < TileMeshResolution; mY++)
 		{
-			for (int x = 0; x < TileSize; x++)
+			for (int mX = 0; mX < TileMeshResolution; mX++)
 			{
-				var idx = (y + tile.BlendSize) * tile.DataSize + (x + tile.BlendSize);
+				var dY = MeshResolutionToDataResolution(mY, TileMeshResolution);
+				var dX = MeshResolutionToDataResolution(mX, TileMeshResolution);
 
-				var height = tile.HeightMap[idx];
-				var biomeId = tile.BiomeMap[idx];
+				var dIdx = (dY + tile.BlendSize) * tile.DataSize + (dX + tile.BlendSize);
+
+				var height = tile.HeightMap[dIdx];
+				var biomeId = tile.BiomeMap[dIdx];
 				var biome = _biomeGenerator.GetBiome(biomeId);
 
 				var percentage = Mathf.InverseLerp(_minHeight, _maxHeight, height);
@@ -177,11 +201,11 @@ public class TerrainGenerator : NetworkBehaviour
 
 				if (biome != null)
 				{
-					colorMap[y * TileSize + x] = color;
+					colorMap[mY * TileMeshResolution + dX] = color;
 				}
 				else
 				{
-					colorMap[y * TileSize + x] = Color.black;
+					colorMap[mY * TileMeshResolution + dX] = Color.black;
 				}
 
 			}
@@ -198,10 +222,10 @@ public class TerrainGenerator : NetworkBehaviour
 		var uvs = new List<Vector2>();
 
 		var numFaces = 1;
-		verts.Add(new Vector3(-TileSizeHalf, 0, -TileSizeHalf));
-		verts.Add(new Vector3(-TileSizeHalf, 0,  TileSizeHalf));
-		verts.Add(new Vector3( TileSizeHalf, 0,  TileSizeHalf));
-		verts.Add(new Vector3( TileSizeHalf, 0, -TileSizeHalf));
+		verts.Add(new Vector3(-TilePhysicalSizeHalf, 0, -TilePhysicalSizeHalf));
+		verts.Add(new Vector3(-TilePhysicalSizeHalf, 0,  TilePhysicalSizeHalf));
+		verts.Add(new Vector3( TilePhysicalSizeHalf, 0,  TilePhysicalSizeHalf));
+		verts.Add(new Vector3( TilePhysicalSizeHalf, 0, -TilePhysicalSizeHalf));
 
 		uvs.Add(new Vector2(0, 0));
 		uvs.Add(new Vector2(0, 1));
@@ -318,7 +342,7 @@ public class TerrainGenerator : NetworkBehaviour
 
 		foreach (var biome in Biomes)
         {
-			var generator = new BiomeTerrainGenerator(biome, Seed);
+			var generator = new BiomeTerrainHeightGenerator(biome, Seed);
 
 			var biomeMinHeight = generator.GetHeightForNoiseVal(-1);
 			var biomeMaxHeight = generator.GetHeightForNoiseVal(1);
@@ -353,70 +377,77 @@ public class TerrainGenerator : NetworkBehaviour
 		_biomeBlendPercentage = 1f / ((2 * BiomeBlendSize + 1) * (2 * BiomeBlendSize + 1));
 	}
 
-	public void GenerateTerrainData(TerrainTile tile)
-	{
-		GenerateBiomeMap(tile);
-		GenerateHeightMap(tile);
-		BlendHeightMap(tile);
+	public TerrainTile CreateEmptyTile(Vector2 pos)
+    {
+		return new TerrainTile(pos, TileHeightMapDataResolution, BiomeBlendSize);
 	}
 
-	private void GenerateBiomeMap(TerrainTile tile)
+	public void GenerateBiomeMap(TerrainTile tile)
 	{
 		var biomeMap = new int[tile.DataSize * tile.DataSize];
 
-		for (int y = 0; y < tile.DataSize; y++)
+		for (int dY = 0; dY < tile.DataSize; dY++)
 		{
-			for (int x = 0; x < tile.DataSize; x++)
+			for (int dX = 0; dX < tile.DataSize; dX++)
 			{
-				biomeMap[y * tile.DataSize + x] = _biomeGenerator.GetBiomeId(tile.Pos.x + x - tile.BlendSize, tile.Pos.y + y - tile.BlendSize);
+				var pX = DataResolutionToPhysicalSize(dX - tile.BlendSize);
+				var pY = DataResolutionToPhysicalSize(dY - tile.BlendSize);
+
+				biomeMap[dY * tile.DataSize + dX] = _biomeGenerator.GetBiomeId(tile.PhysicalPos.x + pX, tile.PhysicalPos.y + pY);
 			}
 		}
 
 		tile.BiomeMap = biomeMap;
+		tile.State = TileState.BiomeMap;
 	}
 
-	private void GenerateHeightMap(TerrainTile tile)
+	public void GenerateHeightMap(TerrainTile tile)
     {
 		var heightMap = new float[tile.DataSize * tile.DataSize];
 
-		for (int y = 0; y < tile.DataSize; y++)
+		for (int dY = 0; dY < tile.DataSize; dY++)
 		{
-			for (int x = 0; x < tile.DataSize; x++)
+			for (int dX = 0; dX < tile.DataSize; dX++)
 			{
-				var generator = _biomeGenerator.GetGenerator(tile.BiomeMap[y * tile.DataSize + x]);
+				var biomeId = tile.BiomeMap[dY * tile.DataSize + dX];
+				var generator = _biomeGenerator.GetGenerator(biomeId);
 
-				heightMap[y * tile.DataSize + x] = generator.GetTerrainHeight(tile.Pos.x + x - tile.BlendSize, tile.Pos.y + y - tile.BlendSize);
+				var pX = DataResolutionToPhysicalSize(dX - tile.BlendSize);
+				var pY = DataResolutionToPhysicalSize(dY - tile.BlendSize);
+
+				heightMap[dY * tile.DataSize + dX] = generator.GetTerrainHeight(tile.PhysicalPos.x + pX, tile.PhysicalPos.y + pY);
 			}
 		}
 
 		tile.HeightMap = heightMap;
+		tile.State = TileState.HeightMap;
 	}
 
-	private void BlendHeightMap(TerrainTile tile)
+	public void BlendHeightMap(TerrainTile tile)
 	{
 		var newHeightMap = new float[tile.DataSize * tile.DataSize];
 
-		for (int y = 0; y < tile.DataSize; y++)
+		for (int dY = 0; dY < tile.DataSize; dY++)
 		{
-			for (int x = 0; x < tile.DataSize; x++)
+			for (int dX = 0; dX < tile.DataSize; dX++)
 			{
-				var idx = y * tile.DataSize + x;
+				var dIdx = dY * tile.DataSize + dX;
 				var newHeight = 0f;
 
-				if(x < tile.BlendSize || y < tile.BlendSize || x > tile.BlendSize + TileSize || y > tile.BlendSize + TileSize)
+				if(dX < tile.BlendSize || dY < tile.BlendSize || dX > tile.BlendSize + TileDataResolution || dY > tile.BlendSize + TileDataResolution)
                 {
-					newHeight = tile.HeightMap[idx];
+					newHeight = tile.HeightMap[dIdx];
 				}
                 else
                 {
-					var currentBiome = tile.BiomeMap[idx];
+					var currentBiome = tile.BiomeMap[dIdx];
 					var hasBlendAreaMultipleBiomes = true;
 
 					for (int bY = -tile.BlendSize; bY <= tile.BlendSize; bY++)
 					{
 						for (int bX = -tile.BlendSize; bX <= tile.BlendSize; bX++)
 						{
-							var blendIdx = (y + bY) * tile.DataSize + (x + bX);
+							var blendIdx = (dY + bY) * tile.DataSize + (dX + bX);
 
 							if (currentBiome != tile.BiomeMap[blendIdx])
                             {
@@ -428,76 +459,185 @@ public class TerrainGenerator : NetworkBehaviour
 
                     if (!hasBlendAreaMultipleBiomes)
                     {
-						newHeight = tile.HeightMap[idx];
+						newHeight = tile.HeightMap[dIdx];
 					}
 				}
 
-				newHeightMap[idx] = newHeight;
+				newHeightMap[dIdx] = newHeight;
 			}
 		}
 
 		tile.HeightMap = newHeightMap;
+		tile.State = TileState.BlendedHeightMap;
 	}
 
-	public void GenerateMeshData(TerrainTile tile, int lod)
+	public void GenerateAllMeshData(TerrainTile tile)
+    {
+        for (int lod = 0; lod < MeshStepSizeByLOD.Length; lod++)
+        {
+			GenerateMeshData(tile, lod);
+		}
+    }
+
+	private void GenerateMeshData(TerrainTile tile, int lod)
 	{
 		if (tile.HasMesh(lod)) return;
 
 		lod = lod < 0 ? 0 : lod;
 
 		var meshStepSize = MeshStepSizeByLOD[lod];
-		var meshSize = TileSize / meshStepSize;
-		var uvStep = 1f / meshSize;
-		var offset = -TileSizeHalfVect;
+		var meshResolution = TileMeshResolution / meshStepSize;
+		var uvStep = 1f / meshResolution;
 
-		var meshData = new TerrainMeshData(lod, meshSize + 1);
+		var meshData = new TerrainMeshData(lod, meshResolution);
 
-		; for (int y = 0; y < meshData.Size; y++)
+		; for (int mY = 0; mY < meshData.VertexDataSize; mY++)
 		{
-			for (int x = 0; x < meshData.Size; x++)
+			for (int mX = 0; mX < meshData.VertexDataSize; mX++)
 			{
+				var dX = MeshResolutionToDataResolution(mX, meshResolution);
+				var dY = MeshResolutionToDataResolution(mY, meshResolution);
+
+				var pX = MeshResolutionToPhysicalSize(mX, meshResolution);
+				var pY = MeshResolutionToPhysicalSize(mY, meshResolution);
+
 				meshData.Verts.Add(new Vector3(
-					offset.x + x * meshStepSize, 
-					tile.HeightMap[(y*meshStepSize + tile.BlendSize) * tile.DataSize + (x * meshStepSize + tile.BlendSize)], 
-					offset.y + y * meshStepSize));
+					-TilePhysicalSizeHalf + pX, 
+					tile.HeightMap[(dY + tile.BlendSize) * tile.DataSize + (dX + tile.BlendSize)],
+					-TilePhysicalSizeHalf + pY));
 
-				meshData.UVs.Add(new Vector2(x * uvStep, y * uvStep));
+				meshData.UVs.Add(new Vector2(mX * uvStep, mY * uvStep));
 
-				if (x < meshSize && y < meshSize)
+				//create triangles till the last line of vertices
+				if (mX < meshResolution && mY < meshResolution)
 				{
-					var idx = y * meshSize + x;
-					meshData.AddTriangle(idx + y, idx + y + meshSize + 1, idx + y + meshSize + 2);
-					meshData.AddTriangle(idx + y, idx + y + meshSize + 2, idx + y + 1);
+					var idx = mY * meshData.VertexDataSize + mX;
+					meshData.AddTriangle(idx, idx + meshData.VertexDataSize, idx + meshData.VertexDataSize + 1);
+					meshData.AddTriangle(idx, idx + meshData.VertexDataSize + 1, idx + 1);
 				}
 			}
 		}
 
 		tile.AddOrUpdateMesh(meshData);
 	}
+
+	public void AdjustTerrainTileMeshData(TerrainTile tile)
+    {
+
+    }
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static int PhysicalSizeToDataResolution(float pPos)
+	{
+		return Mathf.FloorToInt((pPos / TilePhysicalSize) * TileDataResolution);
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static Vector2Int PhysicalSizeToDataResolution(Vector2 pPos)
+	{
+		return Vector2Int.FloorToInt((pPos / TilePhysicalSize) * TileDataResolution);
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static float DataResolutionToPhysicalSize(int dPos)
+	{
+		return (dPos / (float)TileDataResolution) * TilePhysicalSize;
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static Vector2 DataResolutionToPhysicalSize(Vector2Int dPos)
+	{
+		var res = new Vector2(dPos.x, dPos.y);
+		return (res / TileDataResolution) * TilePhysicalSize;
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static float MeshResolutionToPhysicalSize(int mPos, int meshResolution)
+	{
+		return (mPos / (float)meshResolution) * TilePhysicalSize;
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static Vector2 MeshResolutionToPhysicalSize(Vector2Int mPos, int meshResolution)
+	{
+		var res = new Vector2(mPos.x, mPos.y);
+		return (res / meshResolution) * TilePhysicalSize;
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static int MeshResolutionToDataResolution(int mPos, int meshResolution)
+	{
+		return Mathf.FloorToInt((mPos / (float)meshResolution) * TileDataResolution);
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static Vector2Int MeshResolutionToDataResolution(Vector2Int mPos, int meshResolution)
+	{
+		return Vector2Int.FloorToInt((new Vector2(mPos.x, mPos.y) / meshResolution) * TileDataResolution);
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static int DataResolutionToMeshResolution(int dPos, int meshResolution)
+	{
+		return Mathf.FloorToInt((dPos / TileDataResolution) * meshResolution);
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static Vector2Int DataResolutionToMeshResolution(Vector2Int dPos, int meshResolution)
+	{
+		return Vector2Int.FloorToInt((new Vector2(dPos.x, dPos.y) / TileDataResolution) * meshResolution);
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static float AnyPosToTilePos(float pPos)
+	{
+		return Mathf.Floor(pPos / TilePhysicalSize) * TilePhysicalSize - TilePhysicalSizeHalf;
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static Vector2 AnyPosToTilePos(Vector2 pPos)
+	{
+		return new Vector2(AnyPosToTilePos(pPos.x), AnyPosToTilePos(pPos.y));
+	}
+}
+
+public enum TileState
+{
+	Empty,
+	BiomeMap,
+	HeightMap,
+	BlendedHeightMap,
+	MeshData,
+	AdjustedMeshData
 }
 
 public class TerrainTile
 {
+
 	public readonly string Name;
-	public readonly Vector2Int Pos;
+	public readonly Vector2 PhysicalPos;
 	public readonly int DataSize;
 	public readonly int BlendSize;
+	public readonly Vector2Int BlendSizeVect;
 	public float[] HeightMap;
 	public int[] BiomeMap;
 
 	public Dictionary<int, TerrainMeshData> MeshDatas = new();
 
+	public TileState State = TileState.Empty;
+
+
 	public TerrainTile()
 	{
-
 	}
 
-	public TerrainTile(Vector2Int pos, int size, int blendSize)
+	public TerrainTile(Vector2 pos, int tileDataResolution, int blendSize)
 	{
 		Name = $"Tile {pos}";
-		Pos = pos;
-		DataSize = size + 1 + 2 * blendSize;
+		PhysicalPos = pos;
+		DataSize = tileDataResolution + 2 * blendSize;
 		BlendSize = blendSize;
+		BlendSizeVect = new Vector2Int(blendSize, blendSize);
 	}
 	public void ClearMeshes()
 	{
@@ -533,33 +673,32 @@ public class TerrainTile
 
 	public float GetHeightAt(Vector2 localPos)
 	{
-		var heightMapPos = Vector2Int.FloorToInt(localPos / TerrainGenerator.TileHeightMapSize);
+		var heightMapPos = Vector2Int.FloorToInt(localPos / TerrainGenerator.TileHeightMapDataResolution);
 
-		return HeightMap[heightMapPos.y * TerrainGenerator.TileHeightMapSize + heightMapPos.x];
+		return HeightMap[heightMapPos.y * TerrainGenerator.TileHeightMapDataResolution + heightMapPos.x];
 	}
 
-
-	public bool FlatHeightMap(RectInt flatArea, float flatValue)
+	public bool FlatHeightMap(Rect globalFlatArea, float flatValue)
 	{
-		var flatAreaLocal = new RectInt(flatArea.position - Pos, flatArea.size);
+		var flatAreaPhysLocal = new Rect(globalFlatArea.position - PhysicalPos, globalFlatArea.size);
 
-		var startPosScaled = (flatAreaLocal.position * TerrainGenerator.TileHeightMapSize) - Vector2Int.one;
-		var endPosScaled = Vector2Int.FloorToInt((flatAreaLocal.position + flatArea.size) * TerrainGenerator.TileHeightMapSize) + Vector2Int.one * 2;
+		var dataStartPosRaw = TerrainGenerator.PhysicalSizeToDataResolution(flatAreaPhysLocal.position) - Vector2Int.one ;
+		var dataEndPosRaw = TerrainGenerator.PhysicalSizeToDataResolution(flatAreaPhysLocal.position + globalFlatArea.size) + Vector2Int.one * 2;
 
-		var startPos = Vector2Int.Min(Vector2Int.Max(startPosScaled, Vector2Int.zero), new Vector2Int(TerrainGenerator.TileHeightMapSize, TerrainGenerator.TileHeightMapSize));
-		var endPos = Vector2Int.Min(Vector2Int.Max(endPosScaled, Vector2Int.zero), new Vector2Int(TerrainGenerator.TileHeightMapSize, TerrainGenerator.TileHeightMapSize));
+		var startPos = Vector2Int.Min(Vector2Int.Max(dataStartPosRaw, -BlendSizeVect), TerrainGenerator.TileHeightMapDataResolutionVect) + BlendSizeVect;
+		var endPos = Vector2Int.Min(Vector2Int.Max(dataEndPosRaw, -BlendSizeVect), TerrainGenerator.TileHeightMapDataResolutionVect) + BlendSizeVect;
 
 		//Debug.Log($"MyTerrainData.FlatHeightMap {Area} {MapSize} {HeightMapStepSize} Flat {flatArea} {flatAreaLocal} {flatValue} SP {startPosScaled} {startPos} EP {endPosScaled} {endPos}");
 
 		var modified = false;
-		for (int y = startPos.y; y < endPos.y; y++)
+		for (int dY = startPos.y + BlendSize; dY < endPos.y + BlendSize; dY++)
 		{
-			for (int x = startPos.x; x < endPos.x; x++)
+			for (int dX = startPos.x + BlendSize; dX < endPos.x + BlendSize; dX++)
 			{
-				var idx = y * TerrainGenerator.TileHeightMapSize + x;
-				if (HeightMap[idx] != flatValue)
+				var dIdx = dY * DataSize + dX;
+				if (HeightMap[dIdx] != flatValue)
 				{
-					HeightMap[idx] = flatValue;
+					HeightMap[dIdx] = flatValue;
 					modified = true;
 				}
 			}
@@ -572,7 +711,7 @@ public class TerrainTile
 public class TerrainMeshData
 {
 	public readonly int LOD;
-	public readonly int Size;
+	public readonly int VertexDataSize;
 
 	public readonly List<Vector3> Verts = new();
 	public readonly List<Vector2> UVs = new();
@@ -585,10 +724,10 @@ public class TerrainMeshData
     {
     }
 
-	public TerrainMeshData(int lod, int size)
+	public TerrainMeshData(int lod, int meshResolution)
 	{
 		LOD = lod < 0 ? 0 : lod;
-		Size = size;
+		VertexDataSize = meshResolution +1;
 	}
 	public void AddTriangle(int a, int b, int c)
 	{
@@ -614,18 +753,18 @@ public class TerrainMeshData
 
 	public void ResetMeshToDefault()
     {
-        for (int i = 0; i < Size; i++)
+        for (int pI = 0; pI < VertexDataSize; pI++)
         {
 			//x axis
-			var vertexPos = 0 * Size + i;
+			var vertexPos = 0 * VertexDataSize + pI;
 			_mesh.vertices[vertexPos] = Verts[vertexPos];
-			vertexPos = Size * Size + i;
+			vertexPos = VertexDataSize * VertexDataSize + pI;
 			_mesh.vertices[vertexPos] = Verts[vertexPos];
 
 			//y axis
-			vertexPos = i * Size + 0;
+			vertexPos = pI * VertexDataSize + 0;
 			_mesh.vertices[vertexPos] = Verts[vertexPos];
-			vertexPos = i * Size + Size;
+			vertexPos = pI * VertexDataSize + VertexDataSize;
 			_mesh.vertices[vertexPos] = Verts[vertexPos];
 		}
 
@@ -649,7 +788,7 @@ public class TerrainMeshData
 		var selfLODStep = TerrainGenerator.MeshStepSizeByLOD[LOD];
 		var adjustedMeshVerts = new List<Vector3>();
 		adjustedMeshVerts.AddRange(Verts);
-		var lastIdx = Size - 1;
+		var lastIdx = VertexDataSize - 1;
 
 		//LEFT
 		var neighbourLOD = lods[0];
@@ -661,32 +800,32 @@ public class TerrainMeshData
 			float startIdx = 0f;
 			float endIdx = stepDif;
 
-			for (int i = 0; i < Size; i++)
+			for (int mI = 0; mI < VertexDataSize; mI++)
 			{
-                if (i >= endIdx)
+                if (mI >= endIdx)
                 {
 					startIdx = endIdx;
 					endIdx += stepDif;
 
-					if (startIdx >= Size)
+					if (startIdx >= VertexDataSize)
 					{
-						startIdx = Size - 1;
+						startIdx = VertexDataSize - 1;
 					}
 
-					if (endIdx >= Size)
+					if (endIdx >= VertexDataSize)
                     {
-						endIdx = Size - 1;
+						endIdx = VertexDataSize - 1;
                     }
                 }
 
-				var percent = Mathf.InverseLerp(startIdx, endIdx, i);
+				var percent = Mathf.InverseLerp(startIdx, endIdx, mI);
 
-				var startVert = Verts[Mathf.FloorToInt(startIdx) * Size + 0];
-				var endVert = Verts[Mathf.FloorToInt(endIdx) * Size + 0];
-				var resultVert = adjustedMeshVerts[i * Size + 0];
+				var startVert = Verts[Mathf.FloorToInt(startIdx) * VertexDataSize + 0];
+				var endVert = Verts[Mathf.FloorToInt(endIdx) * VertexDataSize + 0];
+				var resultVert = adjustedMeshVerts[mI * VertexDataSize + 0];
 
 				resultVert.y = Mathf.Lerp(startVert.y, endVert.y, percent);
-				adjustedMeshVerts[i * Size + 0] = resultVert;
+				adjustedMeshVerts[mI * VertexDataSize + 0] = resultVert;
 			}
 		}
 
@@ -700,32 +839,32 @@ public class TerrainMeshData
 			float startIdx = 0f;
 			float endIdx = stepDif;
 
-			for (int i = 0; i < Size; i++)
+			for (int mI = 0; mI < VertexDataSize; mI++)
 			{
-				if (i >= endIdx)
+				if (mI >= endIdx)
 				{
 					startIdx = endIdx;
 					endIdx += stepDif;
 
-					if (startIdx >= Size)
+					if (startIdx >= VertexDataSize)
 					{
-						startIdx = Size - 1;
+						startIdx = VertexDataSize - 1;
 					}
 
-					if (endIdx >= Size)
+					if (endIdx >= VertexDataSize)
 					{
-						endIdx = Size - 1;
+						endIdx = VertexDataSize - 1;
 					}
 				}
 
-				var percent = Mathf.InverseLerp(startIdx, endIdx, i);
+				var percent = Mathf.InverseLerp(startIdx, endIdx, mI);
 
-				var startVert = Verts[lastIdx * Size + Mathf.FloorToInt(startIdx)];
-				var endVert = Verts[lastIdx * Size + Mathf.FloorToInt(endIdx)];
-				var resultVert = adjustedMeshVerts[lastIdx * Size + i];
+				var startVert = Verts[lastIdx * VertexDataSize + Mathf.FloorToInt(startIdx)];
+				var endVert = Verts[lastIdx * VertexDataSize + Mathf.FloorToInt(endIdx)];
+				var resultVert = adjustedMeshVerts[lastIdx * VertexDataSize + mI];
 
 				resultVert.y = Mathf.Lerp(startVert.y, endVert.y, percent);
-				adjustedMeshVerts[lastIdx * Size + i] = resultVert;
+				adjustedMeshVerts[lastIdx * VertexDataSize + mI] = resultVert;
 			}
 		}
 
@@ -739,32 +878,32 @@ public class TerrainMeshData
 			float startIdx = 0f;
 			float endIdx = stepDif;
 
-			for (int i = 0; i < Size; i++)
+			for (int mI = 0; mI < VertexDataSize; mI++)
 			{
-				if (i >= endIdx)
+				if (mI >= endIdx)
 				{
 					startIdx = endIdx;
 					endIdx += stepDif;
 
-					if (startIdx >= Size)
+					if (startIdx >= VertexDataSize)
 					{
-						startIdx = Size - 1;
+						startIdx = VertexDataSize - 1;
 					}
 
-					if (endIdx >= Size)
+					if (endIdx >= VertexDataSize)
 					{
-						endIdx = Size - 1;
+						endIdx = VertexDataSize - 1;
 					}
 				}
 
-				var percent = Mathf.InverseLerp(startIdx, endIdx, i);
+				var percent = Mathf.InverseLerp(startIdx, endIdx, mI);
 
-				var startVert = Verts[Mathf.FloorToInt(startIdx) * Size + lastIdx];
-				var endVert = Verts[Mathf.FloorToInt(endIdx) * Size + lastIdx];
-				var resultVert = adjustedMeshVerts[i * Size + lastIdx];
+				var startVert = Verts[Mathf.FloorToInt(startIdx) * VertexDataSize + lastIdx];
+				var endVert = Verts[Mathf.FloorToInt(endIdx) * VertexDataSize + lastIdx];
+				var resultVert = adjustedMeshVerts[mI * VertexDataSize + lastIdx];
 
 				resultVert.y = Mathf.Lerp(startVert.y, endVert.y, percent);
-				adjustedMeshVerts[i * Size + lastIdx] = resultVert;
+				adjustedMeshVerts[mI * VertexDataSize + lastIdx] = resultVert;
 			}
 		}
 
@@ -779,32 +918,32 @@ public class TerrainMeshData
 			float startIdx = 0f;
 			float endIdx = stepDif;
 
-			for (int i = 0; i < Size; i++)
+			for (int mI = 0; mI < VertexDataSize; mI++)
 			{
-				if (i >= endIdx)
+				if (mI >= endIdx)
 				{
 					startIdx = endIdx;
 					endIdx += stepDif;
 
-					if (startIdx >= Size)
+					if (startIdx >= VertexDataSize)
 					{
-						startIdx = Size - 1;
+						startIdx = VertexDataSize - 1;
 					}
 
-					if (endIdx >= Size)
+					if (endIdx >= VertexDataSize)
 					{
-						endIdx = Size - 1;
+						endIdx = VertexDataSize - 1;
 					}
 				}
 
-				var percent = Mathf.InverseLerp(startIdx, endIdx, i);
+				var percent = Mathf.InverseLerp(startIdx, endIdx, mI);
 
-				var startVert = Verts[0 * Size + Mathf.FloorToInt(startIdx)];
-				var endVert = Verts[0 * Size + Mathf.FloorToInt(endIdx)];
-				var resultVert = adjustedMeshVerts[0 * Size + i];
+				var startVert = Verts[0 * VertexDataSize + Mathf.FloorToInt(startIdx)];
+				var endVert = Verts[0 * VertexDataSize + Mathf.FloorToInt(endIdx)];
+				var resultVert = adjustedMeshVerts[0 * VertexDataSize + mI];
 
 				resultVert.y = Mathf.Lerp(startVert.y, endVert.y, percent);
-				adjustedMeshVerts[0 * Size + i] = resultVert;
+				adjustedMeshVerts[0 * VertexDataSize + mI] = resultVert;
 			}
 		}
 
@@ -819,41 +958,40 @@ public class TerrainMeshData
 		_mesh.Optimize();
 	}
 }
-public class BiomeTerrainGenerator
+public class BiomeTerrainHeightGenerator
 {
-	public readonly BiomePreset Preset;
+	readonly BiomePreset _biome;
+	readonly AnimationCurve _heightCurve;
+	readonly FastNoiseLite _noise;
 
-	AnimationCurve _heightCurve;
-	FastNoiseLite _noise;
-
-	public BiomeTerrainGenerator(BiomePreset preset, int seed)
+	public BiomeTerrainHeightGenerator(BiomePreset biome, int seed)
 	{
-		Preset = preset;
+		_biome = biome;
 
-		_heightCurve = new AnimationCurve(Preset.HeightCurve.keys);
+		_heightCurve = new AnimationCurve(_biome.HeightCurve.keys);
 		_noise = new FastNoiseLite(seed);
 
-		_noise.SetNoiseType(Preset.NoiseType);
-		_noise.SetFractalType(Preset.FractalType);
-		_noise.SetFrequency(Preset.Frequency);
-		_noise.SetFractalOctaves(Preset.Octaves);
-		_noise.SetFractalGain(Preset.Gain);
-		_noise.SetFractalLacunarity(Preset.Lacunarity);
+		_noise.SetNoiseType(_biome.NoiseType);
+		_noise.SetFractalType(_biome.FractalType);
+		_noise.SetFrequency(_biome.Frequency);
+		_noise.SetFractalOctaves(_biome.Octaves);
+		_noise.SetFractalGain(_biome.Gain);
+		_noise.SetFractalLacunarity(_biome.Lacunarity);
 	}
 
-	public float GetTerrainHeight(int x, int y)
+	public float GetTerrainHeight(float pX, float pY)
 	{
-		return GetHeightForNoiseVal(_noise.GetNoise(x, y));
+		return GetHeightForNoiseVal(_noise.GetNoise(pX, pY));
 	}
 
 	public float GetHeightForNoiseVal(float val)
     {
-		if (Preset.UseHeightCurve)
+		if (_biome.UseHeightCurve)
 		{
 			val = _heightCurve.Evaluate(val);
 		}
 
-		return Preset.BaseHeight + val * Preset.HeightMultiplier;
+		return _biome.BaseHeight + val * _biome.HeightMultiplier;
 	}
 }
 
@@ -863,10 +1001,7 @@ public class BiomeGenerator
 
 	readonly int _biomeCount;
 	readonly BiomePreset[] _biomePresets;
-	readonly BiomeTerrainGenerator[] _biomeGenerators;
-
-	Vector2Int _previousMapPos;
-	int[,] _previousMap;
+	readonly BiomeTerrainHeightGenerator[] _biomeGenerators;
 
 	public BiomeGenerator(
 		BiomePreset[] biomes, 
@@ -899,23 +1034,20 @@ public class BiomeGenerator
 		int biomeId = 1;
 		_biomeCount = biomes.Length;
 		_biomePresets = new BiomePreset[_biomeCount + 1];
-		_biomeGenerators = new BiomeTerrainGenerator[_biomeCount + 1];
+		_biomeGenerators = new BiomeTerrainHeightGenerator[_biomeCount + 1];
 		foreach (var biome in biomes)
 		{
 			_biomePresets[biomeId] = biome;
-			_biomeGenerators[biomeId] = new BiomeTerrainGenerator(biome, seed);
+			_biomeGenerators[biomeId] = new BiomeTerrainHeightGenerator(biome, seed);
 			biomeId++;
 		}
 	}
 
-	public int GetBiomeId(int x, int y)
+	public int GetBiomeId(float pX, float pY)
     {
-		float nX = x;
-		float nY = y;
+		_biomeMapNoise.DomainWarp(ref pX, ref pY);
 
-		_biomeMapNoise.DomainWarp(ref nX, ref nY);
-
-		return Mathf.RoundToInt(Mathf.InverseLerp(-1f, 1f, _biomeMapNoise.GetNoise(nX, nY)) * (_biomeCount - 1)) + 1;
+		return Mathf.RoundToInt(Mathf.InverseLerp(-1f, 1f, _biomeMapNoise.GetNoise(pX, pY)) * (_biomeCount - 1)) + 1;
 	}
 
 	public BiomePreset GetBiome(int biomeId)
@@ -923,7 +1055,7 @@ public class BiomeGenerator
 		return _biomePresets[biomeId];
     }
 
-	public BiomeTerrainGenerator GetGenerator(int biomeId)
+	public BiomeTerrainHeightGenerator GetGenerator(int biomeId)
     {
 		return _biomeGenerators[biomeId];
     }

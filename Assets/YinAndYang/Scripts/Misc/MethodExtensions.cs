@@ -26,22 +26,19 @@ public static class MethodExtensions
         return new Vector2(point.x, point.z);
     }
 
+    public static Vector2 To2D(this Vector3 vect)
+    {
+        return new Vector2(Mathf.Floor(vect.x), Mathf.Floor(vect.z));
+    }
+
     public static Vector2Int To2DInt(this Vector3 vect)
     {
         return new Vector2Int(Mathf.FloorToInt(vect.x), Mathf.FloorToInt(vect.z));
     }
-
-    public static Vector2Int ToTilePos(this Vector2Int pos)
+    public static Vector3 To3D(this Vector2 vect)
     {
-        return new Vector2(pos.x, pos.y).ToTilePos();
+        return new Vector3(vect.x, 0, vect.y);
     }
-    public static Vector2Int ToTilePos(this Vector2 pos)
-    {
-        return new Vector2Int(
-            MiscHelper.ToTilePos(pos.x),
-            MiscHelper.ToTilePos(pos.y));
-    }
-
     public static Vector3 To3D(this Vector2Int vect)
     {
         return new Vector3(vect.x, 0, vect.y);

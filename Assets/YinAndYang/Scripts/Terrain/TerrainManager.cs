@@ -21,17 +21,15 @@ public class TerrainManager : NetworkBehaviour
     TerrainGenerator _terrainGenerator;
 
     [SyncVar] int GeneratorQueueCount;
-    readonly ConcurrentQueue<Vector2Int> _tileGeneratorRequestQueue = new();
-    readonly ConcurrentQueue<TerrainTile> _tileReMeshGeneratorResultQueue = new();
-    readonly ConcurrentQueue<TerrainTile> _tileGeneratorResultQueue = new();
+    readonly ConcurrentQueue<TerrainTile> _terrainGeneratorInputQueue = new();
+    readonly ConcurrentQueue<TerrainTile> _terrainGeneratorOutputQueue = new();
 
 #if THREADED
     CancellationTokenSource _cancellationTokenSource;
     Thread _tileGenetatorThread;
-    Thread _tileMeshGenetatorThread;
 #endif
 
-    readonly Dictionary<Vector2Int, TerrainTile> _generatedTiles = new();
+    readonly Dictionary<Vector2, TerrainTile> _generatedTiles = new();
     readonly Dictionary<string, TerrainTileDisplay> _generatedTileDisplays = new();
     HashSet<TerrainTileDisplay> _activeTileDisplays = new();
 
@@ -60,9 +58,6 @@ public class TerrainManager : NetworkBehaviour
         _cancellationTokenSource = new CancellationTokenSource();
         _tileGenetatorThread = new Thread(GenerateTileOnThread);
         _tileGenetatorThread.Start();
-
-        _tileMeshGenetatorThread = new Thread(GenerateTileMeshOnThread);
-        _tileMeshGenetatorThread.Start();
 #endif
         lastDebugQueueCount = -1;
     }
@@ -76,7 +71,7 @@ public class TerrainManager : NetworkBehaviour
 
         _maxViewDistance = ViewDistancePreset[ViewDistancePreset.Length - 1].ViewDistance;
 
-        _chunkTileIdx = Mathf.FloorToInt(_maxViewDistance / TerrainGenerator.TileSize);
+        _chunkTileIdx = Mathf.FloorToInt(_maxViewDistance / TerrainGenerator.TileDataResolution);
         _lastDisplayPosClient = new Vector2(float.MaxValue, float.MaxValue);
     }
 
@@ -86,11 +81,9 @@ public class TerrainManager : NetworkBehaviour
 #if THREADED
         _cancellationTokenSource.Cancel();
         _tileGenetatorThread.Join();
-        _tileMeshGenetatorThread.Join();
 
         _cancellationTokenSource = null;
         _tileGenetatorThread = null;
-        _tileMeshGenetatorThread = null;
 #endif
     }
 
@@ -107,64 +100,46 @@ public class TerrainManager : NetworkBehaviour
         }
     }
 #endif
-
     void ProcessGenerateTile(CancellationToken token)
     {
-        if (_tileGeneratorRequestQueue.TryDequeue(out Vector2Int pos))
+        if (_terrainGeneratorInputQueue.TryDequeue(out var tile))
         {
-            var tile = new TerrainTile(pos, TerrainGenerator.TileSize, _terrainGenerator.BiomeBlendSize);
+            UpdateTileToNextState(tile);
 
             if (!token.IsCancellationRequested)
             {
-                _terrainGenerator.GenerateTerrainData(tile);
-            }
-
-            if (!token.IsCancellationRequested)
-            {
-                _tileReMeshGeneratorResultQueue.Enqueue(tile);
+                _terrainGeneratorOutputQueue.Enqueue(tile);
             }
         }
     }
 
-#if THREADED
-    void GenerateTileMeshOnThread()
+    public void UpdateTileToNextState(TerrainTile tile)
     {
-        var token = _cancellationTokenSource.Token;
-
-        while (!token.IsCancellationRequested)
+        switch (tile.State)
         {
-            ProcessGenerateTileMesh(token);
-
-            Thread.Sleep(1);
+            case TileState.Empty:
+                _terrainGenerator.GenerateBiomeMap(tile);
+                break;
+            case TileState.BiomeMap:
+                _terrainGenerator.GenerateHeightMap(tile);
+                break;
+            case TileState.HeightMap:
+                _terrainGenerator.BlendHeightMap(tile);
+                break;
+            case TileState.BlendedHeightMap:
+                _terrainGenerator.GenerateAllMeshData(tile);
+                break;
+            case TileState.MeshData:
+                _terrainGenerator.AdjustTerrainTileMeshData(tile);
+                break;
+            case TileState.AdjustedMeshData:
+                //TOWN?
+                break;
+            default:
+                break;
         }
     }
-#endif
 
-    void ProcessGenerateTileMesh(CancellationToken token)
-    {
-        if (_tileReMeshGeneratorResultQueue.TryDequeue(out var tile))
-        {
-            foreach (var preset in ViewDistancePreset)
-            {
-                //Debug.Log($"GenerateTerrainTileOnThread {tile.Name} LOD {preset.DisplayLOD} {preset.CollisionLOD}");
-
-                if (!token.IsCancellationRequested)
-                {
-                    _terrainGenerator.GenerateMeshData(tile, preset.DisplayLOD);
-                }
-
-                if (!token.IsCancellationRequested)
-                {
-                    _terrainGenerator.GenerateMeshData(tile, preset.CollisionLOD);
-                }
-            }
-
-            if (!token.IsCancellationRequested)
-            {
-                _tileGeneratorResultQueue.Enqueue(tile);
-            }
-        }
-    }
 
     void Update()
     {
@@ -172,10 +147,9 @@ public class TerrainManager : NetworkBehaviour
         {
 #if !THREADED
             ProcessGenerateTile(CancellationToken.None);
-            ProcessGenerateTileMesh(CancellationToken.None);
 #endif
 
-            if (_tileGeneratorResultQueue.TryDequeue(out TerrainTile tile))
+            if (_terrainGeneratorOutputQueue.TryDequeue(out TerrainTile tile))
             {
                 if (!_generatedTileDisplays.ContainsKey(tile.Name))
                 {
@@ -195,11 +169,11 @@ public class TerrainManager : NetworkBehaviour
             if (Camera.main == null) return;
 
             Camera.main.farClipPlane = _maxViewDistance;
-            var viewPos = Camera.main.transform.position.To2DInt();
+            var viewPos = Camera.main.transform.position.To2D();
 
             if (GeneratorQueueCount == 0)
             {
-                if ((_lastDisplayPosClient - viewPos).magnitude > TerrainGenerator.TileSizeHalf)
+                if ((_lastDisplayPosClient - viewPos).magnitude > TerrainGenerator.TileDataResolutionHalf)
                 {
                     if (IsChunkLoadedInViewDistance(viewPos))
                     {
@@ -233,7 +207,7 @@ public class TerrainManager : NetworkBehaviour
     [Server]
     private void UpdateQueueCount()
     {
-        GeneratorQueueCount = _tileGeneratorRequestQueue.Count + _tileGeneratorResultQueue.Count + _tileReMeshGeneratorResultQueue.Count;
+        GeneratorQueueCount = _terrainGeneratorInputQueue.Count + _terrainGeneratorOutputQueue.Count;
     }
 
     [Server]
@@ -241,13 +215,13 @@ public class TerrainManager : NetworkBehaviour
     {
         //Debug.Log($"CreateDisplayObjectOnServer {tile.Name}");
 
-        var obj = Instantiate(TilePrefab, tile.Pos.To3D(), Quaternion.identity);
+        var obj = Instantiate(TilePrefab, tile.PhysicalPos.To3D(), Quaternion.identity);
         obj.name = tile.Name;
 
         var tileDisplay = obj.GetComponent<TerrainTileDisplay>();
         tileDisplay.SetTile(tile);
 
-        _generatedTiles.Add(tile.Pos, tile);
+        _generatedTiles.Add(tile.PhysicalPos, tile);
         _generatedTileDisplays.Add(tile.Name, tileDisplay);
 
         ServerManager.Spawn(obj);
@@ -265,7 +239,7 @@ public class TerrainManager : NetworkBehaviour
 
         if (!IsServer)
         {
-            _generatedTiles.Add(tile.Pos, tile);
+            _generatedTiles.Add(tile.PhysicalPos, tile);
             _generatedTileDisplays.Add(tile.Name, tileDisplay);
         }
 
@@ -277,7 +251,7 @@ public class TerrainManager : NetworkBehaviour
     {
         //Debug.Log($"UpdateTileOnClient {tile.Name}");
 
-        _generatedTiles[tile.Pos] = tile;
+        _generatedTiles[tile.PhysicalPos] = tile;
         var display = _generatedTileDisplays[tile.Name];
         display.SetTile(tile);
     }
@@ -291,7 +265,7 @@ public class TerrainManager : NetworkBehaviour
         {
             for (int z = -_chunkTileIdx; z <= _chunkTileIdx; z++)
             {
-                var pos = viewPos + new Vector2(x * TerrainGenerator.TileSize, z * TerrainGenerator.TileSize);
+                var pos = viewPos + new Vector2(x * TerrainGenerator.TileDataResolution, z * TerrainGenerator.TileDataResolution);
                 var tile = GetTileAt(pos);
                 if (tile == null) return false;
                 if (!_generatedTileDisplays.ContainsKey(tile.Name)) return false;
@@ -310,7 +284,7 @@ public class TerrainManager : NetworkBehaviour
         {
             for (int z = -_chunkTileIdx; z <= _chunkTileIdx; z++)
             {
-                var pos = viewPos + new Vector2(x * TerrainGenerator.TileSize, z * TerrainGenerator.TileSize);
+                var pos = viewPos + new Vector2(x * TerrainGenerator.TileDataResolution, z * TerrainGenerator.TileDataResolution);
                 var tile = GetTileAt(pos);
                 UpdateTileDisplay(tile, viewPos, newActiveTileDisplays);
             }
@@ -362,7 +336,7 @@ public class TerrainManager : NetworkBehaviour
         {
             for (int z = -_chunkTileIdx; z <= _chunkTileIdx; z++)
             {
-                var pos = viewPos + new Vector2(x * TerrainGenerator.TileSize, z * TerrainGenerator.TileSize);
+                var pos = viewPos + new Vector2(x * TerrainGenerator.TileDataResolution, z * TerrainGenerator.TileDataResolution);
                 requestPosList.Add(pos);
             }
         }
@@ -377,13 +351,13 @@ public class TerrainManager : NetworkBehaviour
     [Server]
     void RequestTileGeneration(Vector2 pos)
     {
-        var tilePos = pos.ToTilePos();
+        var tilePos = TerrainGenerator.AnyPosToTilePos(pos);
 
         if (_generatedTiles.ContainsKey(tilePos)) return;
 
         //Debug.Log($"RequestTileGeneration {tilePos}");
 
-        _tileGeneratorRequestQueue.Enqueue(tilePos);
+        _terrainGeneratorInputQueue.Enqueue(_terrainGenerator.CreateEmptyTile(pos));
         UpdateQueueCount();
     }
 
@@ -391,7 +365,7 @@ public class TerrainManager : NetworkBehaviour
     ViewDistancePreset GetTileLOD(TerrainTile tile, Vector2 viewPos)
     {
         //var closestPoint = tile.Area.ClosestPoint(viewPos);
-        var distance = Vector2.Distance(tile.Pos + TerrainGenerator.TileSizeHalfVect, viewPos);
+        var distance = Vector2.Distance(tile.PhysicalPos + TerrainGenerator.TileDataResolutionHalfVect, viewPos);
 
         //Debug.Log($"GetLODWithinTheViewDistance {tile.Area} {distance}");
 
@@ -413,7 +387,7 @@ public class TerrainManager : NetworkBehaviour
     /// <returns></returns>
     public TerrainTile GetTileAt(Vector2 pos)
     {
-        if(_generatedTiles.TryGetValue(pos.ToTilePos(), out var tile))
+        if(_generatedTiles.TryGetValue(TerrainGenerator.AnyPosToTilePos(pos), out var tile))
         {
             return tile;
         }
@@ -423,16 +397,17 @@ public class TerrainManager : NetworkBehaviour
 
     public Vector3 GetPosOnTerrain(Vector3 pos)
     {
-        var posXZ = pos.To2DInt();
+        var posXZ = pos.To2D();
         var tile = GetTileAt(posXZ);
 
-        var height = tile.GetHeightAt(posXZ-tile.Pos);
+        var height = tile.GetHeightAt(posXZ-tile.PhysicalPos);
 
         return new Vector3(pos.x, height, pos.z);
     }
 
+    //TODO make it async on separated thread, make it general, so it would support any async tile action
     [ServerRpc]
-    public void FlatTerrain(RectInt flatArea, float toHeight)
+    public void FlatTerrain(Rect flatArea, float toHeight)
     {
         var tiles = new HashSet<TerrainTile>();
         tiles.Add(GetTileAt(flatArea.center));
@@ -465,11 +440,15 @@ public class TerrainManager : NetworkBehaviour
 
         foreach (var tile in tiles)
         {
-            if (tile.FlatHeightMap(flatArea, toHeight))
+            if(tile.State >= TileState.HeightMap)
             {
-                _tileReMeshGeneratorResultQueue.Enqueue(tile);
-                UpdateQueueCount();
+                if (tile.FlatHeightMap(flatArea, toHeight))
+                {
+                    _terrainGeneratorInputQueue.Enqueue(tile);
+                    UpdateQueueCount();
+                }
             }
+            
         }
     }
 }
