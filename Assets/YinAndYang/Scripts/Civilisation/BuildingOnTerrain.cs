@@ -28,7 +28,7 @@ public class BuildingOnTerrain : NetworkBehaviour
 
     void Update()
     {
-        if (_terrainManager.IsLoading || _terrainManager.GetTileAt(transform.position) == null) return;
+        if (_terrainManager.IsLoading || _terrainManager.GetTileAt(transform.position.To2D()).CurrentState < TerrainTileState.BlendedHeightMap) return;
 
         if (MoveBuildingToTerrain)
         {

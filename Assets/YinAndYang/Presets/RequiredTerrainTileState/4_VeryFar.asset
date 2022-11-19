@@ -9,9 +9,10 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b7595763d37970b41b6c7383d90ce088, type: 3}
-  m_Name: 5_Last
+  m_Script: {fileID: 11500000, guid: 222785a2988b58a4cb6b82fe88544ba2, type: 3}
+  m_Name: 4_VeryFar
   m_EditorClassIdentifier: 
-  ViewDistance: 3840
-  DisplayLOD: 4
-  CollisionLOD: 5
+  Distance: 1920
+  DisplayLOD: 3
+  CollisionLOD: 4
+  RequiredState: 4

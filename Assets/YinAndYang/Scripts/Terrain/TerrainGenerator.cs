@@ -7,7 +7,7 @@ using System.Runtime.CompilerServices;
 [ExecuteInEditMode]
 public class TerrainGenerator : NetworkBehaviour
 {
-	public const float TilePhysicalSize = 300;
+	public const float TilePhysicalSize = 240;
 	public const float TilePhysicalSizeHalf = TilePhysicalSize/2;
 	public static readonly Vector2 TilePhysicalSizeVect = new Vector2(TilePhysicalSize, TilePhysicalSize);
 	public static readonly Vector2 TilePhysicalSizeHalfVect = new Vector2(TilePhysicalSizeHalf, TilePhysicalSizeHalf);
@@ -25,7 +25,7 @@ public class TerrainGenerator : NetworkBehaviour
 	public static readonly Vector2Int TileHeightMapDataResolutionVect = new Vector2Int(TileHeightMapDataResolution, TileHeightMapDataResolution);
 	public static readonly Vector2Int TileHeightMapDataResolutionHalfVect = new Vector2Int(TileHeightMapDataResolutionHalf, TileHeightMapDataResolutionHalf);
 
-	public static int[] MeshStepSizeByLOD = { 4, 8, 12, 20, 24, 30, 48 };
+	public static int[] MeshStepSizeByLOD = { 4, 8, 12, 20, 24, 30, 48 }; //last idx:6
 
 	public Material BaseMaterial;
 
@@ -69,7 +69,7 @@ public class TerrainGenerator : NetworkBehaviour
 	public TerrainTileDisplay EditorRightTile;
 	public TerrainTileDisplay EditorForwardTile;
 	public TerrainTileDisplay EditorBackwardTile;
-	public BuildingOnTerrain EditorBuilding;
+	public BuildingFootprint EditorBuilding;
 
 	public GameObject EditorBiomeDisplay;
 	public float FlatAreaHeight = 10;
@@ -87,8 +87,7 @@ public class TerrainGenerator : NetworkBehaviour
 				EditorForwardTile,
 				EditorRightTile,
 				EditorBackwardTile
-			}
-			);
+			});
 		UpdateEditorDisplay(EditorLeftTile);
 		UpdateEditorDisplay(EditorRightTile);
 		UpdateEditorDisplay(EditorForwardTile);
@@ -117,18 +116,14 @@ public class TerrainGenerator : NetworkBehaviour
 		if (EditorBuilding != null)
 		{
 			var flatArea = EditorBuilding.GetComponentInChildren<BuildingFootprint>().GetFootprint();
-			var pos = EditorBuilding.transform.position;
-			tile.FlatHeightMap(flatArea, pos.y);
+			tile.FlatHeightMap(flatArea, EditorBuilding.transform.position.y);
 		}
 
-		if (tileDisplay.EditorViewDistance == null) return;
-
-		GenerateMeshData(tile, tileDisplay.EditorViewDistance.DisplayLOD);
-		GenerateMeshData(tile, tileDisplay.EditorViewDistance.CollisionLOD);
+		GenerateAllMeshData(tile);
 
 		if(neighbours != null && neighbours.Length == 4)
         {
-			tile.MeshDatas[tileDisplay.EditorViewDistance.DisplayLOD].AdjustMeshToNeighboursLOD(neighbours.Select(n => n.EditorViewDistance.DisplayLOD).ToArray());
+			tile.MeshDatas[tileDisplay.EditorRequiredTileStatePreset.DisplayLOD].AdjustMeshToNeighboursLOD(neighbours.Select(n => n.EditorRequiredTileStatePreset.DisplayLOD).ToArray());
 
 			neighbours[0].transform.position = tileDisplay.transform.position + new Vector2(-TilePhysicalSize,0).To3D();
 			neighbours[1].transform.position = tileDisplay.transform.position + new Vector2(0, TilePhysicalSize).To3D();
@@ -136,8 +131,7 @@ public class TerrainGenerator : NetworkBehaviour
 			neighbours[3].transform.position = tileDisplay.transform.position + new Vector2(0, -TilePhysicalSize).To3D();
 		}
 
-		tileDisplay.SetTile(tile);
-		tileDisplay.Display(tileDisplay.EditorViewDistance);
+		tileDisplay.Display(tile, tileDisplay.EditorRequiredTileStatePreset);
 	}
 	private void UpdateEditorBiomeDisplay()
 	{
@@ -398,7 +392,7 @@ public class TerrainGenerator : NetworkBehaviour
 		}
 
 		tile.BiomeMap = biomeMap;
-		tile.State = TileState.BiomeMap;
+		tile.SetState(TerrainTileState.BiomeMap);
 	}
 
 	public void GenerateHeightMap(TerrainTile tile)
@@ -420,7 +414,7 @@ public class TerrainGenerator : NetworkBehaviour
 		}
 
 		tile.HeightMap = heightMap;
-		tile.State = TileState.HeightMap;
+		tile.SetState(TerrainTileState.HeightMap);
 	}
 
 	public void BlendHeightMap(TerrainTile tile)
@@ -468,7 +462,7 @@ public class TerrainGenerator : NetworkBehaviour
 		}
 
 		tile.HeightMap = newHeightMap;
-		tile.State = TileState.BlendedHeightMap;
+		tile.SetState(TerrainTileState.BlendedHeightMap);
 	}
 
 	public void GenerateAllMeshData(TerrainTile tile)
@@ -477,12 +471,11 @@ public class TerrainGenerator : NetworkBehaviour
         {
 			GenerateMeshData(tile, lod);
 		}
+		tile.SetState(TerrainTileState.MeshData);
     }
 
 	private void GenerateMeshData(TerrainTile tile, int lod)
 	{
-		if (tile.HasMesh(lod)) return;
-
 		lod = lod < 0 ? 0 : lod;
 
 		var meshStepSize = MeshStepSizeByLOD[lod];
@@ -494,17 +487,19 @@ public class TerrainGenerator : NetworkBehaviour
 		; for (int mY = 0; mY < meshData.VertexDataSize; mY++)
 		{
 			for (int mX = 0; mX < meshData.VertexDataSize; mX++)
-			{
+			{ 
 				var dX = MeshResolutionToDataResolution(mX, meshResolution);
 				var dY = MeshResolutionToDataResolution(mY, meshResolution);
+
+				var	height = tile.HeightMap[(dY + tile.BlendSize) * tile.DataSize + (dX + tile.BlendSize)];
 
 				var pX = MeshResolutionToPhysicalSize(mX, meshResolution);
 				var pY = MeshResolutionToPhysicalSize(mY, meshResolution);
 
 				meshData.Verts.Add(new Vector3(
-					-TilePhysicalSizeHalf + pX, 
-					tile.HeightMap[(dY + tile.BlendSize) * tile.DataSize + (dX + tile.BlendSize)],
-					-TilePhysicalSizeHalf + pY));
+					-TilePhysicalSizeHalf + pX,
+					height,
+					- TilePhysicalSizeHalf + pY));
 
 				meshData.UVs.Add(new Vector2(mX * uvStep, mY * uvStep));
 
@@ -601,31 +596,32 @@ public class TerrainGenerator : NetworkBehaviour
 	}
 }
 
-public enum TileState
+public enum TerrainTileState
 {
-	Empty,
-	BiomeMap,
-	HeightMap,
-	BlendedHeightMap,
-	MeshData,
-	AdjustedMeshData
+	Empty = 0,
+	BiomeMap = 1,
+	HeightMap = 2,
+	BlendedHeightMap = 3,
+	MeshData = 4,
+	AdjustedMeshData = 5 
 }
 
-public class TerrainTile
+public class TerrainTile : System.IEquatable<TerrainTile>
 {
-
-	public readonly string Name;
+	public readonly string Id;
 	public readonly Vector2 PhysicalPos;
 	public readonly int DataSize;
 	public readonly int BlendSize;
 	public readonly Vector2Int BlendSizeVect;
+
 	public float[] HeightMap;
 	public int[] BiomeMap;
 
-	public Dictionary<int, TerrainMeshData> MeshDatas = new();
+	public readonly Dictionary<int, TerrainMeshData> MeshDatas = new();
 
-	public TileState State = TileState.Empty;
-
+	public TerrainTileState CurrentState;
+	public TerrainTileState PreviousState;
+	public float LastChangedTime = 0;
 
 	public TerrainTile()
 	{
@@ -633,7 +629,7 @@ public class TerrainTile
 
 	public TerrainTile(Vector2 pos, int tileDataResolution, int blendSize)
 	{
-		Name = $"Tile {pos}";
+		Id = $"Tile_{pos}";
 		PhysicalPos = pos;
 		DataSize = tileDataResolution + 2 * blendSize;
 		BlendSize = blendSize;
@@ -665,35 +661,36 @@ public class TerrainTile
 			MeshDatas.Add(meshData.LOD, meshData);
 		}
 	}
-
-	public void SetHeightMap(float[] heightMap)
-	{
-		HeightMap = heightMap;
-	}
+	public void SetState(TerrainTileState newState)
+    {
+		PreviousState = CurrentState;
+		CurrentState = newState;
+    }
 
 	public float GetHeightAt(Vector2 localPos)
 	{
-		var heightMapPos = Vector2Int.FloorToInt(localPos / TerrainGenerator.TileHeightMapDataResolution);
+		var heightMapPos = TerrainGenerator.PhysicalSizeToDataResolution(localPos);
 
-		return HeightMap[heightMapPos.y * TerrainGenerator.TileHeightMapDataResolution + heightMapPos.x];
+		Debug.Log($"GetHeightAt Tile:{this}, localPos:{localPos}, heightMapPos:{heightMapPos}");
+
+		return HeightMap[(heightMapPos.y+BlendSize) * DataSize + (heightMapPos.x + BlendSize)];
 	}
 
 	public bool FlatHeightMap(Rect globalFlatArea, float flatValue)
 	{
 		var flatAreaPhysLocal = new Rect(globalFlatArea.position - PhysicalPos, globalFlatArea.size);
 
-		var dataStartPosRaw = TerrainGenerator.PhysicalSizeToDataResolution(flatAreaPhysLocal.position) - Vector2Int.one ;
-		var dataEndPosRaw = TerrainGenerator.PhysicalSizeToDataResolution(flatAreaPhysLocal.position + globalFlatArea.size) + Vector2Int.one * 2;
+		var dataStartPos = TerrainGenerator.PhysicalSizeToDataResolution(flatAreaPhysLocal.position) - Vector2Int.one + BlendSizeVect;
+		var dataEndPos = TerrainGenerator.PhysicalSizeToDataResolution(flatAreaPhysLocal.position + globalFlatArea.size) + Vector2Int.one * 2 + BlendSizeVect;
 
-		var startPos = Vector2Int.Min(Vector2Int.Max(dataStartPosRaw, -BlendSizeVect), TerrainGenerator.TileHeightMapDataResolutionVect) + BlendSizeVect;
-		var endPos = Vector2Int.Min(Vector2Int.Max(dataEndPosRaw, -BlendSizeVect), TerrainGenerator.TileHeightMapDataResolutionVect) + BlendSizeVect;
-
-		//Debug.Log($"MyTerrainData.FlatHeightMap {Area} {MapSize} {HeightMapStepSize} Flat {flatArea} {flatAreaLocal} {flatValue} SP {startPosScaled} {startPos} EP {endPosScaled} {endPos}");
+		if (dataStartPos.x < 0 || dataStartPos.y < 0 || dataEndPos.x >= DataSize || dataEndPos.y >= DataSize) return false;
+		
+		Debug.Log($"FlatHeightMap tile:{this}, globalFlatArea:{globalFlatArea}, flatValue:{flatValue}, flatAreaPhysLocal:{flatAreaPhysLocal}, dataStartPos:{dataStartPos}, dataEndPos:{dataEndPos}");
 
 		var modified = false;
-		for (int dY = startPos.y + BlendSize; dY < endPos.y + BlendSize; dY++)
+		for (int dY = dataStartPos.y; dY < dataEndPos.y; dY++)
 		{
-			for (int dX = startPos.x + BlendSize; dX < endPos.x + BlendSize; dX++)
+			for (int dX = dataStartPos.x; dX < dataEndPos.x; dX++)
 			{
 				var dIdx = dY * DataSize + dX;
 				if (HeightMap[dIdx] != flatValue)
@@ -706,6 +703,39 @@ public class TerrainTile
 
 		return modified;
 	}
+
+	/// <summary>
+	/// Returns null if no preset should be applied
+	/// </summary>
+	/// <param name="viewPos"></param>
+	/// <param name="requiredStatePresets"></param>
+	/// <returns></returns>
+	public RequiredTileStatePreset SelectTilePreset(Vector2 viewPos, RequiredTileStatePreset[] requiredStatePresets)
+	{
+		var tileDistance = Vector2.Distance(viewPos, PhysicalPos);
+
+		return requiredStatePresets.FirstOrDefault(p => p.Distance > tileDistance);
+	}
+
+	public static bool operator ==(TerrainTile lhv, TerrainTile rhv)
+    {
+		return lhv is not null && rhv is not null && lhv.Id == rhv.Id;
+    }
+
+	public static bool operator !=(TerrainTile lhv, TerrainTile rhv)
+	{
+		return !(lhv == rhv);
+	}
+
+	public override string ToString()
+    {
+        return $"Tile Id:{Id} Pos:{PhysicalPos}, CurrentState:{CurrentState}, PreviousState:{PreviousState}, DataSize:{DataSize}, BlendSize:{BlendSize} LastChangedTime:{LastChangedTime}";
+    }
+
+    public bool Equals(TerrainTile other)
+    {
+		return Id == other.Id;
+    }
 }
 
 public class TerrainMeshData
@@ -734,10 +764,8 @@ public class TerrainMeshData
 		Tris.AddRange(new[] { a, b, c });
 	}
 
-	public Mesh GetMesh()
+	public Mesh CreateMesh()
     {
-		if (_mesh != null) return _mesh;
-
 		_mesh = new Mesh();
 		_mesh.name = $"Mesh LOD {LOD}";
 		_mesh.SetVertices(Verts);
@@ -749,29 +777,6 @@ public class TerrainMeshData
 		_mesh.Optimize();
 
 		return _mesh;
-	}
-
-	public void ResetMeshToDefault()
-    {
-        for (int pI = 0; pI < VertexDataSize; pI++)
-        {
-			//x axis
-			var vertexPos = 0 * VertexDataSize + pI;
-			_mesh.vertices[vertexPos] = Verts[vertexPos];
-			vertexPos = VertexDataSize * VertexDataSize + pI;
-			_mesh.vertices[vertexPos] = Verts[vertexPos];
-
-			//y axis
-			vertexPos = pI * VertexDataSize + 0;
-			_mesh.vertices[vertexPos] = Verts[vertexPos];
-			vertexPos = pI * VertexDataSize + VertexDataSize;
-			_mesh.vertices[vertexPos] = Verts[vertexPos];
-		}
-
-		_mesh.RecalculateNormals();
-		_mesh.RecalculateTangents();
-
-		//_mesh.Optimize();
 	}
 
 	/// <summary>

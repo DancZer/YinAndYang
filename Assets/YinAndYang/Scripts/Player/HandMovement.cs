@@ -54,13 +54,11 @@ public class HandMovement : NetworkBehaviour
 
     void Update() 
     {
-        if (!Application.isFocused ||
-            !IsOwner || 
-            !MiscHelper.IsOnTheScreen(Input.mousePosition) ||
-            _myTerrainManager.IsLoading
-            ) return;
+        if (!Application.isFocused || !IsOwner || !MiscHelper.IsOnTheScreen(Input.mousePosition) || !_myTerrainManager.IsPlayerAreaLoaded) return;
 
         var ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+
+        
 
         RaycastHit hit;
         if (Physics.Raycast(ray, out hit, Mathf.Infinity, ~HandLayerMask))

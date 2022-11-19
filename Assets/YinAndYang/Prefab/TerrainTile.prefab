@@ -12,7 +12,6 @@ GameObject:
   - component: {fileID: 200692872396365728}
   - component: {fileID: 6269902775862608385}
   - component: {fileID: 7031636734558015148}
-  - component: {fileID: 7819395764425514086}
   - component: {fileID: 2892588207496028319}
   m_Layer: 0
   m_Name: TerrainTile
@@ -100,33 +99,6 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 0}
---- !u!114 &7819395764425514086
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 9010430124050257449}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 26b716c41e9b56b4baafaf13a523ba2e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  <IsNested>k__BackingField: 0
-  <ComponentIndex>k__BackingField: 0
-  _networkBehaviours:
-  - {fileID: 2892588207496028319}
-  <ParentNetworkObject>k__BackingField: {fileID: 0}
-  <ChildNetworkObjects>k__BackingField: []
-  _isNetworked: 1
-  _isGlobal: 0
-  _defaultDespawnType: 0
-  NetworkObserver: {fileID: 0}
-  <PrefabId>k__BackingField: -1
-  _scenePathHash: 0
-  <SceneId>k__BackingField: 0
-  <AssetPathHash>k__BackingField: 11618156769426654411
-  _sceneNetworkObjects: []
 --- !u!114 &2892588207496028319
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -139,6 +111,4 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 136de5611bb83ce40be76e008a17703c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _componentIndexCache: 0
-  _addedNetworkObject: {fileID: 7819395764425514086}
-  _networkObjectCache: {fileID: 7819395764425514086}
+  EditorRequiredTileStatePreset: {fileID: 0}

@@ -1,4 +1,4 @@
-//#define THREADED
+#define THREADED
 //#define BENCHMARK_STOP
 
 using FishNet.Object;
@@ -12,39 +12,37 @@ using UnityEngine;
 
 public class TerrainManager : NetworkBehaviour
 {
-    public ViewDistancePreset[] ViewDistancePreset;
     public GameObject TilePrefab;
-
-    Vector2 _lastDisplayPosClient;
-    int _chunkTileIdx;
-
-    TerrainGenerator _terrainGenerator;
-
-    [SyncVar] int GeneratorQueueCount;
-    readonly ConcurrentQueue<TerrainTile> _terrainGeneratorInputQueue = new();
-    readonly ConcurrentQueue<TerrainTile> _terrainGeneratorOutputQueue = new();
-
-#if THREADED
-    CancellationTokenSource _cancellationTokenSource;
-    Thread _tileGenetatorThread;
-#endif
-
-    readonly Dictionary<Vector2, TerrainTile> _generatedTiles = new();
-    readonly Dictionary<string, TerrainTileDisplay> _generatedTileDisplays = new();
-    HashSet<TerrainTileDisplay> _activeTileDisplays = new();
-
-    HashSet<Vector2> _generateTilesRequestViewPos = new();
-
-    int lastDebugQueueCount=-1;
-    float _maxViewDistance;
-
+    public RequiredTileStatePreset[] TerrainTilePresets;
     public bool IsLoading
     {
         get
         {
-            return _generatedTiles.Count == 0 || GeneratorQueueCount > 0;
+            return _activeTileDisplays.Count == 0 || _generatedTiles.Count == 0 || GeneratorQueueCount > 0;
         }
     }
+    public bool IsPlayerAreaLoaded { get; private set; }
+
+    TerrainGenerator _terrainGenerator;
+
+    [SyncVar] int GeneratorQueueCount;
+    readonly Dictionary<Vector2, TerrainTile> _generatedTiles = new();
+    readonly ConcurrentQueue<(TerrainTile tile, TerrainTileState requestedState)> _terrainGeneratorInputQueue = new();
+    readonly ConcurrentQueue<TerrainTile> _terrainGeneratorOutputQueue = new();
+
+#if THREADED
+    CancellationTokenSource _cancellationTokenSource;
+    Thread[] _tileGenetatorThreads;
+#endif
+
+    Vector2 _lastTerrainUpdatePos;
+    float _maxViewDistance;
+
+    int lastDebugQueueCount = -1;
+
+    Dictionary<TerrainTile, TerrainTileDisplay> _activeTileDisplays = new();
+    Dictionary<TerrainTile, TerrainTileDisplay> _previousActiveTileDisplays = new();
+    List<TerrainTileDisplay> _notUsedTileDisplays = new();
 
     public override void OnStartServer()
     {
@@ -56,8 +54,16 @@ public class TerrainManager : NetworkBehaviour
         _terrainGenerator.SetupGenerator();
 #if THREADED
         _cancellationTokenSource = new CancellationTokenSource();
-        _tileGenetatorThread = new Thread(GenerateTileOnThread);
-        _tileGenetatorThread.Start();
+
+        _tileGenetatorThreads = new Thread[SystemInfo.processorCount];
+
+        for (int i = 0; i < SystemInfo.processorCount; i++)
+        {
+            var thread = new Thread(GenerateTileOnThread);
+            thread.Start();
+            _tileGenetatorThreads[i] = thread;
+        }
+        
 #endif
         lastDebugQueueCount = -1;
     }
@@ -66,13 +72,9 @@ public class TerrainManager : NetworkBehaviour
     {
         base.OnStartClient();
 
-        _terrainGenerator = StaticObjectAccessor.GetTerrainGenerator();
-        _terrainGenerator.SetupGenerator();
-
-        _maxViewDistance = ViewDistancePreset[ViewDistancePreset.Length - 1].ViewDistance;
-
-        _chunkTileIdx = Mathf.FloorToInt(_maxViewDistance / TerrainGenerator.TileDataResolution);
-        _lastDisplayPosClient = new Vector2(float.MaxValue, float.MaxValue);
+        _lastTerrainUpdatePos = new Vector2(float.MaxValue, float.MaxValue);
+        _maxViewDistance = TerrainTilePresets.Last(p => p.DisplayLOD != -1).Distance;
+        IsPlayerAreaLoaded = false;
     }
 
     public override void OnStopServer()
@@ -80,10 +82,12 @@ public class TerrainManager : NetworkBehaviour
         base.OnStopServer();
 #if THREADED
         _cancellationTokenSource.Cancel();
-        _tileGenetatorThread.Join();
-
+        foreach (var thread in _tileGenetatorThreads)
+        {
+            thread.Join();
+        }
         _cancellationTokenSource = null;
-        _tileGenetatorThread = null;
+        _tileGenetatorThreads = null;
 #endif
     }
 
@@ -94,45 +98,51 @@ public class TerrainManager : NetworkBehaviour
 
         while (!token.IsCancellationRequested)
         {
-            ProcessGenerateTile(token);
+            ProcessGenerateTileInputQueue(token);
 
             Thread.Sleep(1);
         }
     }
 #endif
-    void ProcessGenerateTile(CancellationToken token)
-    {
-        if (_terrainGeneratorInputQueue.TryDequeue(out var tile))
-        {
-            UpdateTileToNextState(tile);
 
-            if (!token.IsCancellationRequested)
+    void ProcessGenerateTileInputQueue(CancellationToken token)
+    {
+        if (_terrainGeneratorInputQueue.TryDequeue(out var tileRequest))
+        {
+            if (tileRequest.tile.CurrentState < tileRequest.requestedState)
             {
-                _terrainGeneratorOutputQueue.Enqueue(tile);
+                while (tileRequest.tile.CurrentState != tileRequest.requestedState) {
+                    GenerateTileNextState(tileRequest.tile);
+                }
+
+                if (!token.IsCancellationRequested)
+                {
+                    _terrainGeneratorOutputQueue.Enqueue(tileRequest.tile);
+                }
             }
         }
     }
 
-    public void UpdateTileToNextState(TerrainTile tile)
+    public void GenerateTileNextState(TerrainTile tile)
     {
-        switch (tile.State)
+        switch (tile.CurrentState)
         {
-            case TileState.Empty:
+            case TerrainTileState.Empty:
                 _terrainGenerator.GenerateBiomeMap(tile);
                 break;
-            case TileState.BiomeMap:
+            case TerrainTileState.BiomeMap:
                 _terrainGenerator.GenerateHeightMap(tile);
                 break;
-            case TileState.HeightMap:
+            case TerrainTileState.HeightMap:
                 _terrainGenerator.BlendHeightMap(tile);
                 break;
-            case TileState.BlendedHeightMap:
+            case TerrainTileState.BlendedHeightMap:
                 _terrainGenerator.GenerateAllMeshData(tile);
                 break;
-            case TileState.MeshData:
+            case TerrainTileState.MeshData:
                 _terrainGenerator.AdjustTerrainTileMeshData(tile);
                 break;
-            case TileState.AdjustedMeshData:
+            case TerrainTileState.AdjustedMeshData:
                 //TOWN?
                 break;
             default:
@@ -140,56 +150,33 @@ public class TerrainManager : NetworkBehaviour
         }
     }
 
-
     void Update()
     {
         if (IsServer)
         {
 #if !THREADED
-            ProcessGenerateTile(CancellationToken.None);
+            ProcessGenerateTileInputQueue(CancellationToken.None);
 #endif
-
-            if (_terrainGeneratorOutputQueue.TryDequeue(out TerrainTile tile))
-            {
-                if (!_generatedTileDisplays.ContainsKey(tile.Name))
-                {
-                    CreateDisplayObjectOnServer(tile);
-                }
-                else
-                {
-                    UpdateTileOnClient(tile);
-                }
-                
-                UpdateQueueCount();
-            }
+            ProcessGenerateTileOutputQueue();
         }
 
-        if (IsClient) 
-        { 
+        if (IsClient)
+        {
             if (Camera.main == null) return;
 
             Camera.main.farClipPlane = _maxViewDistance;
             var viewPos = Camera.main.transform.position.To2D();
 
-            if (GeneratorQueueCount == 0)
+            if (Vector2.Distance(_lastTerrainUpdatePos, viewPos) >= TerrainGenerator.TilePhysicalSizeHalf)
             {
-                if ((_lastDisplayPosClient - viewPos).magnitude > TerrainGenerator.TileDataResolutionHalf)
-                {
-                    if (IsChunkLoadedInViewDistance(viewPos))
-                    {
-                        ActivateTilesInViewDistance(viewPos);
-                    }
-                    else
-                    {
-                        GenerateTerrainAround(viewPos);
-                    }
+                _lastTerrainUpdatePos = viewPos;
 
-                    _lastDisplayPosClient = viewPos;
-                }
+                RequestTilesArountPos(_lastTerrainUpdatePos, TerrainTilePresets);
+                UpdateTilesArountClientLastPos(TerrainTilePresets);
             }
         }
 
-        if(lastDebugQueueCount != GeneratorQueueCount)
+        if (lastDebugQueueCount != GeneratorQueueCount)
         {
             lastDebugQueueCount = GeneratorQueueCount;
             Debug.Log($"QueueCount {lastDebugQueueCount}");
@@ -204,181 +191,181 @@ public class TerrainManager : NetworkBehaviour
 #endif
     }
 
+    [ServerRpc(RequireOwnership = false)]
+    private void RequestTilesArountPos(Vector2 viewPos, RequiredTileStatePreset[] simDistancePresets)
+    {
+        var maxViewDistance = simDistancePresets[simDistancePresets.Length - 1];
+        var maxDistanceTileCount = Mathf.CeilToInt(maxViewDistance.Distance / TerrainGenerator.TilePhysicalSize);
+
+        var newRequests = new List<(TerrainTile tile, TerrainTileState requestedState)>();
+        for (int tX = -maxDistanceTileCount; tX <= maxDistanceTileCount; tX++)
+        {
+            for (int tY = -maxDistanceTileCount; tY <= maxDistanceTileCount; tY++)
+            {
+                var posInTile = viewPos + new Vector2(tX * TerrainGenerator.TilePhysicalSize, tY * TerrainGenerator.TilePhysicalSize);
+
+                var tile = GetTileAt(posInTile);
+                var tilePreset = tile.SelectTilePreset(viewPos, simDistancePresets);
+
+                //We request a state for a tile if it is within the view distance
+                if (tilePreset != null)
+                {
+                    if (tile.CurrentState < tilePreset.RequiredState)
+                    {
+                        var request = (tile, tilePreset.RequiredState);
+
+                        newRequests.Add(request);
+                    }
+                }
+            }
+        }
+
+        foreach (var request in newRequests.OrderBy(r => Vector2.Distance(viewPos, r.Item1.PhysicalPos)))
+        {
+            if (request.tile.CurrentState<request.requestedState)
+            {
+                if (!_terrainGeneratorInputQueue.Contains(request))
+                {
+                    _terrainGeneratorInputQueue.Enqueue(request);
+                }
+            }
+        }
+
+        UpdateQueueCount();
+    }
+
+    [Server]
+    void ProcessGenerateTileOutputQueue()
+    {
+        if (_terrainGeneratorOutputQueue.TryDequeue(out TerrainTile tile))
+        {
+            if (tile.CurrentState >= TerrainTileState.HeightMap)
+            {
+                tile.LastChangedTime = Time.realtimeSinceStartup;
+                SetChangedTileOnClient(tile);
+            }
+                
+
+            UpdateQueueCount();
+        }
+    }
+
     [Server]
     private void UpdateQueueCount()
     {
         GeneratorQueueCount = _terrainGeneratorInputQueue.Count + _terrainGeneratorOutputQueue.Count;
     }
 
-    [Server]
-    void CreateDisplayObjectOnServer(TerrainTile tile)
+
+    [Client]
+    private void UpdateTilesArountClientLastPos(RequiredTileStatePreset[] simDistancePresets)
     {
-        //Debug.Log($"CreateDisplayObjectOnServer {tile.Name}");
+        var maxViewDistance = simDistancePresets.Last();
+        var maxDistanceTileCount = Mathf.CeilToInt(maxViewDistance.Distance / TerrainGenerator.TilePhysicalSize);
 
-        var obj = Instantiate(TilePrefab, tile.PhysicalPos.To3D(), Quaternion.identity);
-        obj.name = tile.Name;
+        _previousActiveTileDisplays = _activeTileDisplays;
+        _activeTileDisplays = new Dictionary<TerrainTile, TerrainTileDisplay>();
 
-        var tileDisplay = obj.GetComponent<TerrainTileDisplay>();
-        tileDisplay.SetTile(tile);
+        for (int tX = -maxDistanceTileCount; tX <= maxDistanceTileCount; tX++)
+        {
+            for (int tY = -maxDistanceTileCount; tY <= maxDistanceTileCount; tY++)
+            {
+                var posInTile = _lastTerrainUpdatePos + new Vector2(tX * TerrainGenerator.TilePhysicalSize, tY * TerrainGenerator.TilePhysicalSize);
 
-        _generatedTiles.Add(tile.PhysicalPos, tile);
-        _generatedTileDisplays.Add(tile.Name, tileDisplay);
+                var tile = GetTileAt(posInTile);
+                var tilePreset = tile.SelectTilePreset(_lastTerrainUpdatePos, simDistancePresets);
 
-        ServerManager.Spawn(obj);
+                UpdateDisplayWithPreset(tile, tilePreset);
+            }
+        }
 
-        SetObjectOnClient(obj, tile);
+        IsPlayerAreaLoaded = _activeTileDisplays.Count >= maxDistanceTileCount * maxDistanceTileCount;
+
+        Debug.Log($"IsPlayerAreaLoaded:{IsPlayerAreaLoaded}, _activeTileDisplays:{_activeTileDisplays.Count}, maxDistanceTileCount2:{maxDistanceTileCount * maxDistanceTileCount}");
+
+        foreach (var pair in _previousActiveTileDisplays)
+        {
+            if (!_activeTileDisplays.ContainsKey(pair.Key))
+            {
+                _notUsedTileDisplays.Add(pair.Value);
+            }
+        }
+        _previousActiveTileDisplays.Clear();
     }
 
     [ObserversRpc]
-    void SetObjectOnClient(GameObject obj, TerrainTile tile)
+    void SetChangedTileOnClient(TerrainTile tile)
     {
-        //Debug.Log($"SetObjectOnClient {tile.Name}");
-
-        var tileDisplay = obj.GetComponent<TerrainTileDisplay>();
-        tileDisplay.SetTile(tile);
-
         if (!IsServer)
         {
-            _generatedTiles.Add(tile.PhysicalPos, tile);
-            _generatedTileDisplays.Add(tile.Name, tileDisplay);
+            if (_generatedTiles.ContainsKey(tile.PhysicalPos))
+            {
+                _generatedTiles[tile.PhysicalPos] = tile;
+            }
+            else
+            {
+                _generatedTiles.Add(tile.PhysicalPos, tile);
+            }
         }
 
-        UpdateTileDisplay(tile, _lastDisplayPosClient, _activeTileDisplays);
-    }
+        var requiredPreset = tile.SelectTilePreset(_lastTerrainUpdatePos, TerrainTilePresets);
 
-    [ObserversRpc]
-    void UpdateTileOnClient(TerrainTile tile)
-    {
-        //Debug.Log($"UpdateTileOnClient {tile.Name}");
-
-        _generatedTiles[tile.PhysicalPos] = tile;
-        var display = _generatedTileDisplays[tile.Name];
-        display.SetTile(tile);
+        UpdateDisplayWithPreset(tile, requiredPreset);
     }
 
     [Client]
-    bool IsChunkLoadedInViewDistance(Vector2 viewPos)
+    void UpdateDisplayWithPreset(TerrainTile tile, RequiredTileStatePreset preset)
     {
-        //Debug.Log($"IsChunkLoadedInViewDistance {viewPos}");
-
-        for (int x = -_chunkTileIdx; x <= _chunkTileIdx; x++)
+        if (!TerrainTileDisplay.IsReadyForDisplay(tile, preset))
         {
-            for (int z = -_chunkTileIdx; z <= _chunkTileIdx; z++)
+            Debug.Log($"UpdateDisplayWithPreset Hide Tile:{tile}, Preset:{preset}");
+            if (_activeTileDisplays.TryGetValue(tile, out var tileDisplay))
             {
-                var pos = viewPos + new Vector2(x * TerrainGenerator.TileDataResolution, z * TerrainGenerator.TileDataResolution);
-                var tile = GetTileAt(pos);
-                if (tile == null) return false;
-                if (!_generatedTileDisplays.ContainsKey(tile.Name)) return false;
-            }
-        }
+                _notUsedTileDisplays.Add(tileDisplay);
+                _activeTileDisplays.Remove(tile);
 
-        return true;
-    }
-
-    [Client]
-    void ActivateTilesInViewDistance(Vector2 viewPos)
-    {
-        var newActiveTileDisplays = new HashSet<TerrainTileDisplay>();
-
-        for (int x = -_chunkTileIdx; x <= _chunkTileIdx; x++)
-        {
-            for (int z = -_chunkTileIdx; z <= _chunkTileIdx; z++)
-            {
-                var pos = viewPos + new Vector2(x * TerrainGenerator.TileDataResolution, z * TerrainGenerator.TileDataResolution);
-                var tile = GetTileAt(pos);
-                UpdateTileDisplay(tile, viewPos, newActiveTileDisplays);
-            }
-        }
-
-        foreach (var tile in _activeTileDisplays)
-        {
-            if (!newActiveTileDisplays.Contains(tile))
-            {
-                tile.gameObject.SetActive(false);
-            }
-        }
-        _activeTileDisplays = newActiveTileDisplays;
-    }
-
-    void UpdateTileDisplay(TerrainTile tile, Vector2 viewPos, HashSet<TerrainTileDisplay> newActiveTileDisplays)
-    {
-        var tileDisplay = _generatedTileDisplays[tile.Name];
-        var viewPreset = GetTileLOD(tile, viewPos);
-
-        //Debug.Log($"ActivateTilesInViewDistance {tile.Name} {viewPreset}");
-
-        if (viewPreset != null)
-        {
-            tileDisplay.Display(viewPreset);
-            tileDisplay.gameObject.SetActive(true);
-
-            if (!newActiveTileDisplays.Contains(tileDisplay))
-            {
-                newActiveTileDisplays.Add(tileDisplay);
+                tileDisplay.gameObject.SetActive(false);
+                tileDisplay.ResetDisplay();
             }
         }
         else
         {
-            tileDisplay.gameObject.SetActive(false);
-        }
-    }
-
-    [ServerRpc(RequireOwnership = false)]
-    private void GenerateTerrainAround(Vector2 viewPos)
-    {
-        //Debug.Log($"GenerateTerrainAround {viewPos}");
-        if (_generateTilesRequestViewPos.Contains(viewPos)) return;
-        _generateTilesRequestViewPos.Add(viewPos);
-
-        var requestPosList = new List<Vector2>();
-
-        for (int x = -_chunkTileIdx; x <= _chunkTileIdx; x++)
-        {
-            for (int z = -_chunkTileIdx; z <= _chunkTileIdx; z++)
+            Debug.Log($"UpdateDisplayWithPreset Show Tile:{tile}, Preset:{preset}");
+            if (!_activeTileDisplays.TryGetValue(tile, out var tileDisplay))
             {
-                var pos = viewPos + new Vector2(x * TerrainGenerator.TileDataResolution, z * TerrainGenerator.TileDataResolution);
-                requestPosList.Add(pos);
+                tileDisplay = GetAvailableTerrainDisplay(tile);
+                _activeTileDisplays.Add(tile, tileDisplay);
             }
-        }
+            tileDisplay.gameObject.transform.position = tile.PhysicalPos.To3D();
+            tileDisplay.gameObject.name = tile.Id;
+            tileDisplay.gameObject.SetActive(true);
 
-        //request firs which is closer to the player
-        foreach (var pos in requestPosList.OrderBy(p => Vector2.Distance(p, viewPos)))
-        {
-            RequestTileGeneration(pos.ToInt());
+            tileDisplay.Display(tile, preset);
         }
     }
 
-    [Server]
-    void RequestTileGeneration(Vector2 pos)
+    private TerrainTileDisplay GetAvailableTerrainDisplay(TerrainTile forTile)
     {
-        var tilePos = TerrainGenerator.AnyPosToTilePos(pos);
-
-        if (_generatedTiles.ContainsKey(tilePos)) return;
-
-        //Debug.Log($"RequestTileGeneration {tilePos}");
-
-        _terrainGeneratorInputQueue.Enqueue(_terrainGenerator.CreateEmptyTile(pos));
-        UpdateQueueCount();
-    }
-
-    [Client]
-    ViewDistancePreset GetTileLOD(TerrainTile tile, Vector2 viewPos)
-    {
-        //var closestPoint = tile.Area.ClosestPoint(viewPos);
-        var distance = Vector2.Distance(tile.PhysicalPos + TerrainGenerator.TileDataResolutionHalfVect, viewPos);
-
-        //Debug.Log($"GetLODWithinTheViewDistance {tile.Area} {distance}");
-
-        foreach (var preset in ViewDistancePreset)
+        if(_previousActiveTileDisplays.TryGetValue(forTile, out var tileDisplay))
         {
-            if (distance <= preset.ViewDistance)
-            {
-                return preset;
-            }
+            return tileDisplay;
         }
+        else if(_notUsedTileDisplays.Count>0)
+        {
+            var notUsed = _notUsedTileDisplays[0];
 
-        return null;
+            _notUsedTileDisplays.RemoveAt(0);
+
+            return notUsed;
+        }
+        else
+        {
+            var obj = Instantiate(TilePrefab, Vector3.zero, Quaternion.identity);
+            return obj.GetComponent<TerrainTileDisplay>();
+        }
     }
+
+
 
     /// <summary>
     /// Return null if the tile not loaded
@@ -387,12 +374,14 @@ public class TerrainManager : NetworkBehaviour
     /// <returns></returns>
     public TerrainTile GetTileAt(Vector2 pos)
     {
-        if(_generatedTiles.TryGetValue(TerrainGenerator.AnyPosToTilePos(pos), out var tile))
+        var tilePos = TerrainGenerator.AnyPosToTilePos(pos);
+        if (!_generatedTiles.TryGetValue(tilePos, out var tile))
         {
-            return tile;
+            tile = _terrainGenerator.CreateEmptyTile(tilePos);
+            _generatedTiles.Add(tilePos, tile);
         }
 
-        return null;
+        return tile;
     }
 
     public Vector3 GetPosOnTerrain(Vector3 pos)
@@ -400,13 +389,18 @@ public class TerrainManager : NetworkBehaviour
         var posXZ = pos.To2D();
         var tile = GetTileAt(posXZ);
 
+        if(tile.CurrentState < TerrainTileState.BlendedHeightMap)
+        {
+            throw new UnityException($"You can not modify tile in this state {tile}");
+        }
+
         var height = tile.GetHeightAt(posXZ-tile.PhysicalPos);
 
         return new Vector3(pos.x, height, pos.z);
     }
 
     //TODO make it async on separated thread, make it general, so it would support any async tile action
-    [ServerRpc]
+    [ServerRpc(RequireOwnership = false)]
     public void FlatTerrain(Rect flatArea, float toHeight)
     {
         var tiles = new HashSet<TerrainTile>();
@@ -440,15 +434,19 @@ public class TerrainManager : NetworkBehaviour
 
         foreach (var tile in tiles)
         {
-            if(tile.State >= TileState.HeightMap)
+            if (tile.CurrentState < TerrainTileState.BlendedHeightMap)
             {
-                if (tile.FlatHeightMap(flatArea, toHeight))
-                {
-                    _terrainGeneratorInputQueue.Enqueue(tile);
-                    UpdateQueueCount();
-                }
+                throw new UnityException($"You can not modify tile in this state {tile}");
             }
-            
+
+            if (tile.FlatHeightMap(flatArea, toHeight))
+            {
+                tile.SetState(TerrainTileState.BlendedHeightMap);
+                SetChangedTileOnClient(tile);
+
+                _terrainGeneratorInputQueue.Enqueue((tile, tile.PreviousState));
+                UpdateQueueCount();
+            }
         }
     }
 }

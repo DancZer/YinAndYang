@@ -2,7 +2,7 @@ using UnityEngine;
 
 public class AdjustWaterPlane : MonoBehaviour
 {
-    public ViewDistancePreset MaxViewDistance;
+    public RequiredTileStatePreset MaxViewDistance;
 
     public float MoveAfterDistance = 500;
 
@@ -23,8 +23,8 @@ public class AdjustWaterPlane : MonoBehaviour
             transform.position = camPos.To3D();
             _lastPos = camPos;
 
-            Camera.main.farClipPlane = MaxViewDistance.ViewDistance;
-            transform.localScale = new Vector3(MaxViewDistance.ViewDistance, 1, MaxViewDistance.ViewDistance);
+            Camera.main.farClipPlane = MaxViewDistance.Distance;
+            transform.localScale = new Vector3(MaxViewDistance.Distance, 1, MaxViewDistance.Distance);
         }
     }
 }

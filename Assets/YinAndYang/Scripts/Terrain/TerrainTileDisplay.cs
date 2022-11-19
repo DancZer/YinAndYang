@@ -1,49 +1,79 @@
 using UnityEngine;
 using FishNet.Object;
 
-public class TerrainTileDisplay : NetworkBehaviour
+public class TerrainTileDisplay : MonoBehaviour
 {
 #if UNITY_EDITOR
-    public ViewDistancePreset EditorViewDistance;
+    public RequiredTileStatePreset EditorRequiredTileStatePreset;
 #endif
-    TerrainTile _tile;
-    ViewDistancePreset displayedPreset;
-
     MeshFilter _meshFilter;
     MeshCollider _meshCollider;
 
-    public override void OnStartClient()
-    {
-        base.OnStartClient();
+    TerrainTile _tile;
+    RequiredTileStatePreset _preset;
+    float _lastDisplayTime;
 
-        _meshFilter = GetComponent<MeshFilter>();
-        _meshCollider = GetComponent<MeshCollider>();
+    public static bool IsReadyForDisplay(TerrainTile tile, RequiredTileStatePreset preset)
+    {
+        return
+            tile != null && preset != null &&
+            (tile.CurrentState >= TerrainTileState.MeshData || tile.PreviousState >= TerrainTileState.MeshData) &&
+            preset.DisplayLOD >= 0;
     }
 
-    public void SetTile(TerrainTile tile)
+    public void Display(TerrainTile tile, RequiredTileStatePreset preset)
     {
-        _tile = tile;
-        displayedPreset = null;
-    }
+        bool isReadyAndChanged = IsReadyForDisplay(tile, preset) &&
+            _tile == null || _preset == null || 
+            _tile == tile && _preset == preset && _lastDisplayTime != tile.LastChangedTime;
 
-    public void Display(ViewDistancePreset preset)
-    {
-        if (_tile == null || displayedPreset == preset) return;
-
-        var meshData = _tile.GetMeshData(preset.DisplayLOD);
-
-        if (Application.isEditor)
+        if (!isReadyAndChanged)
         {
-            GetComponent<MeshFilter>().sharedMesh = meshData.GetMesh();
+#if UNITY_EDITOR
+            Debug.LogWarning($"Skip Display {tile} {preset}");
+#endif
+            return;
+        }
+
+        Debug.Log($"Display Tile:{tile}, RequiredTileStatePreset:{preset}");
+
+        var meshData = tile.GetMeshData(preset.DisplayLOD);
+
+        if (Application.isEditor && !Application.isPlaying)
+        {
+            GetMeshFilter().sharedMesh = meshData.CreateMesh();
         }
         else
         {
-            var colliderMeshData = _tile.GetMeshData(preset.CollisionLOD);
+            var colliderMeshData = tile.GetMeshData(preset.CollisionLOD);
 
-            _meshFilter.mesh = meshData.GetMesh();
-            _meshCollider.sharedMesh = colliderMeshData.GetMesh();
+            GetMeshFilter().mesh = meshData.CreateMesh();
+            GetMeshCollider().sharedMesh = colliderMeshData.CreateMesh();
         }
 
-        displayedPreset = preset;
+        _tile = tile;
+        _preset = preset;
+        _lastDisplayTime = tile.LastChangedTime;
+    }
+
+    public void ResetDisplay()
+    {
+        _tile = null;
+        _preset = null;
+        _lastDisplayTime = 0;
+    }
+
+    private MeshFilter GetMeshFilter()
+    {
+        if (_meshFilter != null) return _meshFilter;
+
+        return _meshFilter = GetComponent<MeshFilter>();
+    }
+
+    private MeshCollider GetMeshCollider()
+    {
+        if (_meshCollider != null) return _meshCollider;
+
+        return _meshCollider = GetComponent<MeshCollider>();
     }
 }
