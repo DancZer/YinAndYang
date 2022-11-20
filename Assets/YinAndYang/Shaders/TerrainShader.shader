@@ -2,6 +2,8 @@ Shader "Custom/TerrainShader"
 {
     Properties
     {
+        testTexture("Texture",2D) = "white"{}
+        testScale("Scale", Float) = 1
     }
     SubShader
     {
@@ -24,9 +26,14 @@ Shader "Custom/TerrainShader"
 		float3 heightColours[maxColourCount];
 		float heightColoursStartHeight[maxColourCount];
 
+        sampler2D testTexture;
+        float testScale;
+
 		struct Input 
         {
 			float3 worldPos;
+            float3 worldNormal;
+            float2 uv_MainTex;
 		};
 
 		float inverseLerp(float a, float b, float value) 
@@ -49,6 +56,15 @@ Shader "Custom/TerrainShader"
                 OUT.Albedo = OUT.Albedo * (1-colorStrenght) + heightColours[i] * colorStrenght;
 			}
 
+            float3 worldPosScaled = IN.worldPos / testScale;
+            float3 blendAxes = abs(IN.worldNormal);
+            blendAxes /= blendAxes.x + blendAxes.y + blendAxes.z;
+
+            float3 blendAxeX = tex2D(testTexture, worldPosScaled.yz) * blendAxes.x;
+            float3 blendAxeY = tex2D(testTexture, worldPosScaled.xz) * blendAxes.y;
+            float3 blendAxeZ = tex2D(testTexture, worldPosScaled.xy) * blendAxes.z;
+
+            OUT.Albedo = blendAxeX + blendAxeY + blendAxeZ;
 		}
         ENDCG
     }

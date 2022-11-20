@@ -8,7 +8,7 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: TerrainMaterial
-  m_Shader: {fileID: 4800000, guid: 279fc596fb51a534c81944b34a156b3e, type: 3}
+  m_Shader: {fileID: 4800000, guid: 96ba53591851eef4bb0f960528d169ae, type: 3}
   m_ValidKeywords: []
   m_InvalidKeywords: []
   m_LightmapFlags: 4
@@ -20,6 +20,14 @@ Material:
   m_SavedProperties:
     serializedVersion: 3
     m_TexEnvs:
+    - _BiomeMapWeight:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _BiomeTileTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     - _BumpMap:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
@@ -56,8 +64,15 @@ Material:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
+    - testTexture:
+        m_Texture: {fileID: 2800000, guid: 7cd6c62ac7e2c7e4f8861a8452b4fabb, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     m_Ints:
+    - _BiomeCount: 0
+    - _BiomeId: 0
     - _HeightColourCount: 8
+    - _HeightTileId: 0
     - _heightColoursCount: 0
     m_Floats:
     - _BumpScale: 1
@@ -81,7 +96,9 @@ Material:
     - _ZWrite: 1
     - _maxHeight: -1
     - _minHeight: -1
+    - testScale: 2.46
     m_Colors:
+    - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
     - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _HeightColours: {r: 0.25, g: 0.5, b: 0.5, a: 1}

@@ -1,5 +1,5 @@
 using UnityEngine;
-using FishNet.Object;
+using System.Linq;
 
 public class TerrainTileDisplay : MonoBehaviour
 {
@@ -8,6 +8,7 @@ public class TerrainTileDisplay : MonoBehaviour
 #endif
     MeshFilter _meshFilter;
     MeshCollider _meshCollider;
+    MeshRenderer _meshRenderer;
 
     TerrainTile _tile;
     RequiredTileStatePreset _preset;
@@ -21,7 +22,7 @@ public class TerrainTileDisplay : MonoBehaviour
             preset.DisplayLOD >= 0;
     }
 
-    public void Display(TerrainTile tile, RequiredTileStatePreset preset)
+    public void Display(TerrainTile tile, RequiredTileStatePreset preset, BiomeData biomeData)
     {
         bool isReadyAndChanged = IsReadyForDisplay(tile, preset) &&
             (_tile is null || _preset is null || _tile != tile || _preset != preset ||
@@ -42,6 +43,7 @@ public class TerrainTileDisplay : MonoBehaviour
         if (Application.isEditor && !Application.isPlaying)
         {
             GetMeshFilter().sharedMesh = meshData.CreateMesh();
+            SetupMaterial(GetMeshRenderer().sharedMaterial, tile, biomeData);
         }
         else
         {
@@ -49,11 +51,24 @@ public class TerrainTileDisplay : MonoBehaviour
 
             GetMeshFilter().mesh = meshData.CreateMesh();
             GetMeshCollider().sharedMesh = colliderMeshData.CreateMesh();
+            SetupMaterial(GetMeshRenderer().material, tile, biomeData);
         }
 
         _tile = tile;
         _preset = preset;
         _lastDisplayTime = tile.LastChangedTime;
+    }
+
+    private void SetupMaterial(Material material, TerrainTile tile, BiomeData biomeData)
+    {
+        Debug.Log($"SetupMaterial Tile:{tile}, BiomeData:{biomeData}");
+
+        material.SetInteger("_BiomeCount", biomeData.Count);
+        material.SetFloatArray("_BiomeLayerCounts", biomeData.LayerCounts);
+        material.SetFloatArray("_BiomeMinHeights", biomeData.MinHeights);
+        material.SetFloatArray("_BiomeMaxHeights", biomeData.MaxHeights);
+        
+        material.SetTexture("_BiomeMapWeightTex", tile.CreateBiomeMapWeightTexArray(biomeData));
     }
 
     public void ResetDisplay()
@@ -75,5 +90,12 @@ public class TerrainTileDisplay : MonoBehaviour
         if (_meshCollider != null) return _meshCollider;
 
         return _meshCollider = GetComponent<MeshCollider>();
+    }
+
+    private MeshRenderer GetMeshRenderer()
+    {
+        if (_meshRenderer != null) return _meshRenderer;
+
+        return _meshRenderer = GetComponent<MeshRenderer>();
     }
 }

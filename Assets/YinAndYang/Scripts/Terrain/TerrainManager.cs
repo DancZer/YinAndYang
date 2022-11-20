@@ -18,14 +18,15 @@ public class TerrainManager : NetworkBehaviour
     {
         get
         {
-            return _activeTileDisplays.Count == 0 || _generatedTiles.Count == 0 || GeneratorQueueCount > 0;
+            return _activeTileDisplays.Count == 0 || _generatedTiles.Count == 0 || _generatorQueueCount > 0;
         }
     }
     public bool IsPlayerAreaLoaded { get; private set; }
 
     TerrainGenerator _terrainGenerator;
 
-    [SyncVar] int GeneratorQueueCount;
+    [SyncVar] int _generatorQueueCount;
+    [SyncVar] BiomeData _biomeData;
     readonly Dictionary<Vector2, TerrainTile> _generatedTiles = new();
     readonly ConcurrentQueue<(TerrainTile tile, TerrainTileState requestedState)> _terrainGeneratorInputQueue = new();
     readonly ConcurrentQueue<TerrainTile> _terrainGeneratorOutputQueue = new();
@@ -48,10 +49,12 @@ public class TerrainManager : NetworkBehaviour
     {
         base.OnStartServer();
 
-        GeneratorQueueCount = 0;
+        _generatorQueueCount = 0;
 
         _terrainGenerator = StaticObjectAccessor.GetTerrainGenerator();
-        _terrainGenerator.SetupGenerator();
+        _biomeData = _terrainGenerator.GetBiomeData();
+
+        Debug.Log($"BiomeData:{_biomeData}");
 #if THREADED
         _cancellationTokenSource = new CancellationTokenSource();
 
@@ -176,9 +179,9 @@ public class TerrainManager : NetworkBehaviour
             }
         }
 
-        if (lastDebugQueueCount != GeneratorQueueCount)
+        if (lastDebugQueueCount != _generatorQueueCount)
         {
-            lastDebugQueueCount = GeneratorQueueCount;
+            lastDebugQueueCount = _generatorQueueCount;
             Debug.Log($"QueueCount {lastDebugQueueCount}");
         }
 
@@ -253,7 +256,7 @@ public class TerrainManager : NetworkBehaviour
     [Server]
     private void UpdateQueueCount()
     {
-        GeneratorQueueCount = _terrainGeneratorInputQueue.Count + _terrainGeneratorOutputQueue.Count;
+        _generatorQueueCount = _terrainGeneratorInputQueue.Count + _terrainGeneratorOutputQueue.Count;
     }
 
 
@@ -346,7 +349,7 @@ public class TerrainManager : NetworkBehaviour
             tileDisplay.gameObject.name = tile.Id;
             tileDisplay.gameObject.SetActive(true);
 
-            tileDisplay.Display(tile, preset);
+            tileDisplay.Display(tile, preset, _biomeData);
         }
     }
 

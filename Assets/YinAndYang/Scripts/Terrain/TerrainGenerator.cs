@@ -13,6 +13,7 @@ public class TerrainGenerator : NetworkBehaviour
 	public static readonly Vector2 TilePhysicalSizeHalfVect = new Vector2(TilePhysicalSizeHalf, TilePhysicalSizeHalf);
 
 	public const int TileMeshResolution = 240;
+	public const int TileMeshResolution2 = TileMeshResolution * TileMeshResolution;
 	public const int TileMeshResolutionHalf = TileMeshResolution/2;
 
 	public const int TileDataResolution = 240;
@@ -58,11 +59,16 @@ public class TerrainGenerator : NetworkBehaviour
 	BiomeGenerator _biomeGenerator;
 	float _biomeBlendPercentage;
 
-	float _minHeight;
-	float _maxHeight;
+
 
 #if UNITY_EDITOR
-	public bool EditorAutoUpdateMesh;
+    #region EDITOR
+	public enum BiomeMapDisplays
+	{
+		Weighted, Single, HeightMap
+    }
+
+    public bool EditorAutoUpdateMesh;
 	public bool EditorAutoUpdateBiome;
 	public TerrainTileDisplay EditorCenterTile;
 	public TerrainTileDisplay EditorLeftTile;
@@ -74,8 +80,12 @@ public class TerrainGenerator : NetworkBehaviour
 	public GameObject EditorBiomeDisplay;
 	public float FlatAreaHeight = 10;
 
+	public BiomeMapDisplays BiomeMapDisplay = BiomeMapDisplays.Weighted;
+	public int BiomeMapDisplayBiomeId = 0;
+
 	List<Vector2> _lastPosListTerrain = new();
 	List<Vector2> _lastPosListBiome = new();
+
 
 	private void DrawTerrainInEditor()
 	{
@@ -131,7 +141,8 @@ public class TerrainGenerator : NetworkBehaviour
 			neighbours[3].transform.position = tileDisplay.transform.position + new Vector2(0, -TilePhysicalSize).To3D();
 		}
 
-		tileDisplay.Display(tile, tileDisplay.EditorRequiredTileStatePreset);
+		tileDisplay.Display(tile, tileDisplay.EditorRequiredTileStatePreset, _biomeGenerator.BiomeData);
+
 	}
 	private void UpdateEditorBiomeDisplay()
 	{
@@ -141,8 +152,18 @@ public class TerrainGenerator : NetworkBehaviour
 		GenerateHeightMap(tile);
 		BlendHeightMap(tile);
 
-		var colors = CreateBiomeColorMap(tile);
-		var tex = CreateTexture(colors);
+		
+		Texture2D tex;
+
+		if(BiomeMapDisplay == BiomeMapDisplays.Single)
+        {
+			tex = tile.CreateBiomeMapText(BiomeMapDisplayBiomeId % _biomeGenerator.BiomeData.Count);
+        }
+        else
+        {
+			var colors = CreateBiomeColorMap(tile);
+			tex = TerrainTile.CreateTexture(colors);
+		}
 
 		var meshFilter = EditorBiomeDisplay.GetComponent<MeshFilter>();
 		meshFilter.sharedMesh = CreatePlaneMesh();
@@ -150,17 +171,6 @@ public class TerrainGenerator : NetworkBehaviour
 		meshRenderer.sharedMaterial.SetTexture("_MainTex", tex);
 	}
 
-	public Texture CreateTexture(Color[] colors)
-	{
-		var texture = new Texture2D(TileMeshResolution, TileMeshResolution);
-		texture.filterMode = FilterMode.Point;
-		texture.wrapMode = TextureWrapMode.Clamp;
-		texture.SetPixels(colors);
-		texture.Apply();
-
-		return texture;
-
-	}
 
 	private Color[] CreateBiomeColorMap(TerrainTile tile)
 	{
@@ -170,38 +180,50 @@ public class TerrainGenerator : NetworkBehaviour
 		{
 			for (int mX = 0; mX < TileMeshResolution; mX++)
 			{
-				var dY = MeshResolutionToDataResolution(mY, TileMeshResolution);
-				var dX = MeshResolutionToDataResolution(mX, TileMeshResolution);
-
-				var dIdx = (dY + tile.BlendSize) * tile.DataSize + (dX + tile.BlendSize);
-
-				var height = tile.HeightMap[dIdx];
-				var biomeId = tile.BiomeMap[dIdx];
-				var biome = _biomeGenerator.GetBiome(biomeId);
-
-				var percentage = Mathf.InverseLerp(_minHeight, _maxHeight, height);
-
-				Color color;
-
-                if (percentage > 0.5f)
+				if(BiomeMapDisplay == BiomeMapDisplays.Weighted)
                 {
-					color = Color.Lerp(biome.ColorInEditor, Color.white, Mathf.InverseLerp(0.5f, 1f, percentage));
+					Color biomesCombinedColor = Color.black;
+
+					for (int biomeId = 0; biomeId < _biomeGenerator.BiomeData.Count; biomeId++)
+					{
+						var biome = _biomeGenerator.GetBiome(biomeId);
+						var biomeWeight = tile.GetBiomeMapColor(mX, mY, biomeId).r;
+
+						biomesCombinedColor += biome.ColorInEditor * biomeWeight;
+					}
+
+					colorMap[mY * TileMeshResolution + mX] = biomesCombinedColor;
 				}
                 else
-                {
-					color = Color.Lerp(Color.black, biome.ColorInEditor, Mathf.InverseLerp(0f, 0.5f, percentage));
-				}
-				
-
-				if (biome != null)
 				{
-					colorMap[mY * TileMeshResolution + dX] = color;
-				}
-				else
-				{
-					colorMap[mY * TileMeshResolution + dX] = Color.black;
-				}
+					var dY = MeshResolutionToDataResolution(mY, TileMeshResolution);
+					var dX = MeshResolutionToDataResolution(mX, TileMeshResolution);
 
+					var dIdx = (dY + tile.BlendSize) * tile.DataSize + (dX + tile.BlendSize);
+					var height = tile.HeightDataMap[dIdx];
+
+					float minHeight = float.MaxValue;
+					float maxHeight = float.MinValue;
+
+					for (int biomeId = 0; biomeId < _biomeGenerator.BiomeData.Count; biomeId++)
+					{
+						var generator = _biomeGenerator.GetGenerator(biomeId);
+						
+						if(minHeight > generator.PhysicalMinHeight)
+                        {
+							minHeight = generator.PhysicalMinHeight;
+                        }
+
+						if (maxHeight < generator.PhysicalMaxHeight)
+						{
+							maxHeight = generator.PhysicalMaxHeight;
+						}
+					}
+
+					var heightPercentage = Mathf.InverseLerp(minHeight, maxHeight, height);
+
+					colorMap[mY * TileMeshResolution + mX] = Color.Lerp(Color.black, Color.white, heightPercentage);
+				}
 			}
 		}
 
@@ -325,50 +347,31 @@ public class TerrainGenerator : NetworkBehaviour
 			return true;
 		}
 	}
+    #endregion
 #endif
-	/// <summary>
-	/// Initaialize the Terrain Generator
-	/// </summary>
-	public void SetupGenerator()
+    public override void OnStartServer()
+    {
+        base.OnStartServer();
+
+		SetupGenerator();
+    }
+
+	public override void OnStopServer()
 	{
-		_minHeight = float.MaxValue;
-		_maxHeight = float.MinValue;
+		base.OnStopServer();
 
-		foreach (var biome in Biomes)
-        {
-			var generator = new BiomeTerrainHeightGenerator(biome, Seed);
+		_biomeGenerator = null;
+	}
 
-			var biomeMinHeight = generator.GetHeightForNoiseVal(-1);
-			var biomeMaxHeight = generator.GetHeightForNoiseVal(1);
-
-			if (biomeMinHeight < _minHeight)
-            {
-				_minHeight = biomeMinHeight;
-			}
-
-			if (biomeMaxHeight > _maxHeight)
-			{
-				_maxHeight = biomeMaxHeight;
-			}
-		}
-
-		MyTerrainRegionPreset[] regions = Biomes[0].Regions;
-
-		var heightColourCount = regions.Length;
-		var heightColours = regions.Select(r => r.Color).ToArray();
-		var heightColoursStartHeight = regions.Select(r => r.Height).ToArray();
-
-		Debug.Log($"InitMaterial {_minHeight} {_maxHeight} {heightColourCount} {string.Join(",", heightColours)} {string.Join(",",heightColoursStartHeight)}");
-
-		BaseMaterial.SetFloat("minHeight", _minHeight);
-		BaseMaterial.SetFloat("maxHeight", _maxHeight);
-		BaseMaterial.SetInt("heightColourCount", heightColourCount);
-		BaseMaterial.SetColorArray("heightColours", heightColours);
-		BaseMaterial.SetFloatArray("heightColoursStartHeight", heightColoursStartHeight);
-
+	private void SetupGenerator()
+	{
 		_biomeGenerator = new BiomeGenerator(Biomes, Seed, BiomeSize, BiomeDistanceFunction, BiomeJitter, DomainWarpType, DomainWarpAmp, FractalType, FractalOctaves, FractalLacunarity, FractalGain);
-
 		_biomeBlendPercentage = 1f / ((2 * BiomeBlendSize + 1) * (2 * BiomeBlendSize + 1));
+	}
+
+	public BiomeData GetBiomeData()
+    {
+		return _biomeGenerator.BiomeData;
 	}
 
 	public TerrainTile CreateEmptyTile(Vector2 pos)
@@ -391,7 +394,7 @@ public class TerrainGenerator : NetworkBehaviour
 			}
 		}
 
-		tile.BiomeMap = biomeMap;
+		tile.BiomeDataMap = biomeMap;
 		tile.SetState(TerrainTileState.BiomeMap);
 	}
 
@@ -403,23 +406,26 @@ public class TerrainGenerator : NetworkBehaviour
 		{
 			for (int dX = 0; dX < tile.DataSize; dX++)
 			{
-				var biomeId = tile.BiomeMap[dY * tile.DataSize + dX];
+				var biomeId = tile.BiomeDataMap[dY * tile.DataSize + dX];
 				var generator = _biomeGenerator.GetGenerator(biomeId);
 
-				var pX = DataResolutionToPhysicalSize(dX - tile.BlendSize);
-				var pY = DataResolutionToPhysicalSize(dY - tile.BlendSize);
+				var pX = tile.PhysicalPos.x + DataResolutionToPhysicalSize(dX - tile.BlendSize);
+				var pY = tile.PhysicalPos.y + DataResolutionToPhysicalSize(dY - tile.BlendSize);
 
-				heightMap[dY * tile.DataSize + dX] = generator.GetTerrainHeight(tile.PhysicalPos.x + pX, tile.PhysicalPos.y + pY);
+				heightMap[dY * tile.DataSize + dX] = generator.GetTerrainHeight(pX, pY);
 			}
 		}
 
-		tile.HeightMap = heightMap;
+		tile.HeightDataMap = heightMap;
 		tile.SetState(TerrainTileState.HeightMap);
 	}
 
 	public void BlendHeightMap(TerrainTile tile)
 	{
 		var newHeightMap = new float[tile.DataSize * tile.DataSize];
+		var biomeAlphaMap = new Color[TileMeshResolution2 * _biomeGenerator.BiomeData.Count];
+
+		var blendBiomeCache = new float[_biomeGenerator.BiomeData.Count];
 
 		for (int dY = 0; dY < tile.DataSize; dY++)
 		{
@@ -428,32 +434,40 @@ public class TerrainGenerator : NetworkBehaviour
 				var dIdx = dY * tile.DataSize + dX;
 				var newHeight = 0f;
 
-				if(dX < tile.BlendSize || dY < tile.BlendSize || dX > tile.BlendSize + TileDataResolution || dY > tile.BlendSize + TileDataResolution)
+				if(dX < tile.BlendSize || dY < tile.BlendSize || dX >= tile.DataSize - tile.BlendSize || dY >= tile.DataSize - tile.BlendSize)
                 {
-					newHeight = tile.HeightMap[dIdx];
+					newHeight = tile.HeightDataMap[dIdx];
 				}
                 else
                 {
-					var currentBiome = tile.BiomeMap[dIdx];
-					var hasBlendAreaMultipleBiomes = true;
+                    for (int biomeId = 0; biomeId < _biomeGenerator.BiomeData.Count; biomeId++)
+                    {
+						blendBiomeCache[biomeId] = 0;
+					}
 
 					for (int bY = -tile.BlendSize; bY <= tile.BlendSize; bY++)
 					{
 						for (int bX = -tile.BlendSize; bX <= tile.BlendSize; bX++)
 						{
 							var blendIdx = (dY + bY) * tile.DataSize + (dX + bX);
+							var biomeId = tile.BiomeDataMap[blendIdx];
 
-							if (currentBiome != tile.BiomeMap[blendIdx])
-                            {
-								hasBlendAreaMultipleBiomes = true;
-							}
-							newHeight += _biomeBlendPercentage * tile.HeightMap[blendIdx];
+							blendBiomeCache[biomeId] += _biomeBlendPercentage;
+
+							newHeight += _biomeBlendPercentage * tile.HeightDataMap[blendIdx];
 						}
 					}
 
-                    if (!hasBlendAreaMultipleBiomes)
-                    {
-						newHeight = tile.HeightMap[dIdx];
+					var mY = DataResolutionToMeshResolution(dY - tile.BlendSize, TileMeshResolution);
+					var mX = DataResolutionToMeshResolution(dX - tile.BlendSize, TileMeshResolution);
+
+					if(mX < TileMeshResolution && mY < TileMeshResolution) { 
+
+						for (int biomeId = 0; biomeId < _biomeGenerator.BiomeData.Count; biomeId++)
+						{
+							var color = Color.Lerp(Color.black, Color.white, blendBiomeCache[biomeId]);
+							biomeAlphaMap[biomeId * TileMeshResolution2 + mY * TileMeshResolution + mX] = color;
+						}
 					}
 				}
 
@@ -461,7 +475,8 @@ public class TerrainGenerator : NetworkBehaviour
 			}
 		}
 
-		tile.HeightMap = newHeightMap;
+		tile.HeightDataMap = newHeightMap;
+		tile.BiomeWeightColorMap = biomeAlphaMap;
 		tile.SetState(TerrainTileState.BlendedHeightMap);
 	}
 
@@ -491,14 +506,16 @@ public class TerrainGenerator : NetworkBehaviour
 				var dX = MeshResolutionToDataResolution(mX, meshResolution);
 				var dY = MeshResolutionToDataResolution(mY, meshResolution);
 
-				var	height = tile.HeightMap[(dY + tile.BlendSize) * tile.DataSize + (dX + tile.BlendSize)];
+				var dIdx = (dY + tile.BlendSize) * tile.DataSize + (dX + tile.BlendSize);
 
 				var pX = MeshResolutionToPhysicalSize(mX, meshResolution);
 				var pY = MeshResolutionToPhysicalSize(mY, meshResolution);
 
+				var pHeight = tile.HeightDataMap[dIdx];
+
 				meshData.Verts.Add(new Vector3(
 					-TilePhysicalSizeHalf + pX,
-					height,
+					pHeight,
 					- TilePhysicalSizeHalf + pY));
 
 				meshData.UVs.Add(new Vector2(mX * uvStep, mY * uvStep));
@@ -542,8 +559,7 @@ public class TerrainGenerator : NetworkBehaviour
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static Vector2 DataResolutionToPhysicalSize(Vector2Int dPos)
 	{
-		var res = new Vector2(dPos.x, dPos.y);
-		return (res / TileDataResolution) * TilePhysicalSize;
+		return (new Vector2(dPos.x, dPos.y) / TileDataResolution) * TilePhysicalSize;
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -555,8 +571,7 @@ public class TerrainGenerator : NetworkBehaviour
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static Vector2 MeshResolutionToPhysicalSize(Vector2Int mPos, int meshResolution)
 	{
-		var res = new Vector2(mPos.x, mPos.y);
-		return (res / meshResolution) * TilePhysicalSize;
+		return (new Vector2(mPos.x, mPos.y) / meshResolution) * TilePhysicalSize;
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -574,7 +589,7 @@ public class TerrainGenerator : NetworkBehaviour
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static int DataResolutionToMeshResolution(int dPos, int meshResolution)
 	{
-		return Mathf.FloorToInt((dPos / TileDataResolution) * meshResolution);
+		return Mathf.FloorToInt((dPos / (float)TileDataResolution) * meshResolution);
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -596,464 +611,16 @@ public class TerrainGenerator : NetworkBehaviour
 	}
 }
 
-public enum TerrainTileState
+public class BiomeData
 {
-	Empty = 0,
-	BiomeMap = 1,
-	HeightMap = 2,
-	BlendedHeightMap = 3,
-	MeshData = 4,
-	AdjustedMeshData = 5 
-}
+	public int Count;
 
-public class TerrainTile
-{
-	public readonly string Id;
-	public readonly Vector2 PhysicalPos;
-	public readonly int DataSize;
-	public readonly int BlendSize;
-	public readonly Vector2Int BlendSizeVect;
-
-	public float[] HeightMap;
-	public int[] BiomeMap;
-
-	public readonly Dictionary<int, TerrainMeshData> MeshDatas = new();
-
-	public TerrainTileState CurrentState;
-	public TerrainTileState PreviousState;
-	public float LastChangedTime = 0;
-
-	public Vector2 PhysicalCenter { 
-		get
-		{
-			return PhysicalPos + TerrainGenerator.TilePhysicalSizeHalfVect;
-		}
-	}
-
-	public TerrainTile()
-	{
-	}
-
-	public TerrainTile(Vector2 pos, int tileDataResolution, int blendSize)
-	{
-		Id = $"Tile_{pos}";
-		PhysicalPos = pos;
-		DataSize = tileDataResolution + 2 * blendSize;
-		BlendSize = blendSize;
-		BlendSizeVect = new Vector2Int(blendSize, blendSize);
-	}
-	public void ClearMeshes()
-	{
-		MeshDatas.Clear();
-	}
-
-	public bool HasMesh(int lod)
-	{
-		return MeshDatas.ContainsKey(lod);
-	}
-
-	public TerrainMeshData GetMeshData(int lod)
-    {
-		return MeshDatas[lod];
-    }
-
-	public void AddOrUpdateMesh(TerrainMeshData meshData)
-    {
-		if (MeshDatas.ContainsKey(meshData.LOD))
-		{
-			MeshDatas[meshData.LOD] = meshData;
-		}
-		else
-		{
-			MeshDatas.Add(meshData.LOD, meshData);
-		}
-	}
-	public void SetState(TerrainTileState newState)
-    {
-		PreviousState = CurrentState;
-		CurrentState = newState;
-    }
-
-	public float GetHeightAt(Vector2 localPos)
-	{
-		var heightMapPos = TerrainGenerator.PhysicalSizeToDataResolution(localPos);
-
-		//Debug.Log($"GetHeightAt Tile:{this}, localPos:{localPos}, heightMapPos:{heightMapPos}");
-
-		return HeightMap[(heightMapPos.y+BlendSize) * DataSize + (heightMapPos.x + BlendSize)];
-	}
-
-	public bool FlatHeightMap(Rect globalFlatArea, float flatValue)
-	{
-		var flatAreaPhysLocal = new Rect(globalFlatArea.position - PhysicalPos, globalFlatArea.size);
-
-		var dataStartPos = TerrainGenerator.PhysicalSizeToDataResolution(flatAreaPhysLocal.position) - Vector2Int.one + BlendSizeVect;
-		var dataEndPos = TerrainGenerator.PhysicalSizeToDataResolution(flatAreaPhysLocal.position + globalFlatArea.size) + Vector2Int.one * 2 + BlendSizeVect;
-
-		if (dataStartPos.x < 0 || dataStartPos.y < 0 || dataEndPos.x >= DataSize || dataEndPos.y >= DataSize) return false;
-		
-		//Debug.Log($"FlatHeightMap tile:{this}, globalFlatArea:{globalFlatArea}, flatValue:{flatValue}, flatAreaPhysLocal:{flatAreaPhysLocal}, dataStartPos:{dataStartPos}, dataEndPos:{dataEndPos}");
-
-		var modified = false;
-		for (int dY = dataStartPos.y; dY < dataEndPos.y; dY++)
-		{
-			for (int dX = dataStartPos.x; dX < dataEndPos.x; dX++)
-			{
-				var dIdx = dY * DataSize + dX;
-				if (HeightMap[dIdx] != flatValue)
-				{
-					HeightMap[dIdx] = flatValue;
-					modified = true;
-				}
-			}
-		}
-
-		return modified;
-	}
-
-	/// <summary>
-	/// Returns null if no preset should be applied
-	/// </summary>
-	/// <param name="viewPos"></param>
-	/// <param name="requiredStatePresets"></param>
-	/// <returns></returns>
-	public RequiredTileStatePreset SelectTilePreset(Vector2 viewPos, RequiredTileStatePreset[] requiredStatePresets)
-	{
-		var tileDistance = Vector2.Distance(viewPos, PhysicalPos);
-
-		return requiredStatePresets.FirstOrDefault(p => p.Distance > tileDistance);
-	}
+	public float[] MinHeights;
+	public float[] MaxHeights;
+	public float[] LayerCounts;
 
     public override string ToString()
     {
-        return $"Tile Id:{Id} Pos:{PhysicalPos}, CurrentState:{CurrentState}, PreviousState:{PreviousState}, DataSize:{DataSize}, BlendSize:{BlendSize} LastChangedTime:{LastChangedTime}";
-    }
-}
-
-public class TerrainMeshData
-{
-	public readonly int LOD;
-	public readonly int VertexDataSize;
-
-	public readonly List<Vector3> Verts = new();
-	public readonly List<Vector2> UVs = new();
-	public readonly List<int> Tris = new();
-
-	[System.NonSerialized]
-	private Mesh _mesh;
-
-    public TerrainMeshData()
-    {
-    }
-
-	public TerrainMeshData(int lod, int meshResolution)
-	{
-		LOD = lod < 0 ? 0 : lod;
-		VertexDataSize = meshResolution +1;
-	}
-	public void AddTriangle(int a, int b, int c)
-	{
-		Tris.AddRange(new[] { a, b, c });
-	}
-
-	public Mesh CreateMesh()
-    {
-		_mesh = new Mesh();
-		_mesh.name = $"Mesh LOD {LOD}";
-		_mesh.SetVertices(Verts);
-		_mesh.SetTriangles(Tris, 0);
-		_mesh.SetUVs(0, UVs);
-		_mesh.RecalculateNormals();
-		_mesh.RecalculateTangents();
-
-		_mesh.Optimize();
-
-		return _mesh;
-	}
-
-	/// <summary>
-	/// Neighbour lods should be in order of Left, Forward, Right, Backward
-	/// </summary>
-	/// <param name="lods"></param>
-	public void AdjustMeshToNeighboursLOD(int[] lods)
-	{
-		if (lods == null) throw new UnityException($"Argument null {nameof(lods)}");
-		if (lods.Length != 4) throw new UnityException($"Argument lods has not 4 values but {lods.Length}");
-
-		if (lods[0] == LOD && lods[1] == LOD && lods[2] == LOD && lods[3] == LOD) return;
-
-		var selfLODStep = TerrainGenerator.MeshStepSizeByLOD[LOD];
-		var adjustedMeshVerts = new List<Vector3>();
-		adjustedMeshVerts.AddRange(Verts);
-		var lastIdx = VertexDataSize - 1;
-
-		//LEFT
-		var neighbourLOD = lods[0];
-		if (neighbourLOD > LOD)
-        {
-			var leftLODStep = TerrainGenerator.MeshStepSizeByLOD[neighbourLOD];
-			float stepDif = leftLODStep/selfLODStep;
-
-			float startIdx = 0f;
-			float endIdx = stepDif;
-
-			for (int mI = 0; mI < VertexDataSize; mI++)
-			{
-                if (mI >= endIdx)
-                {
-					startIdx = endIdx;
-					endIdx += stepDif;
-
-					if (startIdx >= VertexDataSize)
-					{
-						startIdx = VertexDataSize - 1;
-					}
-
-					if (endIdx >= VertexDataSize)
-                    {
-						endIdx = VertexDataSize - 1;
-                    }
-                }
-
-				var percent = Mathf.InverseLerp(startIdx, endIdx, mI);
-
-				var startVert = Verts[Mathf.FloorToInt(startIdx) * VertexDataSize + 0];
-				var endVert = Verts[Mathf.FloorToInt(endIdx) * VertexDataSize + 0];
-				var resultVert = adjustedMeshVerts[mI * VertexDataSize + 0];
-
-				resultVert.y = Mathf.Lerp(startVert.y, endVert.y, percent);
-				adjustedMeshVerts[mI * VertexDataSize + 0] = resultVert;
-			}
-		}
-
-		//FORWARD
-		neighbourLOD = lods[1];
-		if (neighbourLOD > LOD)
-		{
-			var leftLODStep = TerrainGenerator.MeshStepSizeByLOD[neighbourLOD];
-			float stepDif = leftLODStep / (float)selfLODStep;
-
-			float startIdx = 0f;
-			float endIdx = stepDif;
-
-			for (int mI = 0; mI < VertexDataSize; mI++)
-			{
-				if (mI >= endIdx)
-				{
-					startIdx = endIdx;
-					endIdx += stepDif;
-
-					if (startIdx >= VertexDataSize)
-					{
-						startIdx = VertexDataSize - 1;
-					}
-
-					if (endIdx >= VertexDataSize)
-					{
-						endIdx = VertexDataSize - 1;
-					}
-				}
-
-				var percent = Mathf.InverseLerp(startIdx, endIdx, mI);
-
-				var startVert = Verts[lastIdx * VertexDataSize + Mathf.FloorToInt(startIdx)];
-				var endVert = Verts[lastIdx * VertexDataSize + Mathf.FloorToInt(endIdx)];
-				var resultVert = adjustedMeshVerts[lastIdx * VertexDataSize + mI];
-
-				resultVert.y = Mathf.Lerp(startVert.y, endVert.y, percent);
-				adjustedMeshVerts[lastIdx * VertexDataSize + mI] = resultVert;
-			}
-		}
-
-		//RIGHT
-		neighbourLOD = lods[2];
-		if (neighbourLOD > LOD)
-		{
-			var leftLODStep = TerrainGenerator.MeshStepSizeByLOD[neighbourLOD];
-			float stepDif = leftLODStep / (float)selfLODStep;
-
-			float startIdx = 0f;
-			float endIdx = stepDif;
-
-			for (int mI = 0; mI < VertexDataSize; mI++)
-			{
-				if (mI >= endIdx)
-				{
-					startIdx = endIdx;
-					endIdx += stepDif;
-
-					if (startIdx >= VertexDataSize)
-					{
-						startIdx = VertexDataSize - 1;
-					}
-
-					if (endIdx >= VertexDataSize)
-					{
-						endIdx = VertexDataSize - 1;
-					}
-				}
-
-				var percent = Mathf.InverseLerp(startIdx, endIdx, mI);
-
-				var startVert = Verts[Mathf.FloorToInt(startIdx) * VertexDataSize + lastIdx];
-				var endVert = Verts[Mathf.FloorToInt(endIdx) * VertexDataSize + lastIdx];
-				var resultVert = adjustedMeshVerts[mI * VertexDataSize + lastIdx];
-
-				resultVert.y = Mathf.Lerp(startVert.y, endVert.y, percent);
-				adjustedMeshVerts[mI * VertexDataSize + lastIdx] = resultVert;
-			}
-		}
-
-
-		//Backward
-		neighbourLOD = lods[3];
-		if (neighbourLOD > LOD)
-		{
-			var leftLODStep = TerrainGenerator.MeshStepSizeByLOD[neighbourLOD];
-			float stepDif = leftLODStep / (float)selfLODStep;
-
-			float startIdx = 0f;
-			float endIdx = stepDif;
-
-			for (int mI = 0; mI < VertexDataSize; mI++)
-			{
-				if (mI >= endIdx)
-				{
-					startIdx = endIdx;
-					endIdx += stepDif;
-
-					if (startIdx >= VertexDataSize)
-					{
-						startIdx = VertexDataSize - 1;
-					}
-
-					if (endIdx >= VertexDataSize)
-					{
-						endIdx = VertexDataSize - 1;
-					}
-				}
-
-				var percent = Mathf.InverseLerp(startIdx, endIdx, mI);
-
-				var startVert = Verts[0 * VertexDataSize + Mathf.FloorToInt(startIdx)];
-				var endVert = Verts[0 * VertexDataSize + Mathf.FloorToInt(endIdx)];
-				var resultVert = adjustedMeshVerts[0 * VertexDataSize + mI];
-
-				resultVert.y = Mathf.Lerp(startVert.y, endVert.y, percent);
-				adjustedMeshVerts[0 * VertexDataSize + mI] = resultVert;
-			}
-		}
-
-		_mesh = new Mesh();
-		_mesh.name = $"Mesh LOD {LOD} Adjusted to {string.Join(",", lods)}";
-		_mesh.SetVertices(adjustedMeshVerts);
-		_mesh.SetTriangles(Tris, 0);
-		_mesh.SetUVs(0, UVs);
-		_mesh.RecalculateNormals();
-		_mesh.RecalculateTangents();
-
-		_mesh.Optimize();
-	}
-}
-public class BiomeTerrainHeightGenerator
-{
-	readonly BiomePreset _biome;
-	readonly AnimationCurve _heightCurve;
-	readonly FastNoiseLite _noise;
-
-	public BiomeTerrainHeightGenerator(BiomePreset biome, int seed)
-	{
-		_biome = biome;
-
-		_heightCurve = new AnimationCurve(_biome.HeightCurve.keys);
-		_noise = new FastNoiseLite(seed);
-
-		_noise.SetNoiseType(_biome.NoiseType);
-		_noise.SetFractalType(_biome.FractalType);
-		_noise.SetFrequency(_biome.Frequency);
-		_noise.SetFractalOctaves(_biome.Octaves);
-		_noise.SetFractalGain(_biome.Gain);
-		_noise.SetFractalLacunarity(_biome.Lacunarity);
-	}
-
-	public float GetTerrainHeight(float pX, float pY)
-	{
-		return GetHeightForNoiseVal(_noise.GetNoise(pX, pY));
-	}
-
-	public float GetHeightForNoiseVal(float val)
-    {
-		if (_biome.UseHeightCurve)
-		{
-			val = _heightCurve.Evaluate(val);
-		}
-
-		return _biome.BaseHeight + val * _biome.HeightMultiplier;
-	}
-}
-
-public class BiomeGenerator
-{
-	readonly FastNoiseLite _biomeMapNoise;
-
-	readonly int _biomeCount;
-	readonly BiomePreset[] _biomePresets;
-	readonly BiomeTerrainHeightGenerator[] _biomeGenerators;
-
-	public BiomeGenerator(
-		BiomePreset[] biomes, 
-		int seed, 
-		float biomeSize, 
-		FastNoiseLite.CellularDistanceFunction distanceFunction, 
-		float biomeJitter, 
-		FastNoiseLite.DomainWarpType warpType,
-		float wrapAmp,
-		FastNoiseLite.FractalType fractalType,
-		int fractalOctaves,
-		float fractalLacunarity,
-		float fractalGain)
-    {
-		_biomeMapNoise = new FastNoiseLite(seed);
-		_biomeMapNoise.SetNoiseType(FastNoiseLite.NoiseType.Cellular);
-		_biomeMapNoise.SetFrequency(1f / biomeSize);
-		_biomeMapNoise.SetCellularDistanceFunction(distanceFunction);
-		_biomeMapNoise.SetCellularJitter(biomeJitter);
-		_biomeMapNoise.SetCellularReturnType(FastNoiseLite.CellularReturnType.CellValue);
-
-		_biomeMapNoise.SetDomainWarpType(warpType);
-		_biomeMapNoise.SetDomainWarpAmp(wrapAmp);
-
-		_biomeMapNoise.SetFractalType(fractalType);
-		_biomeMapNoise.SetFractalOctaves(fractalOctaves);
-		_biomeMapNoise.SetFractalLacunarity(fractalLacunarity);
-		_biomeMapNoise.SetFractalGain(fractalGain);
-
-		int biomeId = 1;
-		_biomeCount = biomes.Length;
-		_biomePresets = new BiomePreset[_biomeCount + 1];
-		_biomeGenerators = new BiomeTerrainHeightGenerator[_biomeCount + 1];
-		foreach (var biome in biomes)
-		{
-			_biomePresets[biomeId] = biome;
-			_biomeGenerators[biomeId] = new BiomeTerrainHeightGenerator(biome, seed);
-			biomeId++;
-		}
-	}
-
-	public int GetBiomeId(float pX, float pY)
-    {
-		_biomeMapNoise.DomainWarp(ref pX, ref pY);
-
-		return Mathf.RoundToInt(Mathf.InverseLerp(-1f, 1f, _biomeMapNoise.GetNoise(pX, pY)) * (_biomeCount - 1)) + 1;
-	}
-
-	public BiomePreset GetBiome(int biomeId)
-    {
-		return _biomePresets[biomeId];
-    }
-
-	public BiomeTerrainHeightGenerator GetGenerator(int biomeId)
-    {
-		return _biomeGenerators[biomeId];
+        return $"Count:{Count}, MinHeights:{MinHeights?.Length} ({string.Join(",", MinHeights)}), MinHeights:{MaxHeights?.Length} ({string.Join(",", MaxHeights)}), MinHeights:{LayerCounts?.Length} ({string.Join(",", LayerCounts)})";
     }
 }
