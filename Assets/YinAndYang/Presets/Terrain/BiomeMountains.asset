@@ -12,10 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0b099db10cef32143a84c322123d1ca4, type: 3}
   m_Name: BiomeMountains
   m_EditorClassIdentifier: 
-  BiomeId: 0
   BaseHeight: 0
   HeightMultiplier: 100
-  UseHeightCurve: 0
+  UseHeightCurve: 1
   HeightCurve:
     serializedVersion: 2
     m_Curve:
@@ -106,7 +105,7 @@ MonoBehaviour:
   LayerCount: 10
   NoiseType: 0
   FractalType: 1
-  Frequency: 0.001
+  Frequency: 0.02
   Octaves: 3
   Gain: 0.3
   Lacunarity: 5

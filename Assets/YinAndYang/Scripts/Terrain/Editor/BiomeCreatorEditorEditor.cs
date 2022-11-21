@@ -3,14 +3,14 @@
 using UnityEngine;
 using UnityEditor;
 
-[CustomEditor(typeof(TerrainGenerator))]
-public class MyTerrainGeneratorEditor : Editor
+[CustomEditor(typeof(BiomePresetConfigurator))]
+public class BiomePresetConfiguratorEditor : Editor
 {
 	private void OnValidate()
 	{
-		TerrainGenerator mapGen = (TerrainGenerator)target;
+		BiomePresetConfigurator mapGen = (BiomePresetConfigurator)target;
 
-		if (mapGen.EditorAutoUpdateMesh || mapGen.EditorAutoUpdateBiome)
+		if (mapGen.EditorAutoUpdateMesh)
 		{
 			EditorApplication.update += UpdateTerrainGenerator;
 		}
@@ -18,11 +18,11 @@ public class MyTerrainGeneratorEditor : Editor
 
     public override void OnInspectorGUI()
 	{
-		TerrainGenerator mapGen = (TerrainGenerator)target;
+		BiomePresetConfigurator mapGen = (BiomePresetConfigurator)target;
 
 		if (DrawDefaultInspector())
 		{
-			if (mapGen.EditorAutoUpdateMesh || mapGen.EditorAutoUpdateBiome)
+			if (mapGen.EditorAutoUpdateMesh)
 			{
 				UpdateTerrainGenerator();
 			}
@@ -38,7 +38,7 @@ public class MyTerrainGeneratorEditor : Editor
     {
 		EditorApplication.update -= UpdateTerrainGenerator;
 
-		TerrainGenerator mapGen = (TerrainGenerator)target;
+		BiomePresetConfigurator mapGen = (BiomePresetConfigurator)target;
 		mapGen.UpdateEditor();
 	}
 }

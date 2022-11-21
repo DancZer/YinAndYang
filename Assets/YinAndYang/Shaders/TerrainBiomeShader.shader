@@ -50,6 +50,7 @@ Shader "Custom/TerrainBiomeShader"
         {
             
             float tileUV = 1.0 / maxLayerCount;
+            OUT.Albedo.rgb = float3(0,0,0);
             
             for(int biomeId=0; biomeId < _BiomeCount; biomeId++)
             {

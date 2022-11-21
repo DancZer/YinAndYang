@@ -4,8 +4,6 @@ using UnityEngine;
 [CreateAssetMenu(fileName = "Terrain Biome", menuName = "Scriptables/TerrainBiome", order = 3)]
 public class BiomePreset : ScriptableObject
 {
-	public int BiomeId;
-
 	public float BaseHeight = 0;
 	public float HeightMultiplier = 100;
 

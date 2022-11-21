@@ -3,9 +3,6 @@ using System.Linq;
 
 public class TerrainTileDisplay : MonoBehaviour
 {
-#if UNITY_EDITOR
-    public RequiredTileStatePreset EditorRequiredTileStatePreset;
-#endif
     MeshFilter _meshFilter;
     MeshCollider _meshCollider;
     MeshRenderer _meshRenderer;
@@ -35,8 +32,6 @@ public class TerrainTileDisplay : MonoBehaviour
 #endif
             return;
         }
-
-        //Debug.Log($"Display Tile:{tile}, RequiredTileStatePreset:{preset}");
 
         var meshData = tile.GetMeshData(preset.DisplayLOD);
 

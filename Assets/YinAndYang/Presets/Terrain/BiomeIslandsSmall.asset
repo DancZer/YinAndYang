@@ -10,10 +10,11 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 0b099db10cef32143a84c322123d1ca4, type: 3}
-  m_Name: BiomePlain
+  m_Name: BiomeIslandsSmall
   m_EditorClassIdentifier: 
+  BiomeId: 2
   BaseHeight: 0
-  HeightMultiplier: 50
+  HeightMultiplier: 100
   UseHeightCurve: 1
   HeightCurve:
     serializedVersion: 2
@@ -21,17 +22,35 @@ MonoBehaviour:
     - serializedVersion: 3
       time: -1
       value: -1
-      inSlope: 1
-      outSlope: 1
+      inSlope: 0.3670019
+      outSlope: 0.3670019
       tangentMode: 34
       weightedMode: 0
       inWeight: 0
       outWeight: 0.33333334
     - serializedVersion: 3
+      time: 0.18161353
+      value: -0.5663456
+      inSlope: 0.6729766
+      outSlope: 0.6729766
+      tangentMode: 34
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 0.79060423
+      value: 0.029826641
+      inSlope: 0.53764606
+      outSlope: 0.53764606
+      tangentMode: 34
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    - serializedVersion: 3
       time: 1
-      value: 1
-      inSlope: 1
-      outSlope: 1
+      value: 0.05
+      inSlope: 0.09634082
+      outSlope: 0.09634082
       tangentMode: 34
       weightedMode: 0
       inWeight: 0.33333334
@@ -39,15 +58,12 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
-  Regions:
-  - {fileID: 11400000, guid: 3c79ee7745d1c944d80b164b78aa6c90, type: 2}
-  - {fileID: 11400000, guid: d229c52ce5b7f644a99184e5c7e9c5ab, type: 2}
-  - {fileID: 11400000, guid: 7b2dbee7fd901a0449a4d7b7c0744d48, type: 2}
-  LayerCount: 8
+  Regions: []
+  LayerCount: 3
   NoiseType: 0
   FractalType: 1
-  Frequency: 0.001
-  Octaves: 3
-  Gain: 0.2
-  Lacunarity: 3
-  ColorInEditor: {r: 0.011243833, g: 0.7830189, b: 0, a: 0}
+  Frequency: 0.0003
+  Octaves: 8
+  Gain: 0.5
+  Lacunarity: 2
+  ColorInEditor: {r: 0.5377358, g: 0, b: 0.49399135, a: 0}
