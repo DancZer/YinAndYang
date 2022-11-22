@@ -26,7 +26,7 @@ public class TerrainTile
 	/// <summary>
 	/// BiomeID * TileMeshResolution * TileMeshResolution + y * TileMeshResolution + x
 	/// </summary>
-	public Color[] BiomeWeightColorMap;
+	public float[] BiomeWeightColorMap;
 
 	public readonly Dictionary<int, TerrainMeshData> MeshDatas = new();
 
@@ -103,11 +103,11 @@ public class TerrainTile
 
 	}
 
-	public Texture2DArray CreateBiomeMapWeightTexArray(BiomeData biomeData)
+	public Texture2DArray CreateBiomeMapWeightTexArray(BiomeLayerData biomeData)
     {
-		var texArray = new Texture2DArray(TerrainGenerator.TileMeshResolution, TerrainGenerator.TileMeshResolution, biomeData.Count, TextureFormat.RGB565, false);
+		var texArray = new Texture2DArray(TerrainGenerator.TileMeshResolution, TerrainGenerator.TileMeshResolution, biomeData.BiomeCount, TextureFormat.RGB565, false);
 
-        for (int biomeId = 0; biomeId < biomeData.Count; biomeId++)
+        for (int biomeId = 0; biomeId < biomeData.BiomeCount; biomeId++)
         {
 			texArray.SetPixels(GetBiomeMapColors(biomeId), biomeId);
 		}
@@ -115,12 +115,6 @@ public class TerrainTile
 
 		return texArray;
     }
-
-	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public Color GetBiomeMapColor(int mX, int mY, int biomeId)
-    {
-		return BiomeWeightColorMap[biomeId * TerrainGenerator.TileMeshResolution2 + mY * TerrainGenerator.TileMeshResolution + mX];
-	}
 
 	private Color[] GetBiomeMapColors(int biomeId)
 	{
@@ -135,6 +129,14 @@ public class TerrainTile
 		}
 
 		return result;
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public Color GetBiomeMapColor(int mX, int mY, int biomeId)
+    {
+		var weight = BiomeWeightColorMap[biomeId * TerrainGenerator.TileMeshResolution2 + mY * TerrainGenerator.TileMeshResolution + mX];
+
+		return Color.Lerp(Color.black, Color.white, weight);
 	}
 
 	public float GetHeightAt(Vector2 localPos)

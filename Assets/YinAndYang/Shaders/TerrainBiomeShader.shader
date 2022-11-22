@@ -20,6 +20,7 @@ Shader "Custom/TerrainBiomeShader"
         #pragma target 3.0
 
         const static int maxLayerCount = 16;
+		const static float epsilon = 1E-4;
 
         float4 _BaseColor;
         half _Glossiness;
@@ -27,16 +28,23 @@ Shader "Custom/TerrainBiomeShader"
         sampler2D _BiomeTileTex;
             
         int _BiomeCount;
+        float _BiomeTexIds[maxLayerCount];
         float _BiomeLayerCounts[maxLayerCount];
         float _BiomeMinHeights[maxLayerCount];
         float _BiomeMaxHeights[maxLayerCount];
+
+        float _BiomesBaseBlends[maxLayerCount * maxLayerCount];
+        float _BiomesBaseStartHeights[maxLayerCount * maxLayerCount];
+        float3 _BiomesBaseColors[maxLayerCount * maxLayerCount];
+        float _BiomesBaseColorStrengths[maxLayerCount * maxLayerCount];
         
         UNITY_DECLARE_TEX2DARRAY(_BiomeMapWeightTex);
         
         struct Input
         {
             float3 worldPos;
-            float2 uv_BiomeTileTex;
+            float3 worldNormal;
+            float2 uv;
         };
 
         // Add instancing support for this shader. You need to check 'Enable Instancing' on materials that use the shader.
@@ -46,26 +54,62 @@ Shader "Custom/TerrainBiomeShader"
             // put more per-instance properties here
         UNITY_INSTANCING_BUFFER_END(Props)
 
+        float inverseLerp(float a, float b, float value) {
+			return saturate((value-a)/(b-a));
+		}
+
+        float3 triplanar(float3 tex, float3 blendAxes) {
+
+			float3 xProjection = tex * blendAxes.x;
+			float3 yProjection = tex * blendAxes.y;
+			float3 zProjection = tex * blendAxes.z;
+
+			return xProjection + yProjection + zProjection;
+		}
+
         void surf (Input IN, inout SurfaceOutputStandard OUT)
         {
-            
             float tileUV = 1.0 / maxLayerCount;
             OUT.Albedo.rgb = float3(0,0,0);
+
+            float3 blendAxes = abs(IN.worldNormal);
+			blendAxes /= blendAxes.x + blendAxes.y + blendAxes.z;
             
-            for(int biomeId=0; biomeId < _BiomeCount; biomeId++)
+            for(int biomeIdx=0; biomeIdx < _BiomeCount; biomeIdx++)
             {
-                float heightStepSize = (_BiomeMaxHeights[biomeId] -_BiomeMinHeights[biomeId]) / _BiomeLayerCounts[biomeId];
-                float heightTileId = floor((IN.worldPos.y - _BiomeMinHeights[biomeId]) / heightStepSize);
+                float minMaxHeightDistance = _BiomeMaxHeights[biomeIdx] - _BiomeMinHeights[biomeIdx];
 
-                float2 uv_tile = IN.uv_BiomeTileTex * tileUV;
-                uv_tile.x += heightTileId * tileUV;
-                uv_tile.y += biomeId * tileUV;
-
+                float heightPercent = inverseLerp(_BiomeMinHeights[biomeIdx],_BiomeMaxHeights[biomeIdx], IN.worldPos.y);
+                
                 float3 uv_biomeMap;
-                uv_biomeMap.xy =  IN.uv_BiomeTileTex;
-                uv_biomeMap.z = biomeId;
+                uv_biomeMap.xy =  IN.uv;
+                uv_biomeMap.z = biomeIdx;
 
-                OUT.Albedo.rgb += tex2D(_BiomeTileTex, uv_tile) * UNITY_SAMPLE_TEX2DARRAY(_BiomeMapWeightTex, uv_biomeMap).r;
+                float3 biomeBlendTex = triplanar(UNITY_SAMPLE_TEX2DARRAY(_BiomeMapWeightTex, uv_biomeMap), blendAxes);
+                float biomeBlendStrength = saturate(biomeBlendTex.r);
+
+                int layerCount = (int)_BiomeLayerCounts[biomeIdx];
+
+                float3 biomeAlbedo;
+
+                for(int layerIdx=0; layerIdx < layerCount; layerIdx++)
+                {
+                    float2 uv_tile = IN.uv * tileUV; //scale down to tile size
+                    uv_tile.x += layerIdx * tileUV;
+                    uv_tile.y += biomeIdx * tileUV;
+
+                    int layerIdxx = biomeIdx * maxLayerCount + layerIdx;
+                    float baseStartHeightPercent = (_BiomesBaseStartHeights[layerIdxx] - _BiomeMinHeights[biomeIdx]) / minMaxHeightDistance;
+
+                    float layerDrawStrength = inverseLerp(-_BiomesBaseBlends[layerIdxx]/2 - epsilon, _BiomesBaseBlends[layerIdxx]/2, heightPercent - baseStartHeightPercent);
+                    float3 baseColour = _BiomesBaseColors[layerIdxx] * _BiomesBaseColorStrengths[layerIdxx];
+                    float3 textureColour = triplanar(tex2D(_BiomeTileTex, uv_tile), blendAxes);
+
+                    biomeAlbedo = biomeAlbedo * (1-layerDrawStrength) + (baseColour+textureColour) * layerDrawStrength;
+                }
+
+                OUT.Albedo = OUT.Albedo * (1-biomeBlendStrength) + biomeBlendTex * biomeBlendStrength;
+                OUT.Albedo = biomeBlendTex;
             }
             
             //OUT.Albedo = _BaseColor;

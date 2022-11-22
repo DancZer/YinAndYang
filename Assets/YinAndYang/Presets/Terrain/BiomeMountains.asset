@@ -12,7 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0b099db10cef32143a84c322123d1ca4, type: 3}
   m_Name: BiomeMountains
   m_EditorClassIdentifier: 
-  BaseHeight: 0
+  TexId: 2
+  BaseHeight: 90
   HeightMultiplier: 100
   UseHeightCurve: 1
   HeightCurve:
@@ -20,16 +21,16 @@ MonoBehaviour:
     m_Curve:
     - serializedVersion: 3
       time: -1
-      value: -0.5
-      inSlope: 3.7851648
-      outSlope: 3.7851648
+      value: -1
+      inSlope: 0.9398973
+      outSlope: 0.9398973
       tangentMode: 0
       weightedMode: 0
       inWeight: 0
-      outWeight: 0.8236616
+      outWeight: 0.19253702
     - serializedVersion: 3
-      time: -0.9012967
-      value: -0.232569
+      time: -0.71980864
+      value: -0.7667639
       inSlope: 1.3245945
       outSlope: 1.3245945
       tangentMode: 0
@@ -37,19 +38,19 @@ MonoBehaviour:
       inWeight: 0.33333334
       outWeight: 0.35220614
     - serializedVersion: 3
-      time: -0.67552745
-      value: -0.059386205
-      inSlope: 0.47619137
-      outSlope: 0.47619137
+      time: -0.30455577
+      value: -0.5991964
+      inSlope: 0.55328447
+      outSlope: 0.55328447
       tangentMode: 34
       weightedMode: 0
       inWeight: 0.33333334
       outWeight: 0.33333334
     - serializedVersion: 3
-      time: -0.009133711
-      value: 0.06409918
-      inSlope: 0.40560043
-      outSlope: 0.40560043
+      time: 0.14247762
+      value: -0.2849151
+      inSlope: 1.7473857
+      outSlope: 1.7473857
       tangentMode: 34
       weightedMode: 0
       inWeight: 0.33333334
@@ -57,8 +58,8 @@ MonoBehaviour:
     - serializedVersion: 3
       time: 0.3474364
       value: 0.2872753
-      inSlope: 1.0387087
-      outSlope: 1.0387087
+      inSlope: 2.121627
+      outSlope: 2.121627
       tangentMode: 34
       weightedMode: 0
       inWeight: 0.33333334
@@ -93,20 +94,35 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
-  Regions:
-  - {fileID: 11400000, guid: 3c79ee7745d1c944d80b164b78aa6c90, type: 2}
-  - {fileID: 11400000, guid: d229c52ce5b7f644a99184e5c7e9c5ab, type: 2}
-  - {fileID: 11400000, guid: 7b2dbee7fd901a0449a4d7b7c0744d48, type: 2}
-  - {fileID: 11400000, guid: 37acd38ff3639cb40b1b99233647555b, type: 2}
-  - {fileID: 11400000, guid: 1f50e8309df3abe4fba6deffd53ae128, type: 2}
-  - {fileID: 11400000, guid: a9822b194814d8e4482fbd815d2530a8, type: 2}
-  - {fileID: 11400000, guid: 0f821ed71649c9c4c947878ae301e71d, type: 2}
-  - {fileID: 11400000, guid: d4fe046ba5c8b4040992e8fed8cd2eab, type: 2}
-  LayerCount: 10
+  Layers:
+  - BaseBlend: 0.269
+    BaseStartHeight: 0
+    BaseColor: {r: 0.06211592, g: 0.745283, b: 0, a: 0}
+    BaseColorStrength: 1
+  - BaseBlend: 0.285
+    BaseStartHeight: 30
+    BaseColor: {r: 0.016180992, g: 0.3584906, b: 0, a: 0}
+    BaseColorStrength: 1
+  - BaseBlend: 0.446
+    BaseStartHeight: 50
+    BaseColor: {r: 0.2924528, g: 0, b: 0, a: 0}
+    BaseColorStrength: 1
+  - BaseBlend: 0.381
+    BaseStartHeight: 70
+    BaseColor: {r: 0.2924528, g: 0.2924528, b: 0.2924528, a: 0}
+    BaseColorStrength: 1
+  - BaseBlend: 0.396
+    BaseStartHeight: 80
+    BaseColor: {r: 0.5377358, g: 0.5377358, b: 0.5377358, a: 0}
+    BaseColorStrength: 1
+  - BaseBlend: 0.353
+    BaseStartHeight: 150
+    BaseColor: {r: 1, g: 1, b: 1, a: 0}
+    BaseColorStrength: 1
   NoiseType: 0
   FractalType: 1
-  Frequency: 0.02
-  Octaves: 3
-  Gain: 0.3
-  Lacunarity: 5
+  Frequency: 0.002
+  Octaves: 7
+  Gain: 0.5
+  Lacunarity: 3
   ColorInEditor: {r: 0.5377358, g: 0, b: 0.49399135, a: 0}

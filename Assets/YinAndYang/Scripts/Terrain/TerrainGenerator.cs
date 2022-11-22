@@ -52,6 +52,7 @@ public class TerrainGenerator : MonoBehaviour
 	[Range(1, 5)]
 	public int BiomeBlendSize = 1;
 
+	BiomeLayerData _biomeLayerData;
 	BiomeGenerator _biomeGenerator;
 	float _biomeBlendPercentage;
 
@@ -62,12 +63,39 @@ public class TerrainGenerator : MonoBehaviour
 	public void SetupGenerator()
 	{
 		_biomeGenerator = new BiomeGenerator(Biomes, Seed, BiomeSize, BiomeDistanceFunction, BiomeJitter, DomainWarpType, DomainWarpAmp, FractalType, FractalOctaves, FractalLacunarity, FractalGain);
-		_biomeBlendPercentage = 1f / ((2 * BiomeBlendSize + 1) * (2 * BiomeBlendSize + 1));
+		var blendWidth = 2 * BiomeBlendSize + 1;
+		_biomeBlendPercentage = 1f / (blendWidth * blendWidth);
+
+
+		_biomeLayerData = new BiomeLayerData(Biomes.Length);
+
+		for (int biomeIdx = 0; biomeIdx < Biomes.Length; biomeIdx++)
+		{
+			var biome = Biomes[biomeIdx];
+			var generator = _biomeGenerator.GetGenerator(biomeIdx);
+
+			_biomeLayerData.BiomeTexIds[biomeIdx] = biome.TexId;
+			_biomeLayerData.MinHeights[biomeIdx] = generator.GetHeightForNoiseVal(-1);
+			_biomeLayerData.MaxHeights[biomeIdx] = generator.GetHeightForNoiseVal(1);
+			_biomeLayerData.LayerCounts[biomeIdx] = biome.Layers.Length;
+
+            for (int layerIdx = 0; layerIdx < biome.Layers.Length; layerIdx++)
+            {
+				var flat2DIdx = biomeIdx * BiomeLayerData.MaxLayerCount + layerIdx;
+				var layer = biome.Layers[layerIdx];
+
+				_biomeLayerData.BaseBlendFlat2D[flat2DIdx] = layer.BaseBlend;
+				_biomeLayerData.BaseStartHeightFlat2D[flat2DIdx] = layer.BaseStartHeight;
+				_biomeLayerData.BaseColorFlat2D[flat2DIdx] = layer.BaseColor;
+				_biomeLayerData.BaseColorStrengthFlat2D[flat2DIdx] = layer.BaseColorStrength;
+
+			}
+		}
 	}
 
-	public BiomeData GetBiomeData()
+	public BiomeLayerData GetBiomeLayerData()
     {
-		return _biomeGenerator.BiomeData;
+		return _biomeLayerData;
 	}
 
 	public TerrainTile CreateEmptyTile(Vector2 pos)
@@ -86,7 +114,7 @@ public class TerrainGenerator : MonoBehaviour
 				var pX = DataResolutionToPhysicalSize(dX - tile.BlendSize);
 				var pY = DataResolutionToPhysicalSize(dY - tile.BlendSize);
 
-				biomeMap[dY * tile.DataSize + dX] = _biomeGenerator.GetBiomeId(tile.PhysicalPos.x + pX, tile.PhysicalPos.y + pY);
+				biomeMap[dY * tile.DataSize + dX] = _biomeGenerator.GetBiomeIdx(tile.PhysicalPos.x + pX, tile.PhysicalPos.y + pY);
 			}
 		}
 
@@ -102,8 +130,8 @@ public class TerrainGenerator : MonoBehaviour
 		{
 			for (int dX = 0; dX < tile.DataSize; dX++)
 			{
-				var biomeId = tile.BiomeDataMap[dY * tile.DataSize + dX];
-				var generator = _biomeGenerator.GetGenerator(biomeId);
+				var biomeIdx = tile.BiomeDataMap[dY * tile.DataSize + dX];
+				var generator = _biomeGenerator.GetGenerator(biomeIdx);
 
 				var pX = tile.PhysicalPos.x + DataResolutionToPhysicalSize(dX - tile.BlendSize);
 				var pY = tile.PhysicalPos.y + DataResolutionToPhysicalSize(dY - tile.BlendSize);
@@ -119,9 +147,9 @@ public class TerrainGenerator : MonoBehaviour
 	public void BlendHeightMap(TerrainTile tile)
 	{
 		var newHeightMap = new float[tile.DataSize * tile.DataSize];
-		var biomeAlphaMap = new Color[TileMeshResolution2 * _biomeGenerator.BiomeData.Count];
+		var biomeAlphaMap = new float[TileMeshResolution2 * _biomeLayerData.BiomeCount];
 
-		var blendBiomeCache = new float[_biomeGenerator.BiomeData.Count];
+		var blendBiomeCache = new float[_biomeLayerData.BiomeCount];
 
 		for (int dY = 0; dY < tile.DataSize; dY++)
 		{
@@ -136,9 +164,9 @@ public class TerrainGenerator : MonoBehaviour
 				}
                 else
                 {
-                    for (int biomeId = 0; biomeId < _biomeGenerator.BiomeData.Count; biomeId++)
+                    for (int biomeIdx = 0; biomeIdx < _biomeLayerData.BiomeCount; biomeIdx++)
                     {
-						blendBiomeCache[biomeId] = 0;
+						blendBiomeCache[biomeIdx] = 0;
 					}
 
 					for (int bY = -tile.BlendSize; bY <= tile.BlendSize; bY++)
@@ -146,9 +174,9 @@ public class TerrainGenerator : MonoBehaviour
 						for (int bX = -tile.BlendSize; bX <= tile.BlendSize; bX++)
 						{
 							var blendIdx = (dY + bY) * tile.DataSize + (dX + bX);
-							var biomeId = tile.BiomeDataMap[blendIdx];
+							var biomeIdx = tile.BiomeDataMap[blendIdx];
 
-							blendBiomeCache[biomeId] += _biomeBlendPercentage;
+							blendBiomeCache[biomeIdx] += _biomeBlendPercentage;
 
 							newHeight += _biomeBlendPercentage * tile.HeightDataMap[blendIdx];
 						}
@@ -157,12 +185,13 @@ public class TerrainGenerator : MonoBehaviour
 					var mY = DataResolutionToMeshResolution(dY - tile.BlendSize, TileMeshResolution);
 					var mX = DataResolutionToMeshResolution(dX - tile.BlendSize, TileMeshResolution);
 
-					if(mX < TileMeshResolution && mY < TileMeshResolution) { 
+					if(mX < TileMeshResolution && mY < TileMeshResolution) {
 
-						for (int biomeId = 0; biomeId < _biomeGenerator.BiomeData.Count; biomeId++)
+						for (int biomeIdx = 0; biomeIdx < _biomeLayerData.BiomeCount; biomeIdx++)
 						{
-							var color = Color.Lerp(Color.black, Color.white, blendBiomeCache[biomeId]);
-							biomeAlphaMap[biomeId * TileMeshResolution2 + mY * TileMeshResolution + mX] = color;
+							var weight = blendBiomeCache[biomeIdx];
+
+							biomeAlphaMap[biomeIdx * TileMeshResolution2 + mY * TileMeshResolution + mX] = weight;
 						}
 					}
 				}
@@ -307,16 +336,40 @@ public class TerrainGenerator : MonoBehaviour
 	}
 }
 
-public class BiomeData
+public class BiomeLayerData
 {
-	public int Count;
+	public const int MaxLayerCount = 16;
 
-	public float[] MinHeights;
-	public float[] MaxHeights;
-	public float[] LayerCounts;
+	public readonly int BiomeCount;
 
-    public override string ToString()
+	public readonly int[] BiomeTexIds;
+	public readonly float[] MinHeights;
+	public readonly float[] MaxHeights;
+	public readonly int[] LayerCounts;
+
+	public readonly float[] BaseBlendFlat2D;
+	public readonly float[] BaseStartHeightFlat2D;
+
+	public readonly Color[] BaseColorFlat2D;
+	public readonly float[] BaseColorStrengthFlat2D;
+
+	public BiomeLayerData()
     {
-        return $"Count:{Count}, MinHeights:{MinHeights?.Length} ({string.Join(",", MinHeights)}), MinHeights:{MaxHeights?.Length} ({string.Join(",", MaxHeights)}), MinHeights:{LayerCounts?.Length} ({string.Join(",", LayerCounts)})";
+
     }
+
+	public BiomeLayerData(int biomeCount)
+	{
+		BiomeCount = biomeCount;
+
+		BiomeTexIds = new int[MaxLayerCount];
+		MinHeights = new float[MaxLayerCount];
+		MaxHeights = new float[MaxLayerCount];
+		LayerCounts = new int[MaxLayerCount];
+
+		BaseBlendFlat2D = new float[MaxLayerCount * MaxLayerCount];
+		BaseStartHeightFlat2D = new float[MaxLayerCount * MaxLayerCount];
+		BaseColorFlat2D = new Color[MaxLayerCount * MaxLayerCount];
+		BaseColorStrengthFlat2D = new float[MaxLayerCount * MaxLayerCount];
+	}
 }

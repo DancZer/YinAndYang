@@ -26,7 +26,7 @@ public class TerrainManager : NetworkBehaviour
     TerrainGenerator _terrainGenerator;
 
     [SyncVar] int _generatorQueueCount;
-    [SyncVar] BiomeData _biomeData;
+    [SyncVar] BiomeLayerData _biomeData;
     readonly Dictionary<Vector2, TerrainTile> _generatedTiles = new();
     readonly ConcurrentQueue<(TerrainTile tile, TerrainTileState requestedState)> _terrainGeneratorInputQueue = new();
     readonly ConcurrentQueue<TerrainTile> _terrainGeneratorOutputQueue = new();
@@ -52,7 +52,7 @@ public class TerrainManager : NetworkBehaviour
         _generatorQueueCount = 0;
 
         _terrainGenerator = StaticObjectAccessor.GetTerrainGenerator();
-        _biomeData = _terrainGenerator.GetBiomeData();
+        _biomeData = _terrainGenerator.GetBiomeLayerData();
 
         Debug.Log($"BiomeData:{_biomeData}");
 #if THREADED

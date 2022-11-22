@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0b099db10cef32143a84c322123d1ca4, type: 3}
   m_Name: BiomeIslandsSmall
   m_EditorClassIdentifier: 
-  BiomeId: 2
-  BaseHeight: 0
+  TexId: 1
+  BaseHeight: -60
   HeightMultiplier: 100
   UseHeightCurve: 1
   HeightCurve:
@@ -22,35 +22,44 @@ MonoBehaviour:
     - serializedVersion: 3
       time: -1
       value: -1
-      inSlope: 0.3670019
-      outSlope: 0.3670019
+      inSlope: 0.32655153
+      outSlope: 0.32655153
       tangentMode: 34
       weightedMode: 0
       inWeight: 0
       outWeight: 0.33333334
     - serializedVersion: 3
-      time: 0.18161353
-      value: -0.5663456
-      inSlope: 0.6729766
-      outSlope: 0.6729766
+      time: -0.20779076
+      value: -0.74130285
+      inSlope: 1.2052889
+      outSlope: 1.2052889
       tangentMode: 34
       weightedMode: 0
       inWeight: 0.33333334
       outWeight: 0.33333334
     - serializedVersion: 3
-      time: 0.79060423
-      value: 0.029826641
-      inSlope: 0.53764606
-      outSlope: 0.53764606
+      time: 0.47471845
+      value: 0.68106425
+      inSlope: 1.7498736
+      outSlope: 1.7498736
       tangentMode: 34
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 0.7
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 136
       weightedMode: 0
       inWeight: 0.33333334
       outWeight: 0.33333334
     - serializedVersion: 3
       time: 1
-      value: 0.05
-      inSlope: 0.09634082
-      outSlope: 0.09634082
+      value: 1
+      inSlope: 0
+      outSlope: 0
       tangentMode: 34
       weightedMode: 0
       inWeight: 0.33333334
@@ -58,12 +67,27 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
-  Regions: []
-  LayerCount: 3
+  Layers:
+  - BaseBlend: 0.069
+    BaseStartHeight: -200
+    BaseColor: {r: 0, g: 0.06806519, b: 0.990566, a: 0}
+    BaseColorStrength: 0
+  - BaseBlend: 0.309
+    BaseStartHeight: -10
+    BaseColor: {r: 0, g: 0.68613887, b: 0.764151, a: 0}
+    BaseColorStrength: 0
+  - BaseBlend: 0.309
+    BaseStartHeight: 0
+    BaseColor: {r: 0.8660095, g: 1, b: 0, a: 0}
+    BaseColorStrength: 0
+  - BaseBlend: 0.309
+    BaseStartHeight: 10
+    BaseColor: {r: 0.54470277, g: 0.5566038, b: 0, a: 0}
+    BaseColorStrength: 0
   NoiseType: 0
   FractalType: 1
-  Frequency: 0.0003
-  Octaves: 8
-  Gain: 0.5
-  Lacunarity: 2
+  Frequency: 0.001
+  Octaves: 6
+  Gain: 0.3
+  Lacunarity: 5
   ColorInEditor: {r: 0.5377358, g: 0, b: 0.49399135, a: 0}

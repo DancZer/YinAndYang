@@ -26,7 +26,7 @@ Material:
         m_Offset: {x: 0, y: 0}
     - _BiomeTileTex:
         m_Texture: {fileID: 2800000, guid: de405c9f0c73bb347bc7d52a98eedb96, type: 3}
-        m_Scale: {x: 1, y: 1}
+        m_Scale: {x: 0.97, y: 0.66}
         m_Offset: {x: 0, y: 0}
     - _BumpMap:
         m_Texture: {fileID: 0}
@@ -69,7 +69,7 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     m_Ints:
-    - _BiomeCount: 1
+    - _BiomeCount: 2
     - _BiomeId: 0
     - _HeightTileCount: 3
     - _HeightTileId: 0

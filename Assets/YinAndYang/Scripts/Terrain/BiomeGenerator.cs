@@ -1,13 +1,13 @@
 using UnityEngine;
+using System.Linq;
 
 public class BiomeGenerator
 {
-	public readonly BiomeData BiomeData;
-
 	readonly FastNoiseLite _biomeMapNoise;
 	readonly BiomePreset[] _biomePresets;
 	readonly BiomeTerrainHeightGenerator[] _biomeGenerators;
 
+	int _lastBiomeIdx;
 
 	public BiomeGenerator(
 		BiomePreset[] biomes,
@@ -37,44 +37,20 @@ public class BiomeGenerator
 		_biomeMapNoise.SetFractalLacunarity(fractalLacunarity);
 		_biomeMapNoise.SetFractalGain(fractalGain);
 
-		BiomeData = new BiomeData
-		{
-			Count = biomes.Length
-		};
-		BiomeData.MinHeights = new float[BiomeData.Count];
-		BiomeData.MaxHeights = new float[BiomeData.Count];
-		BiomeData.LayerCounts = new float[BiomeData.Count];
+		_lastBiomeIdx = biomes.Length - 1;
 
-		_biomePresets = new BiomePreset[BiomeData.Count];
-		_biomeGenerators = new BiomeTerrainHeightGenerator[BiomeData.Count];
-		for (int biomeId = 0; biomeId < BiomeData.Count; biomeId++)
-		{
-			var biome = biomes[biomeId];
-			var generator = new BiomeTerrainHeightGenerator(biome, seed);
-
-			_biomeGenerators[biomeId] = generator;
-			_biomePresets[biomeId] = biome;
-
-			BiomeData.MinHeights[biomeId] = generator.GetHeightForNoiseVal(-1);
-			BiomeData.MaxHeights[biomeId] = generator.GetHeightForNoiseVal(1);
-			BiomeData.LayerCounts[biomeId] = biome.LayerCount;
-		}
+		_biomeGenerators = biomes.Select(b => new BiomeTerrainHeightGenerator(b, seed)).ToArray();
 	}
 
-	public int GetBiomeId(float pX, float pY)
+	public int GetBiomeIdx(float pX, float pY)
 	{
 		_biomeMapNoise.DomainWarp(ref pX, ref pY);
 
-		return Mathf.RoundToInt(Mathf.InverseLerp(-1f, 1f, _biomeMapNoise.GetNoise(pX, pY)) * (BiomeData.Count-1));
+		return Mathf.RoundToInt(Mathf.InverseLerp(-1f, 1f, _biomeMapNoise.GetNoise(pX, pY)) * _lastBiomeIdx);
 	}
 
-	public BiomePreset GetBiome(int biomeId)
+	public BiomeTerrainHeightGenerator GetGenerator(int biomeIdx)
 	{
-		return _biomePresets[biomeId];
-	}
-
-	public BiomeTerrainHeightGenerator GetGenerator(int biomeId)
-	{
-		return _biomeGenerators[biomeId];
+		return _biomeGenerators[biomeIdx];
 	}
 }

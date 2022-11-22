@@ -10,14 +10,15 @@ public class BiomePresetConfigurator : MonoBehaviour
 	[Range(1, 5)]
 	public int TileCount = 1;
 
+	public TerrainGenerator TerrainGenerator;
+
 	public RequiredTileStatePreset TileStatePreset;
 	public GameObject TilePrefab;
 
 	public bool EditorAutoUpdateMesh;
 	public BuildingFootprint EditorBuilding;
 
-	TerrainGenerator _terrainGenerator;
-	BiomeData _biomeData;
+	BiomeLayerData _biomeData;
 
 	Vector2 _lastGeneratedPos = new Vector2(float.MaxValue, float.MaxValue);
 
@@ -26,9 +27,8 @@ public class BiomePresetConfigurator : MonoBehaviour
 
 	private void DrawTerrainInEditor()
 	{
-		_terrainGenerator = GetComponent<TerrainGenerator>();
-		_terrainGenerator.SetupGenerator();
-		_biomeData = _terrainGenerator.GetBiomeData();
+		TerrainGenerator.SetupGenerator();
+		_biomeData = TerrainGenerator.GetBiomeLayerData();
 
 		_width = TileCount * 2 + 1;
 
@@ -62,7 +62,7 @@ public class BiomePresetConfigurator : MonoBehaviour
 			{
 				for (int x = -TileCount; x <= TileCount; x++)
 				{
-					var pos = transform.position + new Vector2(x * TerrainGenerator.TilePhysicalSize, y * TerrainGenerator.TilePhysicalSize).To3D();
+					var pos = (transform.position.To2D() + new Vector2(x * TerrainGenerator.TilePhysicalSize, y * TerrainGenerator.TilePhysicalSize)).To3D();
 					var obj = Instantiate(TilePrefab, pos.To2D(), Quaternion.identity, transform);
 					var tile = obj.GetComponent<TerrainTileDisplay>();
 					_generatedTiles[(y + TileCount) * _width + (x + TileCount)] = tile;
@@ -70,22 +70,22 @@ public class BiomePresetConfigurator : MonoBehaviour
 			}
 		}
 
-		for (int y = 0; y < _width; y++)
+		for (int y = -TileCount, yi=0 ; y <= TileCount; y++, yi++)
 		{
-			for (int x = 0; x < _width; x++)
+			for (int x = -TileCount, xi=0; x <= TileCount; x++, xi++)
 			{
 				TerrainTileDisplay[] neighbours = null;
 
-				if(y > 0 && x > 0 && y<_width-1 && x < _width - 1)
+				if(yi > 0 && xi > 0 && yi<_width-1 && xi < _width - 1)
                 {
 					neighbours = new TerrainTileDisplay[4];
-					neighbours[0] = _generatedTiles[y * _width + (x-1)];
-					neighbours[1] = _generatedTiles[(y+1) * _width + x];
-					neighbours[2] = _generatedTiles[y * _width + (x+1)];
-					neighbours[3] = _generatedTiles[(y-1) * _width + x];
+					neighbours[0] = _generatedTiles[yi * _width + (xi-1)];
+					neighbours[1] = _generatedTiles[(yi+1) * _width + xi];
+					neighbours[2] = _generatedTiles[yi * _width + (xi+1)];
+					neighbours[3] = _generatedTiles[(yi-1) * _width + xi];
 				}
 
-				var tile = _generatedTiles[y * _width + x];
+				var tile = _generatedTiles[yi * _width + xi];
 				tile.transform.position = (transform.position.To2D() + new Vector2(x * TerrainGenerator.TilePhysicalSize, y * TerrainGenerator.TilePhysicalSize)).To3D();
 				UpdateEditorDisplay(tile, neighbours);
 			}
@@ -95,11 +95,11 @@ public class BiomePresetConfigurator : MonoBehaviour
 	{
 		if (tileDisplay == null) return;
 
-		var tile = _terrainGenerator.CreateEmptyTile(tileDisplay.transform.position.To2D() - TerrainGenerator.TilePhysicalSizeHalfVect);
+		var tile = TerrainGenerator.CreateEmptyTile(tileDisplay.transform.position.To2D() - TerrainGenerator.TilePhysicalSizeHalfVect);
 
-		_terrainGenerator.GenerateBiomeMap(tile);
-		_terrainGenerator.GenerateHeightMap(tile);
-		_terrainGenerator.BlendHeightMap(tile);
+		TerrainGenerator.GenerateBiomeMap(tile);
+		TerrainGenerator.GenerateHeightMap(tile);
+		TerrainGenerator.BlendHeightMap(tile);
 
 		if (EditorBuilding != null)
 		{
@@ -107,7 +107,7 @@ public class BiomePresetConfigurator : MonoBehaviour
 			tile.FlatHeightMap(flatArea, EditorBuilding.transform.position.y);
 		}
 
-		_terrainGenerator.GenerateAllMeshData(tile);
+		TerrainGenerator.GenerateAllMeshData(tile);
 
 		if (neighbours != null && neighbours.Length == 4)
 		{

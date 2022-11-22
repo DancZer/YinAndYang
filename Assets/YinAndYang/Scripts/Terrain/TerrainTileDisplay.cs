@@ -19,7 +19,7 @@ public class TerrainTileDisplay : MonoBehaviour
             preset.DisplayLOD >= 0;
     }
 
-    public void Display(TerrainTile tile, RequiredTileStatePreset preset, BiomeData biomeData)
+    public void Display(TerrainTile tile, RequiredTileStatePreset preset, BiomeLayerData biomeData)
     {
         bool isReadyAndChanged = IsReadyForDisplay(tile, preset) &&
             (_tile is null || _preset is null || _tile != tile || _preset != preset ||
@@ -54,14 +54,20 @@ public class TerrainTileDisplay : MonoBehaviour
         _lastDisplayTime = tile.LastChangedTime;
     }
 
-    private void SetupMaterial(Material material, TerrainTile tile, BiomeData biomeData)
+    private void SetupMaterial(Material material, TerrainTile tile, BiomeLayerData biomeData)
     {
         Debug.Log($"SetupMaterial Tile:{tile}, BiomeData:{biomeData}");
 
-        material.SetInteger("_BiomeCount", biomeData.Count);
-        material.SetFloatArray("_BiomeLayerCounts", biomeData.LayerCounts);
+        material.SetInteger("_BiomeCount", biomeData.BiomeCount);
+        material.SetFloatArray("_BiomeTexIds", biomeData.BiomeTexIds.Select(id => (float)id).ToArray());
+        material.SetFloatArray("_BiomeLayerCounts", biomeData.LayerCounts.Select(c => (float)c).ToArray());
         material.SetFloatArray("_BiomeMinHeights", biomeData.MinHeights);
         material.SetFloatArray("_BiomeMaxHeights", biomeData.MaxHeights);
+        
+        material.SetFloatArray("_BiomesBaseBlends", biomeData.BaseBlendFlat2D);
+        material.SetFloatArray("_BiomesBaseStartHeights", biomeData.BaseStartHeightFlat2D);
+        material.SetColorArray("_BiomesBaseColors", biomeData.BaseColorFlat2D);
+        material.SetFloatArray("_BiomesBaseColorStrengths", biomeData.BaseColorStrengthFlat2D);
         
         material.SetTexture("_BiomeMapWeightTex", tile.CreateBiomeMapWeightTexArray(biomeData));
     }
