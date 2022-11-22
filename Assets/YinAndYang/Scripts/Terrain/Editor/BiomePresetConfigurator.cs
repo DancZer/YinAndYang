@@ -1,6 +1,4 @@
-using System.Collections.Generic;
 using UnityEditor;
-using UnityEditor.Presets;
 using UnityEngine;
 using System.Linq;
 

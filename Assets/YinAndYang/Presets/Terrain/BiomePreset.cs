@@ -21,7 +21,7 @@ public class BiomePreset : ScriptableObject
 	public int Octaves = 3;
 	public float Gain = 2;
 	public float Lacunarity = 2;
-	public Color ColorInEditor;
+	public Color BiomeColor;
 }
 
 [System.Serializable]

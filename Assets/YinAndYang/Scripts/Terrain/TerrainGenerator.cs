@@ -22,7 +22,7 @@ public class TerrainGenerator : MonoBehaviour
 	public static readonly Vector2Int TileHeightMapDataResolutionVect = new Vector2Int(TileHeightMapDataResolution, TileHeightMapDataResolution);
 	public static readonly Vector2Int TileHeightMapDataResolutionHalfVect = new Vector2Int(TileHeightMapDataResolutionHalf, TileHeightMapDataResolutionHalf);
 
-	public static int[] MeshStepSizeByLOD = { 4, 8, 12, 20, 24, 30, 48 }; //last idx:6
+	public static int[] MeshStepSizeByLOD = { 4, 8, 12, 20, 24, 30, 60 };
 
 	public Material BaseMaterial;
 
@@ -56,16 +56,11 @@ public class TerrainGenerator : MonoBehaviour
 	BiomeGenerator _biomeGenerator;
 	float _biomeBlendPercentage;
 
-    void Start()
-    {
-		SetupGenerator();
-    }
 	public void SetupGenerator()
 	{
 		_biomeGenerator = new BiomeGenerator(Biomes, Seed, BiomeSize, BiomeDistanceFunction, BiomeJitter, DomainWarpType, DomainWarpAmp, FractalType, FractalOctaves, FractalLacunarity, FractalGain);
 		var blendWidth = 2 * BiomeBlendSize + 1;
 		_biomeBlendPercentage = 1f / (blendWidth * blendWidth);
-
 
 		_biomeLayerData = new BiomeLayerData(Biomes.Length);
 
@@ -78,8 +73,10 @@ public class TerrainGenerator : MonoBehaviour
 			_biomeLayerData.MinHeights[biomeIdx] = generator.GetHeightForNoiseVal(-1);
 			_biomeLayerData.MaxHeights[biomeIdx] = generator.GetHeightForNoiseVal(1);
 			_biomeLayerData.LayerCounts[biomeIdx] = biome.Layers.Length;
+			_biomeLayerData.BiomeColor[biomeIdx] = biome.BiomeColor;
 
-            for (int layerIdx = 0; layerIdx < biome.Layers.Length; layerIdx++)
+
+			for (int layerIdx = 0; layerIdx < biome.Layers.Length; layerIdx++)
             {
 				var flat2DIdx = biomeIdx * BiomeLayerData.MaxLayerCount + layerIdx;
 				var layer = biome.Layers[layerIdx];
@@ -201,7 +198,7 @@ public class TerrainGenerator : MonoBehaviour
 		}
 
 		tile.HeightDataMap = newHeightMap;
-		tile.BiomeWeightColorMap = biomeAlphaMap;
+		tile.BiomeLayeredWeightMap = biomeAlphaMap;
 		tile.SetState(TerrainTileState.BlendedHeightMap);
 	}
 
@@ -346,6 +343,7 @@ public class BiomeLayerData
 	public readonly float[] MinHeights;
 	public readonly float[] MaxHeights;
 	public readonly int[] LayerCounts;
+	public readonly Color[] BiomeColor;
 
 	public readonly float[] BaseBlendFlat2D;
 	public readonly float[] BaseStartHeightFlat2D;
@@ -366,6 +364,7 @@ public class BiomeLayerData
 		MinHeights = new float[MaxLayerCount];
 		MaxHeights = new float[MaxLayerCount];
 		LayerCounts = new int[MaxLayerCount];
+		BiomeColor = new Color[MaxLayerCount];
 
 		BaseBlendFlat2D = new float[MaxLayerCount * MaxLayerCount];
 		BaseStartHeightFlat2D = new float[MaxLayerCount * MaxLayerCount];

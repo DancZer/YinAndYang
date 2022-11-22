@@ -9,14 +9,14 @@ public class BiomeTerrainHeightGenerator
 	public readonly float PhysicalMaxHeight;
 
 	readonly BiomePreset _biome;
-	readonly AnimationCurve _heightCurve;
+	readonly Keyframe[] _heightCurveKeyFrames;
 	readonly FastNoiseLite _noise;
 
 	public BiomeTerrainHeightGenerator(BiomePreset biome, int seed)
 	{
 		_biome = biome;
 
-		_heightCurve = new AnimationCurve(_biome.HeightCurve.keys);
+		_heightCurveKeyFrames = _biome.HeightCurve.keys;
 		_noise = new FastNoiseLite(seed);
 
 		_noise.SetNoiseType(_biome.NoiseType);
@@ -37,9 +37,10 @@ public class BiomeTerrainHeightGenerator
 
 	public float GetHeightForNoiseVal(float val)
 	{
+		var heightCurve = new AnimationCurve(_heightCurveKeyFrames);
 		if (_biome.UseHeightCurve)
 		{
-			val = _heightCurve.Evaluate(val);
+			val = heightCurve.Evaluate(val);
 		}
 
 		return _biome.BaseHeight + val * _biome.HeightMultiplier;

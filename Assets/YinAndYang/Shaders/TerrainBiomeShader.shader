@@ -29,6 +29,7 @@ Shader "Custom/TerrainBiomeShader"
             
         int _BiomeCount;
         float _BiomeTexIds[maxLayerCount];
+        float3 _BiomeColors[maxLayerCount];
         float _BiomeLayerCounts[maxLayerCount];
         float _BiomeMinHeights[maxLayerCount];
         float _BiomeMaxHeights[maxLayerCount];
@@ -44,7 +45,7 @@ Shader "Custom/TerrainBiomeShader"
         {
             float3 worldPos;
             float3 worldNormal;
-            float2 uv;
+            float2 uv_BiomeTileTex;
         };
 
         // Add instancing support for this shader. You need to check 'Enable Instancing' on materials that use the shader.
@@ -82,9 +83,10 @@ Shader "Custom/TerrainBiomeShader"
                 float heightPercent = inverseLerp(_BiomeMinHeights[biomeIdx],_BiomeMaxHeights[biomeIdx], IN.worldPos.y);
                 
                 float3 uv_biomeMap;
-                uv_biomeMap.xy =  IN.uv;
+                uv_biomeMap.xy =  IN.uv_BiomeTileTex;
                 uv_biomeMap.z = biomeIdx;
 
+                float3 biomeColor = _BiomeColors[biomeIdx];
                 float3 biomeBlendTex = triplanar(UNITY_SAMPLE_TEX2DARRAY(_BiomeMapWeightTex, uv_biomeMap), blendAxes);
                 float biomeBlendStrength = saturate(biomeBlendTex.r);
 
@@ -94,7 +96,7 @@ Shader "Custom/TerrainBiomeShader"
 
                 for(int layerIdx=0; layerIdx < layerCount; layerIdx++)
                 {
-                    float2 uv_tile = IN.uv * tileUV; //scale down to tile size
+                    float2 uv_tile = IN.uv_BiomeTileTex * tileUV; //scale down to tile size
                     uv_tile.x += layerIdx * tileUV;
                     uv_tile.y += biomeIdx * tileUV;
 
@@ -108,8 +110,7 @@ Shader "Custom/TerrainBiomeShader"
                     biomeAlbedo = biomeAlbedo * (1-layerDrawStrength) + (baseColour+textureColour) * layerDrawStrength;
                 }
 
-                OUT.Albedo = OUT.Albedo * (1-biomeBlendStrength) + biomeBlendTex * biomeBlendStrength;
-                OUT.Albedo = biomeBlendTex;
+                OUT.Albedo = OUT.Albedo * (1-biomeBlendStrength) + biomeAlbedo * biomeBlendStrength;
             }
             
             //OUT.Albedo = _BaseColor;

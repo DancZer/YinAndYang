@@ -26,7 +26,7 @@ public class TerrainManager : NetworkBehaviour
     TerrainGenerator _terrainGenerator;
 
     [SyncVar] int _generatorQueueCount;
-    [SyncVar] BiomeLayerData _biomeData;
+    BiomeLayerData _biomeLayerData;
     readonly Dictionary<Vector2, TerrainTile> _generatedTiles = new();
     readonly ConcurrentQueue<(TerrainTile tile, TerrainTileState requestedState)> _terrainGeneratorInputQueue = new();
     readonly ConcurrentQueue<TerrainTile> _terrainGeneratorOutputQueue = new();
@@ -52,9 +52,10 @@ public class TerrainManager : NetworkBehaviour
         _generatorQueueCount = 0;
 
         _terrainGenerator = StaticObjectAccessor.GetTerrainGenerator();
-        _biomeData = _terrainGenerator.GetBiomeLayerData();
+        _terrainGenerator.SetupGenerator();
+        _biomeLayerData = _terrainGenerator.GetBiomeLayerData();
 
-        Debug.Log($"BiomeData:{_biomeData}");
+        Debug.Log($"BiomeData:{_biomeLayerData}");
 #if THREADED
         _cancellationTokenSource = new CancellationTokenSource();
 
@@ -179,7 +180,7 @@ public class TerrainManager : NetworkBehaviour
             }
         }
 
-        if (lastDebugQueueCount != _generatorQueueCount)
+        if (lastDebugQueueCount != _generatorQueueCount && _generatorQueueCount % 10 == 0)
         {
             lastDebugQueueCount = _generatorQueueCount;
             Debug.Log($"QueueCount {lastDebugQueueCount}");
@@ -242,10 +243,10 @@ public class TerrainManager : NetworkBehaviour
     {
         if (_terrainGeneratorOutputQueue.TryDequeue(out TerrainTile tile))
         {
-            if (tile.CurrentState >= TerrainTileState.HeightMap)
+            if (tile.CurrentState >= TerrainTileState.BlendedHeightMap)
             {
                 tile.LastChangedTime = Time.realtimeSinceStartup;
-                SetChangedTileOnClient(tile);
+                SetChangedTileOnClient(tile, _biomeLayerData);
             }
                 
 
@@ -302,11 +303,13 @@ public class TerrainManager : NetworkBehaviour
     }
 
     [ObserversRpc]
-    void SetChangedTileOnClient(TerrainTile tile)
+    void SetChangedTileOnClient(TerrainTile tile, BiomeLayerData biomeLayerData)
     {
         //Debug.Log($"SetChangedTileOnClient {tile}");
         if (!IsServer)
         {
+            _biomeLayerData = biomeLayerData;
+
             if (_generatedTiles.ContainsKey(tile.PhysicalPos))
             {
                 _generatedTiles[tile.PhysicalPos] = tile;
@@ -349,7 +352,7 @@ public class TerrainManager : NetworkBehaviour
             tileDisplay.gameObject.name = tile.Id;
             tileDisplay.gameObject.SetActive(true);
 
-            tileDisplay.Display(tile, preset, _biomeData);
+            tileDisplay.Display(tile, preset, _biomeLayerData);
         }
     }
 
@@ -456,7 +459,7 @@ public class TerrainManager : NetworkBehaviour
             if (tile.FlatHeightMap(flatArea, toHeight))
             {
                 tile.SetState(TerrainTileState.BlendedHeightMap);
-                SetChangedTileOnClient(tile);
+                SetChangedTileOnClient(tile, _biomeLayerData);
 
                 _terrainGeneratorInputQueue.Enqueue((tile, tile.PreviousState));
                 UpdateQueueCount();

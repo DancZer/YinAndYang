@@ -41,46 +41,46 @@ MonoBehaviour:
     m_PostInfinity: 2
     m_RotationOrder: 4
   Layers:
-  - BaseBlend: 0.1
+  - BaseBlend: 0.2
     BaseStartHeight: -100
     BaseColor: {r: 0, g: 0.003575325, b: 1, a: 0}
-    BaseColorStrength: 1
-  - BaseBlend: 0.1
+    BaseColorStrength: 0.5
+  - BaseBlend: 0.2
     BaseStartHeight: -10
     BaseColor: {r: 0, g: 0.9797907, b: 1, a: 0}
-    BaseColorStrength: 0
-  - BaseBlend: 0.1
+    BaseColorStrength: 0.5
+  - BaseBlend: 0.2
     BaseStartHeight: -3
     BaseColor: {r: 0.959038, g: 1, b: 0, a: 0}
-    BaseColorStrength: 0
-  - BaseBlend: 0.1
+    BaseColorStrength: 0.5
+  - BaseBlend: 0.2
     BaseStartHeight: 5
     BaseColor: {r: 0.15791413, g: 0.9339623, b: 0, a: 0}
-    BaseColorStrength: 0
-  - BaseBlend: 0.1
+    BaseColorStrength: 0.5
+  - BaseBlend: 0.2
     BaseStartHeight: 30
     BaseColor: {r: 0.003013432, g: 0.5, b: 0, a: 0}
     BaseColorStrength: 0
-  - BaseBlend: 0.1
+  - BaseBlend: 0.5
     BaseStartHeight: 50
     BaseColor: {r: 0.31132078, g: 0, b: 0.021307375, a: 0}
     BaseColorStrength: 0
-  - BaseBlend: 0.1
+  - BaseBlend: 0.2
     BaseStartHeight: 70
     BaseColor: {r: 0.26415092, g: 0.26415092, b: 0.26415092, a: 0}
-    BaseColorStrength: 0
-  - BaseBlend: 0.1
+    BaseColorStrength: 0.5
+  - BaseBlend: 0.2
     BaseStartHeight: 80
     BaseColor: {r: 0.5660378, g: 0.5660378, b: 0.5660378, a: 0}
-    BaseColorStrength: 0
-  - BaseBlend: 0.1
+    BaseColorStrength: 0.5
+  - BaseBlend: 0.2
     BaseStartHeight: 85
     BaseColor: {r: 1, g: 1, b: 1, a: 0}
-    BaseColorStrength: 0
+    BaseColorStrength: 0.5
   NoiseType: 0
   FractalType: 1
   Frequency: 0.001
   Octaves: 8
   Gain: 0.4
   Lacunarity: 4
-  ColorInEditor: {r: 0.011243833, g: 0.7830189, b: 0, a: 0}
+  BiomeColor: {r: 0, g: 0.7264151, b: 0.03602889, a: 0}

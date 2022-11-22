@@ -23,10 +23,7 @@ public class TerrainTile
 	public float[] HeightDataMap;
 	public int[] BiomeDataMap;
 
-	/// <summary>
-	/// BiomeID * TileMeshResolution * TileMeshResolution + y * TileMeshResolution + x
-	/// </summary>
-	public float[] BiomeWeightColorMap;
+	public float[] BiomeLayeredWeightMap;
 
 	public readonly Dictionary<int, TerrainMeshData> MeshDatas = new();
 
@@ -134,7 +131,7 @@ public class TerrainTile
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public Color GetBiomeMapColor(int mX, int mY, int biomeId)
     {
-		var weight = BiomeWeightColorMap[biomeId * TerrainGenerator.TileMeshResolution2 + mY * TerrainGenerator.TileMeshResolution + mX];
+		var weight = BiomeLayeredWeightMap[biomeId * TerrainGenerator.TileMeshResolution2 + mY * TerrainGenerator.TileMeshResolution + mX];
 
 		return Color.Lerp(Color.black, Color.white, weight);
 	}
@@ -191,6 +188,6 @@ public class TerrainTile
 
 	public override string ToString()
 	{
-		return $"Tile Id:{Id} Pos:{PhysicalPos}, CurrentState:{CurrentState}, PreviousState:{PreviousState}, DataSize:{DataSize}, BlendSize:{BlendSize} LastChangedTime:{LastChangedTime} BiomeDataMap:{BiomeDataMap.Length} BiomeWeightColorMap:{BiomeWeightColorMap.Length}";
+		return $"Tile Id:{Id} Pos:{PhysicalPos}, CurrentState:{CurrentState}, PreviousState:{PreviousState}, DataSize:{DataSize}, BlendSize:{BlendSize} LastChangedTime:{LastChangedTime} BiomeDataMap:{BiomeDataMap.Length} BiomeWeightColorMap:{BiomeLayeredWeightMap.Length}";
 	}
 }
