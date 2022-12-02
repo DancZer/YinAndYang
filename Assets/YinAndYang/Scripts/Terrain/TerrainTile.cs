@@ -177,13 +177,13 @@ public class TerrainTile
 	/// Returns null if no preset should be applied
 	/// </summary>
 	/// <param name="viewPos"></param>
-	/// <param name="requiredStatePresets"></param>
+	/// <param name="presets"></param>
 	/// <returns></returns>
-	public RequiredTileStatePreset SelectTilePreset(Vector2 viewPos, RequiredTileStatePreset[] requiredStatePresets)
+	public TerrainTileStatePreset SelectTilePreset(Vector2 viewPos, TerrainTileStatePreset[] presets)
 	{
 		var tileDistance = Vector2.Distance(viewPos, PhysicalPos);
 
-		return requiredStatePresets.FirstOrDefault(p => p.Distance > tileDistance);
+		return presets.FirstOrDefault(p => p.Distance > tileDistance);
 	}
 
 	public override string ToString()

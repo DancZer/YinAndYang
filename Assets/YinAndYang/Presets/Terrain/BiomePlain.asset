@@ -12,7 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0b099db10cef32143a84c322123d1ca4, type: 3}
   m_Name: BiomePlain
   m_EditorClassIdentifier: 
-  TexId: 1
   BaseHeight: 30
   HeightMultiplier: 100
   UseHeightCurve: 1
@@ -43,39 +42,38 @@ MonoBehaviour:
   Layers:
   - BaseBlend: 0.2
     BaseStartHeight: -100
+    LayerTexIdx: 0
     BaseColor: {r: 0, g: 0.003575325, b: 1, a: 0}
     BaseColorStrength: 0.5
   - BaseBlend: 0.2
     BaseStartHeight: -10
+    LayerTexIdx: 0
     BaseColor: {r: 0, g: 0.9797907, b: 1, a: 0}
     BaseColorStrength: 0.5
   - BaseBlend: 0.2
     BaseStartHeight: -3
+    LayerTexIdx: 1
     BaseColor: {r: 0.959038, g: 1, b: 0, a: 0}
     BaseColorStrength: 0.5
   - BaseBlend: 0.2
     BaseStartHeight: 5
+    LayerTexIdx: 2
     BaseColor: {r: 0.15791413, g: 0.9339623, b: 0, a: 0}
     BaseColorStrength: 0.5
   - BaseBlend: 0.2
     BaseStartHeight: 30
+    LayerTexIdx: 2
     BaseColor: {r: 0.003013432, g: 0.5, b: 0, a: 0}
     BaseColorStrength: 0
   - BaseBlend: 0.5
     BaseStartHeight: 50
+    LayerTexIdx: 3
     BaseColor: {r: 0.31132078, g: 0, b: 0.021307375, a: 0}
     BaseColorStrength: 0
   - BaseBlend: 0.2
     BaseStartHeight: 70
+    LayerTexIdx: 4
     BaseColor: {r: 0.26415092, g: 0.26415092, b: 0.26415092, a: 0}
-    BaseColorStrength: 0.5
-  - BaseBlend: 0.2
-    BaseStartHeight: 80
-    BaseColor: {r: 0.5660378, g: 0.5660378, b: 0.5660378, a: 0}
-    BaseColorStrength: 0.5
-  - BaseBlend: 0.2
-    BaseStartHeight: 85
-    BaseColor: {r: 1, g: 1, b: 1, a: 0}
     BaseColorStrength: 0.5
   NoiseType: 0
   FractalType: 1

@@ -69,7 +69,7 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     m_Ints:
-    - _BiomeCount: 2
+    - _BiomeCount: 3
     - _BiomeId: 0
     - _HeightTileCount: 3
     - _HeightTileId: 0

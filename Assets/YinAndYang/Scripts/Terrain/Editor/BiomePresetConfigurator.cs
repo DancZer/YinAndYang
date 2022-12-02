@@ -5,12 +5,12 @@ using System.Linq;
 [ExecuteInEditMode]
 public class BiomePresetConfigurator : MonoBehaviour
 {
-	[Range(1, 5)]
+	[Range(0, 5)]
 	public int TileCount = 1;
 
 	public TerrainGenerator TerrainGenerator;
 
-	public RequiredTileStatePreset TileStatePreset;
+	public TerrainTileStatePreset TileStatePreset;
 	public GameObject TilePrefab;
 
 	public bool EditorAutoUpdateMesh;
@@ -72,24 +72,13 @@ public class BiomePresetConfigurator : MonoBehaviour
 		{
 			for (int x = -TileCount, xi=0; x <= TileCount; x++, xi++)
 			{
-				TerrainTileDisplay[] neighbours = null;
-
-				if(yi > 0 && xi > 0 && yi<_width-1 && xi < _width - 1)
-                {
-					neighbours = new TerrainTileDisplay[4];
-					neighbours[0] = _generatedTiles[yi * _width + (xi-1)];
-					neighbours[1] = _generatedTiles[(yi+1) * _width + xi];
-					neighbours[2] = _generatedTiles[yi * _width + (xi+1)];
-					neighbours[3] = _generatedTiles[(yi-1) * _width + xi];
-				}
-
 				var tile = _generatedTiles[yi * _width + xi];
 				tile.transform.position = (transform.position.To2D() + new Vector2(x * TerrainGenerator.TilePhysicalSize, y * TerrainGenerator.TilePhysicalSize)).To3D();
-				UpdateEditorDisplay(tile, neighbours);
+				UpdateEditorDisplay(tile);
 			}
 		}
 	}
-	private void UpdateEditorDisplay(TerrainTileDisplay tileDisplay, TerrainTileDisplay[] neighbours = null)
+	private void UpdateEditorDisplay(TerrainTileDisplay tileDisplay)
 	{
 		if (tileDisplay == null) return;
 
@@ -106,11 +95,6 @@ public class BiomePresetConfigurator : MonoBehaviour
 		}
 
 		TerrainGenerator.GenerateAllMeshData(tile);
-
-		if (neighbours != null && neighbours.Length == 4)
-		{
-			tile.MeshDatas[TileStatePreset.DisplayLOD].AdjustMeshToNeighboursLOD(neighbours.Select(n => TileStatePreset.DisplayLOD).ToArray());
-		}
 
 		tileDisplay.Display(tile, TileStatePreset, _biomeData);
 	}

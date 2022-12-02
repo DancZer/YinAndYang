@@ -4,8 +4,6 @@ using UnityEngine;
 [CreateAssetMenu(fileName = "Terrain Biome", menuName = "Scriptables/TerrainBiome", order = 3)]
 public class BiomePreset : ScriptableObject
 {
-	public int TexId;
-
 	public float BaseHeight = 0;
 	public float HeightMultiplier = 100;
 
@@ -30,6 +28,9 @@ public struct BiomeLayer
 	[Range(0f, 1f)]
 	public float BaseBlend;
 	public float BaseStartHeight;
+
+	[Range(0, 255)]
+	public int LayerTexIdx;
 
 	public Color BaseColor;
 	[Range(0f, 1f)]

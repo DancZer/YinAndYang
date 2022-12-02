@@ -28,12 +28,13 @@ Shader "Custom/TerrainBiomeShader"
         sampler2D _BiomeTileTex;
             
         int _BiomeCount;
-        float _BiomeTexIds[maxLayerCount];
+        
         float3 _BiomeColors[maxLayerCount];
         float _BiomeLayerCounts[maxLayerCount];
         float _BiomeMinHeights[maxLayerCount];
         float _BiomeMaxHeights[maxLayerCount];
 
+        float _BiomeLayerTexIdx[maxLayerCount * maxLayerCount];
         float _BiomesBaseBlends[maxLayerCount * maxLayerCount];
         float _BiomesBaseStartHeights[maxLayerCount * maxLayerCount];
         float3 _BiomesBaseColors[maxLayerCount * maxLayerCount];
@@ -96,9 +97,15 @@ Shader "Custom/TerrainBiomeShader"
 
                 for(int layerIdx=0; layerIdx < layerCount; layerIdx++)
                 {
+                    int texIdx = (int)_BiomeLayerTexIdx[biomeIdx * maxLayerCount + layerIdx];
+
+                    int texXIdx = (int)(texIdx % maxLayerCount);
+                    int texYIdx = (int)(texIdx / maxLayerCount);
+                    
+
                     float2 uv_tile = IN.uv_BiomeTileTex * tileUV; //scale down to tile size
-                    uv_tile.x += layerIdx * tileUV;
-                    uv_tile.y += biomeIdx * tileUV;
+                    uv_tile.x += texXIdx * tileUV;
+                    uv_tile.y += texYIdx * tileUV;
 
                     int layerIdxx = biomeIdx * maxLayerCount + layerIdx;
                     float baseStartHeightPercent = (_BiomesBaseStartHeights[layerIdxx] - _BiomeMinHeights[biomeIdx]) / minMaxHeightDistance;

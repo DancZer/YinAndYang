@@ -4,7 +4,6 @@ using System.Linq;
 public class BiomeGenerator
 {
 	readonly FastNoiseLite _biomeMapNoise;
-	readonly BiomePreset[] _biomePresets;
 	readonly BiomeTerrainHeightGenerator[] _biomeGenerators;
 
 	int _lastBiomeIdx;

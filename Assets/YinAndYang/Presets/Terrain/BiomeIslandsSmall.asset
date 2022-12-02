@@ -12,7 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0b099db10cef32143a84c322123d1ca4, type: 3}
   m_Name: BiomeIslandsSmall
   m_EditorClassIdentifier: 
-  TexId: 0
   BaseHeight: -60
   HeightMultiplier: 100
   UseHeightCurve: 1
@@ -70,20 +69,24 @@ MonoBehaviour:
   Layers:
   - BaseBlend: 0.2
     BaseStartHeight: -200
+    LayerTexIdx: 0
     BaseColor: {r: 0, g: 0.06806519, b: 0.990566, a: 0}
-    BaseColorStrength: 0.5
+    BaseColorStrength: 0
   - BaseBlend: 0.2
     BaseStartHeight: -10
+    LayerTexIdx: 0
     BaseColor: {r: 0, g: 0.68613887, b: 0.764151, a: 0}
-    BaseColorStrength: 0.5
+    BaseColorStrength: 0
   - BaseBlend: 0.2
-    BaseStartHeight: 0
+    BaseStartHeight: -3
+    LayerTexIdx: 1
     BaseColor: {r: 0.8660095, g: 1, b: 0, a: 0}
-    BaseColorStrength: 0.5
+    BaseColorStrength: 0
   - BaseBlend: 0.2
     BaseStartHeight: 10
+    LayerTexIdx: 1
     BaseColor: {r: 0.54470277, g: 0.5566038, b: 0, a: 0}
-    BaseColorStrength: 0.5
+    BaseColorStrength: 0
   NoiseType: 0
   FractalType: 1
   Frequency: 0.001

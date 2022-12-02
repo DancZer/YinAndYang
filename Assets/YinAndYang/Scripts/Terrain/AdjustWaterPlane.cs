@@ -2,7 +2,7 @@ using UnityEngine;
 
 public class AdjustWaterPlane : MonoBehaviour
 {
-    public RequiredTileStatePreset MaxViewDistance;
+    public TerrainTileStatePreset MaxViewDistance;
 
     public float MoveAfterDistance = 500;
 

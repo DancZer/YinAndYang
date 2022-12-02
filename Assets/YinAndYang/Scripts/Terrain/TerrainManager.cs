@@ -13,7 +13,7 @@ using UnityEngine;
 public class TerrainManager : NetworkBehaviour
 {
     public GameObject TilePrefab;
-    public RequiredTileStatePreset[] TerrainTilePresets;
+    public TerrainTileStatePreset[] TerrainTilePresets;
     public bool IsLoading
     {
         get
@@ -196,7 +196,7 @@ public class TerrainManager : NetworkBehaviour
     }
 
     [ServerRpc(RequireOwnership = false)]
-    private void RequestTilesArountPos(Vector2 viewPos, RequiredTileStatePreset[] simDistancePresets)
+    private void RequestTilesArountPos(Vector2 viewPos, TerrainTileStatePreset[] simDistancePresets)
     {
         var maxViewDistance = simDistancePresets[simDistancePresets.Length - 1];
         var maxDistanceTileCount = Mathf.CeilToInt(maxViewDistance.Distance / TerrainGenerator.TilePhysicalSize);
@@ -262,7 +262,7 @@ public class TerrainManager : NetworkBehaviour
 
 
     [Client]
-    private void UpdateTilesArountClientLastPos(RequiredTileStatePreset[] simDistancePresets)
+    private void UpdateTilesArountClientLastPos(TerrainTileStatePreset[] simDistancePresets)
     {
         var maxViewDistance = simDistancePresets.Last();
         var maxDistanceTileCount = Mathf.CeilToInt(maxViewDistance.Distance / TerrainGenerator.TilePhysicalSize);
@@ -320,13 +320,13 @@ public class TerrainManager : NetworkBehaviour
             }
         }
 
-        var requiredPreset = tile.SelectTilePreset(_lastTerrainUpdatePos, TerrainTilePresets);
+        var terrainTileStatePreset = tile.SelectTilePreset(_lastTerrainUpdatePos, TerrainTilePresets);
 
-        UpdateDisplayWithPreset(tile, requiredPreset);
+        UpdateDisplayWithPreset(tile, terrainTileStatePreset);
     }
 
     [Client]
-    void UpdateDisplayWithPreset(TerrainTile tile, RequiredTileStatePreset preset)
+    void UpdateDisplayWithPreset(TerrainTile tile, TerrainTileStatePreset preset)
     {
         if (!TerrainTileDisplay.IsReadyForDisplay(tile, preset))
         {
@@ -355,7 +355,6 @@ public class TerrainManager : NetworkBehaviour
             tileDisplay.Display(tile, preset, _biomeLayerData);
         }
     }
-
     private TerrainTileDisplay GetAvailableTerrainDisplay(TerrainTile forTile)
     {
         //Debug.Log($"GetAvailableTerrainDisplay {forTile.Id} {_activeTileDisplays.Count} {_previousActiveTileDisplays.Count} {_notUsedTileDisplays.Count}");

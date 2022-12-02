@@ -3,15 +3,17 @@ using System.Linq;
 
 public class TerrainTileDisplay : MonoBehaviour
 {
+    public TerrainTileStatePreset LastPreset;
+
     MeshFilter _meshFilter;
     MeshCollider _meshCollider;
     MeshRenderer _meshRenderer;
 
     TerrainTile _tile;
-    RequiredTileStatePreset _preset;
+    
     float _lastDisplayTime;
 
-    public static bool IsReadyForDisplay(TerrainTile tile, RequiredTileStatePreset preset)
+    public static bool IsReadyForDisplay(TerrainTile tile, TerrainTileStatePreset preset)
     {
         return
             tile != null && preset != null &&
@@ -19,32 +21,37 @@ public class TerrainTileDisplay : MonoBehaviour
             preset.DisplayLOD >= 0;
     }
 
-    public void Display(TerrainTile tile, RequiredTileStatePreset preset, BiomeLayerData biomeData)
+    public void Display(TerrainTile tile, TerrainTileStatePreset preset, BiomeLayerData biomeData)
     {
         bool isReadyAndChanged = IsReadyForDisplay(tile, preset) &&
-            (_tile is null || _preset is null || _tile != tile || _preset != preset ||
-            _tile == tile && _preset == preset && _lastDisplayTime != tile.LastChangedTime);
+            (_tile is null || LastPreset is null || _tile != tile || LastPreset != preset ||
+            _tile == tile && LastPreset == preset && _lastDisplayTime != tile.LastChangedTime);
 
         if (!isReadyAndChanged) return;
 
         var meshData = tile.GetMeshData(preset.DisplayLOD);
 
+        Debug.Log($"Display: {tile}, {preset}");
+        
+
+        var mesh = meshData.CreateMesh();
+
         if (Application.isEditor && !Application.isPlaying)
         {
-            GetMeshFilter().sharedMesh = meshData.CreateMesh();
+            GetMeshFilter().sharedMesh = mesh;
             SetupMaterial(GetMeshRenderer().sharedMaterial, tile, biomeData);
         }
         else
         {
             var colliderMeshData = tile.GetMeshData(preset.CollisionLOD);
 
-            GetMeshFilter().mesh = meshData.CreateMesh();
+            GetMeshFilter().mesh = mesh;
             GetMeshCollider().sharedMesh = colliderMeshData.CreateMesh();
             SetupMaterial(GetMeshRenderer().material, tile, biomeData);
         }
 
         _tile = tile;
-        _preset = preset;
+        LastPreset = preset;
         _lastDisplayTime = tile.LastChangedTime;
     }
 
@@ -53,7 +60,7 @@ public class TerrainTileDisplay : MonoBehaviour
         //Debug.Log($"SetupMaterial Tile:{tile}, BiomeData:{biomeData}");
 
         material.SetInteger("_BiomeCount", biomeData.BiomeCount);
-        material.SetFloatArray("_BiomeTexIds", biomeData.BiomeTexIds.Select(id => (float)id).ToArray());
+        material.SetFloatArray("_BiomeLayerTexIdx", biomeData.BiomeLayerTexIdx.Select(id => (float)id).ToArray());
         material.SetColorArray("_BiomeColors", biomeData.BiomeColor);
         material.SetFloatArray("_BiomeLayerCounts", biomeData.LayerCounts.Select(c => (float)c).ToArray());
         material.SetFloatArray("_BiomeMinHeights", biomeData.MinHeights);
@@ -70,7 +77,7 @@ public class TerrainTileDisplay : MonoBehaviour
     public void ResetDisplay()
     {
         _tile = null;
-        _preset = null;
+        LastPreset = null;
         _lastDisplayTime = 0;
     }
 

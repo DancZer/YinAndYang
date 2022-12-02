@@ -8,11 +8,11 @@ public class TerrainGenerator : MonoBehaviour
 	public static readonly Vector2 TilePhysicalSizeVect = new Vector2(TilePhysicalSize, TilePhysicalSize);
 	public static readonly Vector2 TilePhysicalSizeHalfVect = new Vector2(TilePhysicalSizeHalf, TilePhysicalSizeHalf);
 
-	public const int TileMeshResolution = 120;
+	public const int TileMeshResolution = 240;
 	public const int TileMeshResolution2 = TileMeshResolution * TileMeshResolution;
 	public const int TileMeshResolutionHalf = TileMeshResolution/2;
 
-	public const int TileDataResolution = 120;
+	public const int TileDataResolution = 240;
 	public const int TileDataResolutionHalf = TileDataResolution/2;
 	public static readonly Vector2Int TileDataResolutionVect = new Vector2Int(TileDataResolution, TileDataResolution);
 	public static readonly Vector2Int TileDataResolutionHalfVect = new Vector2Int(TileDataResolutionHalf, TileDataResolutionHalf);
@@ -69,7 +69,6 @@ public class TerrainGenerator : MonoBehaviour
 			var biome = Biomes[biomeIdx];
 			var generator = _biomeGenerator.GetGenerator(biomeIdx);
 
-			_biomeLayerData.BiomeTexIds[biomeIdx] = biome.TexId;
 			_biomeLayerData.MinHeights[biomeIdx] = generator.GetHeightForNoiseVal(-1);
 			_biomeLayerData.MaxHeights[biomeIdx] = generator.GetHeightForNoiseVal(1);
 			_biomeLayerData.LayerCounts[biomeIdx] = biome.Layers.Length;
@@ -81,6 +80,7 @@ public class TerrainGenerator : MonoBehaviour
 				var flat2DIdx = biomeIdx * BiomeLayerData.MaxLayerCount + layerIdx;
 				var layer = biome.Layers[layerIdx];
 
+				_biomeLayerData.BiomeLayerTexIdx[flat2DIdx] = layer.LayerTexIdx;
 				_biomeLayerData.BaseBlendFlat2D[flat2DIdx] = layer.BaseBlend;
 				_biomeLayerData.BaseStartHeightFlat2D[flat2DIdx] = layer.BaseStartHeight;
 				_biomeLayerData.BaseColorFlat2D[flat2DIdx] = layer.BaseColor;
@@ -215,16 +215,28 @@ public class TerrainGenerator : MonoBehaviour
 	{
 		lod = lod < 0 ? 0 : lod;
 
-		var meshStepSize = MeshStepSizeByLOD[lod];
+		var meshData = new TerrainMeshData(lod);
+
+		CreateTileSkirtMesh(tile, meshData);
+
+		tile.AddOrUpdateMesh(meshData);
+	}
+	private void CreateTileSkirtMesh(TerrainTile tile, TerrainMeshData meshData)
+	{
+		var meshStepSize = MeshStepSizeByLOD[0];
 		var meshResolution = TileMeshResolution / meshStepSize;
+		var vertexCount = meshResolution + 1;
 		var uvStep = 1f / meshResolution;
 
-		var meshData = new TerrainMeshData(lod, meshResolution);
+		var skirtSize = 1;
+		var lastVertexIdx = vertexCount - 1;
 
-		; for (int mY = 0; mY < meshData.VertexDataSize; mY++)
+		for (int mY = 0; mY < vertexCount; mY++)
 		{
-			for (int mX = 0; mX < meshData.VertexDataSize; mX++)
-			{ 
+			for (int mX = 0; mX < vertexCount; mX++)
+			{
+				if (mX > skirtSize && mY > skirtSize && mX < lastVertexIdx - skirtSize && mY < lastVertexIdx - skirtSize) continue;
+
 				var dX = MeshResolutionToDataResolution(mX, meshResolution);
 				var dY = MeshResolutionToDataResolution(mY, meshResolution);
 
@@ -238,21 +250,83 @@ public class TerrainGenerator : MonoBehaviour
 				meshData.Verts.Add(new Vector3(
 					-TilePhysicalSizeHalf + pX,
 					pHeight,
-					- TilePhysicalSizeHalf + pY));
+					-TilePhysicalSizeHalf + pY));
+
+				meshData.UVs.Add(new Vector2(mX * uvStep, mY * uvStep));
+
+				//create triangles till the last line of vertices
+				if (!(mX >= skirtSize && mY >= skirtSize && mX < lastVertexIdx - skirtSize && mY < lastVertexIdx - skirtSize) && mX <= lastVertexIdx-1 && mY <= lastVertexIdx - 1)
+				{
+					meshData.AddTriangle(GetSkirtVertexIdx(mX, mY, vertexCount, skirtSize), GetSkirtVertexIdx(mX, mY+1, vertexCount, skirtSize), GetSkirtVertexIdx(mX+1, mY+1, vertexCount, skirtSize));
+					meshData.AddTriangle(GetSkirtVertexIdx(mX, mY, vertexCount, skirtSize), GetSkirtVertexIdx(mX+1, mY+1, vertexCount, skirtSize), GetSkirtVertexIdx(mX+1, mY, vertexCount, skirtSize));
+				}
+			}
+		}
+	}
+
+	private int GetSkirtVertexIdx(int x, int y, int vertexCount, int skirtSize = 1)
+    {
+		var idx = y * vertexCount + x;
+		var lastIdx = vertexCount - 1 - skirtSize;
+		var notSkirtVertextSize = vertexCount - 2 * (skirtSize+1);
+
+		if(y > skirtSize)
+        {
+			if(x <= skirtSize && y < lastIdx)
+            {
+				idx += notSkirtVertextSize;
+            }
+
+			var skipRows = y - skirtSize;
+
+            if (skipRows > notSkirtVertextSize)
+            {
+				skipRows = notSkirtVertextSize;
+            }
+			idx -= skipRows * notSkirtVertextSize;
+		}
+
+		return idx;
+	}
+
+
+	private void CreateTileCenterMesh(TerrainTile tile, TerrainMeshData meshData)
+    {
+		var meshStepSize = MeshStepSizeByLOD[meshData.LOD];
+		var meshResolution = TileMeshResolution / meshStepSize;
+		var vertexCount = meshResolution + 1;
+		var uvStep = 1f / meshResolution;
+
+		for (int mY = 0; mY < vertexCount; mY++)
+		{
+			for (int mX = 0; mX < vertexCount; mX++)
+			{
+				var dX = MeshResolutionToDataResolution(mX, meshResolution);
+				var dY = MeshResolutionToDataResolution(mY, meshResolution);
+
+				var dIdx = (dY + tile.BlendSize) * tile.DataSize + (dX + tile.BlendSize);
+
+				var pX = MeshResolutionToPhysicalSize(mX, meshResolution);
+				var pY = MeshResolutionToPhysicalSize(mY, meshResolution);
+
+				var pHeight = tile.HeightDataMap[dIdx];
+
+				meshData.Verts.Add(new Vector3(
+					-TilePhysicalSizeHalf + pX,
+					pHeight,
+					-TilePhysicalSizeHalf + pY));
 
 				meshData.UVs.Add(new Vector2(mX * uvStep, mY * uvStep));
 
 				//create triangles till the last line of vertices
 				if (mX < meshResolution && mY < meshResolution)
 				{
-					var idx = mY * meshData.VertexDataSize + mX;
-					meshData.AddTriangle(idx, idx + meshData.VertexDataSize, idx + meshData.VertexDataSize + 1);
-					meshData.AddTriangle(idx, idx + meshData.VertexDataSize + 1, idx + 1);
+					var idx = mY * vertexCount + mX;
+					meshData.AddTriangle(idx, idx + vertexCount, idx + vertexCount + 1);
+					meshData.AddTriangle(idx, idx + vertexCount + 1, idx + 1);
 				}
 			}
 		}
-
-		tile.AddOrUpdateMesh(meshData);
 	}
 
 	public void AdjustTerrainTileMeshData(TerrainTile tile)
@@ -323,7 +397,7 @@ public class TerrainGenerator : MonoBehaviour
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static float AnyPosToTilePos(float pPos)
 	{
-		return Mathf.Floor(pPos / TilePhysicalSize) * TilePhysicalSize - TilePhysicalSizeHalf;
+		return Mathf.Floor((pPos + TilePhysicalSizeHalf) / TilePhysicalSize) * TilePhysicalSize - TilePhysicalSizeHalf;
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -339,12 +413,12 @@ public class BiomeLayerData
 
 	public readonly int BiomeCount;
 
-	public readonly int[] BiomeTexIds;
 	public readonly float[] MinHeights;
 	public readonly float[] MaxHeights;
 	public readonly int[] LayerCounts;
 	public readonly Color[] BiomeColor;
 
+	public readonly int[] BiomeLayerTexIdx;
 	public readonly float[] BaseBlendFlat2D;
 	public readonly float[] BaseStartHeightFlat2D;
 
@@ -360,12 +434,12 @@ public class BiomeLayerData
 	{
 		BiomeCount = biomeCount;
 
-		BiomeTexIds = new int[MaxLayerCount];
 		MinHeights = new float[MaxLayerCount];
 		MaxHeights = new float[MaxLayerCount];
 		LayerCounts = new int[MaxLayerCount];
 		BiomeColor = new Color[MaxLayerCount];
 
+		BiomeLayerTexIdx = new int[MaxLayerCount * MaxLayerCount];
 		BaseBlendFlat2D = new float[MaxLayerCount * MaxLayerCount];
 		BaseStartHeightFlat2D = new float[MaxLayerCount * MaxLayerCount];
 		BaseColorFlat2D = new Color[MaxLayerCount * MaxLayerCount];
